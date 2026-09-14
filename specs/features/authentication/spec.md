@@ -25,7 +25,7 @@ Success means: the app never renders a view with an unknown user, never guesses 
 
 ## Background / Context
 
-The POC brief requires (§6) that *"every action is tied to a real, authenticated user; there's no anonymous path through viewing or acting on a candidate."* On the frontend that means there is no "pick a role" dropdown and no demo mode — the app has exactly two states: signed out at `/login`, or signed in with a server-verified identity.
+The POC brief requires (§6) that _"every action is tied to a real, authenticated user; there's no anonymous path through viewing or acting on a candidate."_ On the frontend that means there is no "pick a role" dropdown and no demo mode — the app has exactly two states: signed out at `/login`, or signed in with a server-verified identity.
 
 [../../../CLAUDE.md](../../../CLAUDE.md) also sets a rule this feature must honour from the start:
 
@@ -35,24 +35,24 @@ So role does not merely toggle UI here — it determines which route a user land
 
 ### Current state of `frontend/`
 
-| | Today |
-|---|---|
-| Stack | Next.js 16 App Router, React 19, TypeScript, Tailwind v4 |
-| UI | shadcn/ui primitives over base-ui in [`src/components/ui/`](../../../src/components/ui/) — `field`, `input`, `label`, `button`, `table`, `card`, `select`, `dialog`, `sonner`, … |
-| Data | TanStack Query 5, wired by [`src/components/providers/query-provider.tsx`](../../../src/components/providers/query-provider.tsx) |
-| HTTP | [`src/lib/api.ts`](../../../src/lib/api.ts) — `apiFetch<T>()` + `ApiError` (reads `data.message`) |
-| Forms | react-hook-form 7 + `@hookform/resolvers/zod` + zod 4; schema pattern in [`src/lib/schemas/quick-note.ts`](../../../src/lib/schemas/quick-note.ts) |
-| Pages | One demo page (`ApiStatusCard`, `QuickNoteForm`). Stock metadata `"Create Next App"` |
-| Routing | App Router only — no `middleware.ts` |
-| Auth | **none** |
-| Tests | **none** — and none planned. Verification for this POC is manual; automated testing is a later decision |
+|         | Today                                                                                                                                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Stack   | Next.js 16 App Router, React 19, TypeScript, Tailwind v4                                                                                                                         |
+| UI      | shadcn/ui primitives over base-ui in [`src/components/ui/`](../../../src/components/ui/) — `field`, `input`, `label`, `button`, `table`, `card`, `select`, `dialog`, `sonner`, … |
+| Data    | TanStack Query 5, wired by [`src/components/providers/query-provider.tsx`](../../../src/components/providers/query-provider.tsx)                                                 |
+| HTTP    | [`src/lib/api.ts`](../../../src/lib/api.ts) — `apiFetch<T>()` + `ApiError` (reads `data.message`)                                                                                |
+| Forms   | react-hook-form 7 + `@hookform/resolvers/zod` + zod 4; schema pattern in `src/lib/schemas/quick-note.ts` (scaffolding, since deleted)                                            |
+| Pages   | One demo page (`ApiStatusCard`, `QuickNoteForm`). Stock metadata `"Create Next App"`                                                                                             |
+| Routing | App Router only — no routing gate file                                                                                                                                           |
+| Auth    | **none**                                                                                                                                                                         |
+| Tests   | **none** — and none planned. Verification for this POC is manual; automated testing is a later decision                                                                          |
 
 ### Routing approach
 
 Route protection is expressed entirely in App Router idioms, layered so that each piece does one job:
 
 - **Route groups** — `(auth)` for the unauthenticated shell, `(app)` for the authenticated one. The guard lives in `(app)/layout.tsx`, so no page repeats it.
-- **`middleware.ts`** — a cheap cookie-presence redirect that runs before any app JS, so a logged-out user never sees the authenticated shell flash. UX only, never the security control (AZ-1).
+- **~~`middleware.ts`~~** — **not built** (FE-6). A cookie-presence redirect was specified, but the refresh cookie's `Path=/api/auth` means a frontend route request never carries it, so the gate could never see it. Route protection is entirely client-side.
 - **Client guard components** — `<RequireAuth>` performs the real check, against the session established by bootstrap.
 
 The login view is `app/(auth)/login/page.tsx`, and all auth code is grouped as a feature module under `src/features/auth/`.
@@ -63,7 +63,7 @@ Settled, not open:
 
 - **No signup page and no provisioning page.** Login is the only unauthenticated view, and the app creates no accounts at all.
 - **Two roles only** — `INTERVIEWER` and `RECRUITER`. No `HIRING_MANAGER`.
-- **Role-specific landings** — `RECRUITER → /pipeline`, `INTERVIEWER → /my-interviews`. Both routes are reachable by both roles; role determines only where you *land*.
+- **Role-specific landings** — `RECRUITER → /pipeline`, `INTERVIEWER → /my-interviews`. Both routes are reachable by both roles; role determines only where you _land_.
 - **No role-gated route exists in this feature.** A `403` reaches the client only as an API response, and is rendered as the 403 view.
 - **Access token in React memory; refresh token in an `HttpOnly` cookie** the client can never read.
 
@@ -71,11 +71,11 @@ Settled, not open:
 
 ## Users / Actors
 
-| Actor | Sees |
-|---|---|
-| **Anonymous visitor** | `/login` only. Any other route redirects to `/login?next=<path>`. |
-| **Interviewer** (`INTERVIEWER`) | Lands on `/my-interviews`. Can reach `/pipeline` and `/my-interviews`. No user-creation UI exists anywhere. |
-| **Recruiter** (`RECRUITER`) | Lands on `/pipeline`. Can reach `/pipeline` and `/my-interviews`. **The same routes as an interviewer** — the two roles differ only in landing page until a later feature introduces role-gated content. No user-creation UI exists anywhere. |
+| Actor                           | Sees                                                                                                                                                                                                                                          |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Anonymous visitor**           | `/login` only. Any other route redirects to `/login?next=<path>`.                                                                                                                                                                             |
+| **Interviewer** (`INTERVIEWER`) | Lands on `/my-interviews`. Can reach `/pipeline` and `/my-interviews`. No user-creation UI exists anywhere.                                                                                                                                   |
+| **Recruiter** (`RECRUITER`)     | Lands on `/pipeline`. Can reach `/pipeline` and `/my-interviews`. **The same routes as an interviewer** — the two roles differ only in landing page until a later feature introduces role-gated content. No user-creation UI exists anywhere. |
 
 There is **no operator/admin persona in the UI at all.** Every account of either role is created from the backend — `POST /api/auth/signup` via Postman/curl, or `npm run db:seed`. A recruiter who needs an interviewer onboarded asks an operator; there is no page for it, by design.
 
@@ -105,11 +105,11 @@ There is **no operator/admin persona in the UI at all.** Every account of either
 
 The app has exactly three session states, and every route resolves to one of them:
 
-| State | Meaning | Rendered |
-|---|---|---|
-| `bootstrapping` | A refresh cookie may exist; identity not yet resolved | Full-page loading state |
-| `authenticated` | `/api/auth/me` returned a user | The requested route, guarded by role |
-| `anonymous` | No cookie, or refresh failed | `/login` |
+| State           | Meaning                                               | Rendered                             |
+| --------------- | ----------------------------------------------------- | ------------------------------------ |
+| `bootstrapping` | A refresh cookie may exist; identity not yet resolved | Full-page loading state              |
+| `authenticated` | `/api/auth/me` returned a user                        | The requested route, guarded by role |
+| `anonymous`     | No cookie, or refresh failed                          | `/login`                             |
 
 **FR-1.1** The app **never** renders authenticated chrome while in `bootstrapping`, and **never** flashes `/login` before bootstrapping resolves.
 
@@ -133,6 +133,7 @@ The app has exactly three session states, and every route resolves to one of the
 - **FR-4.1** A logout control is present in the app chrome on every authenticated page.
 - **FR-4.2** It calls `POST /api/auth/logout`, then clears the in-memory token and the query cache, then navigates to `/login`.
 - **FR-4.3** **If the request fails, local state is cleared and the navigation happens anyway.** A user who clicks log out is logged out locally regardless of the network.
+- **FR-4.4** Logging out navigates to a plain `/login` — **no `?next=`**. A `?next=` exists to return a user to work they were interrupted from (FR-5.4); someone who chose to leave was not interrupted. The session layer therefore distinguishes a deliberate sign-out from an expiry, even though both end in the `anonymous` state.
 
 ### FR-5 — Route protection
 
@@ -163,7 +164,6 @@ The app has exactly three session states, and every route resolves to one of the
 
 ```
 frontend/src/
-├── middleware.ts                          # cookie-presence gate (UX only)
 ├── app/
 │   ├── layout.tsx                         # real metadata + QueryProvider + Toaster + AuthProvider
 │   ├── (auth)/
@@ -231,12 +231,28 @@ Exposes `{ user, role, isLoading, isAuthenticated, login, logout }`.
 - **FE-5.2** `login` and `logout` are mutations that update the token store and invalidate/clear the cache.
 - **FE-5.3** The `['auth','me']` query does **not** retry on `401` — retrying a genuine auth failure just delays the redirect.
 
-### FE-6 — `middleware.ts`
+### FE-6 — ~~`middleware.ts`~~ — **removed, approved 2026-09-14**
 
-- **FE-6.1** Checks only that the `refresh_token` cookie **is present**. It does **not** validate it, decode it, or call the backend — it cannot, since the token is opaque and the access token lives in memory.
-- **FE-6.2** No cookie + protected path → `redirect('/login?next=<path>')`. This exists purely to avoid an app-shell flash; the real guard is FE-7.
-- **FE-6.3** Cookie present + path is `/login` → redirect to `/pipeline`. Role-correct landing is then settled client-side once `/me` resolves. Both roles may view `/pipeline`, so this redirect is never itself a `403`.
-- **FE-6.4** Documented in-code as a UX optimisation with **no security value** — a forged cookie gets past it and is then rejected by the backend on the first real request.
+**No `middleware.ts` (Next 16: `proxy.ts`) is built. There is no server-side routing gate at all.**
+
+The original FE-6 specified a cookie-presence redirect keyed on `refresh_token`. **It cannot work**, and the reason is in the backend contract rather than in this file:
+
+- The backend sets the cookie with `Path=/api/auth` (backend BE-7.3, BE-7.4) so that it rides only on `refresh` and `logout`, not on ordinary API calls.
+- A browser therefore attaches that cookie **only** to requests whose path starts with `/api/auth`. A request for `/pipeline` or `/login` — which is what a routing gate sees — carries no cookie at all.
+- `request.cookies.get('refresh_token')` in a frontend gate is consequently **always empty**, for signed-in and signed-out visitors alike. Built as originally written, FE-6.3 would never fire and every authenticated hard reload would bounce to `/login`, breaking AC-F25, AC-M02 and EC-05.
+
+(Ports are irrelevant here — cookies ignore them, so `localhost:3000` and `localhost:3001` share a jar. The `Path` attribute alone is what blocks it.)
+
+Two fixes were considered and rejected: widening the cookie to `Path=/` would undo the scoping BE-7.4 chose deliberately and requires a cross-repo change; shipping the gate anyway would knowingly break session persistence.
+
+**Resolution:** the gate is dropped and route protection is entirely client-side (FE-7). The consequences are bounded:
+
+- **FE-6.1** `<RequireAuth>` performs the anonymous → `/login?next=<path>` redirect that the gate would have performed (AC-F24), and `LoginForm` redirects an already-authenticated visitor away from `/login` (AC-F25, EC-07).
+- **FE-6.2** **No app-shell flash results.** The gate's stated purpose (FE-6.2 as written) was avoiding one, but the authenticated layout already renders a full-page loading state until bootstrap resolves (FE-3.1) — the shell is never painted with an unknown user either way.
+- **FE-6.3** The cost is one round trip: a signed-out visitor to a guarded route now pays a failing `POST /api/auth/refresh` before landing on `/login`, where the gate would have redirected before any app JS ran. Acceptable for a POC, and the only regression.
+- **FE-6.4** Nothing is lost in security terms. The gate was explicitly UX-only and never the control (AZ-1); the backend re-authorizes every request regardless. Removing it removes no protection, because it never provided any.
+
+**If a server-side gate is wanted later**, it needs a cookie the frontend origin actually receives on page requests — a cross-repo decision, and its own spec change on both sides.
 
 ### FE-7 — Guards
 
@@ -244,6 +260,7 @@ Exposes `{ user, role, isLoading, isAuthenticated, login, logout }`.
 - **FE-7.2** **`<RequireRole>` is not built by this feature.** No route is role-gated (FR-5.2), so the component would ship with no consumer. The first feature that introduces a role-gated route specifies and builds it then.
 - **FE-7.3** `<RequireAuth>` is documented in-code as **UX only**; the backend re-authorizes every request regardless.
 - **FE-7.4** A `403 FORBIDDEN` from any API call renders the **403 view** at `/forbidden` (FR-5.3). That view is therefore built even though no guard routes to it — the server, not the client, is what sends a user there.
+- **FE-7.5** **Identity-error state (added during implementation).** If `GET /api/auth/me` fails in a way a refresh cannot fix — a `500`, or an unreachable backend — `<RequireAuth>` renders the generic retryable message from § Error Handling with a retry control, rather than continuing to show the loading state. Without this the guard would spin indefinitely on a session whose identity never resolves, which EC-14 forbids. A `401` never reaches this branch: the interceptor converts it into a refresh and, on failure, a redirect to `/login`.
 
 ### FE-8 — Login page (`/login`)
 
@@ -253,14 +270,14 @@ Exposes `{ user, role, isLoading, isAuthenticated, login, logout }`.
   - password — `type="password"`, `autoComplete="current-password"`
 - **FE-8.3** **State matrix:**
 
-  | State | Behaviour |
-  |---|---|
-  | Idle | Submit enabled |
-  | Client-invalid | Per-field messages under each field; **no network request** |
-  | Submitting | Submit disabled with a spinner; both inputs disabled; double-submit impossible |
-  | `401` | One form-level error: *"Invalid email or password."* Password cleared, email retained, focus returned to password |
-  | `500` / network failure | Form-level error: *"Something went wrong. Please try again."* Both inputs retained |
-  | Success | Token stored → `/api/auth/me` → navigate |
+  | State                   | Behaviour                                                                                                         |
+  | ----------------------- | ----------------------------------------------------------------------------------------------------------------- |
+  | Idle                    | Submit enabled                                                                                                    |
+  | Client-invalid          | Per-field messages under each field; **no network request**                                                       |
+  | Submitting              | Submit disabled with a spinner; both inputs disabled; double-submit impossible                                    |
+  | `401`                   | One form-level error: _"Invalid email or password."_ Password cleared, email retained, focus returned to password |
+  | `500` / network failure | Form-level error: _"Something went wrong. Please try again."_ Both inputs retained                                |
+  | Success                 | Token stored → `/api/auth/me` → navigate                                                                          |
 
 - **FE-8.4** **Redirect on success:** honour `?next=` only when it is a same-origin relative path (starts with a single `/`, not `//`); otherwise `RECRUITER → /pipeline`, `INTERVIEWER → /my-interviews`.
 - **FE-8.5** The page renders **no signup link and no forgot-password link** — neither flow exists.
@@ -295,7 +312,7 @@ Full backend behaviour is specified in [../../../../backend/specs/features/authe
 - **XBE-2** `POST /api/auth/refresh` works from the cookie alone, with no request body and no `Authorization` header, and returns a new access token.
 - **XBE-3** `GET /api/auth/me` is the authority on identity and returns `401` when unauthenticated.
 - **XBE-4** CORS allows the frontend origin with `credentials: true`, so `credentials: 'include'` works cross-origin.
-- **XBE-5** The refresh cookie is named **`refresh_token`** — `middleware.ts` keys off that exact name.
+- **XBE-5** The refresh cookie is named **`refresh_token`** and is scoped `Path=/api/auth`. The client never reads it — that path scoping is precisely why the routing gate in FE-6 could not be built.
 - **XBE-6** Errors use the flat `{ code, message, details? }` shape, so the existing `ApiError` (which reads `data.message`) keeps working and `code` is switchable.
 - **XBE-7** `401` means unauthenticated (recoverable by refresh) and `403` means unauthorized (not recoverable) — the interceptor's behaviour depends on these never being interchanged.
 - **XBE-8** `details` on a `400` is keyed by request-body field name, so it maps directly onto form fields. The login form is the only consumer.
@@ -310,12 +327,12 @@ Full backend behaviour is specified in [../../../../backend/specs/features/authe
 
 As consumed by this client. Canonical definitions live in the backend spec.
 
-| Call | When | Sends | Expects |
-|---|---|---|---|
-| `POST /api/auth/login` | Login form submit | `{ email, password }` | `200 { user, accessToken, expiresIn }` + `Set-Cookie` · `401 INVALID_CREDENTIALS` · `400 VALIDATION_ERROR` |
-| `POST /api/auth/refresh` | Bootstrap, and on any `401` | nothing (cookie only) | `200 { accessToken, expiresIn }` + rotated cookie · `401 UNAUTHENTICATED` |
-| `GET /api/auth/me` | After login and after bootstrap refresh | `Authorization: Bearer` | `200 { user }` · `401 UNAUTHENTICATED` |
-| `POST /api/auth/logout` | Logout control | nothing (cookie only) | `204` always |
+| Call                     | When                                    | Sends                   | Expects                                                                                                    |
+| ------------------------ | --------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/login`   | Login form submit                       | `{ email, password }`   | `200 { user, accessToken, expiresIn }` + `Set-Cookie` · `401 INVALID_CREDENTIALS` · `400 VALIDATION_ERROR` |
+| `POST /api/auth/refresh` | Bootstrap, and on any `401`             | nothing (cookie only)   | `200 { accessToken, expiresIn }` + rotated cookie · `401 UNAUTHENTICATED`                                  |
+| `GET /api/auth/me`       | After login and after bootstrap refresh | `Authorization: Bearer` | `200 { user }` · `401 UNAUTHENTICATED`                                                                     |
+| `POST /api/auth/logout`  | Logout control                          | nothing (cookie only)   | `204` always                                                                                               |
 
 **This is the complete list — four calls.** Two backend endpoints are deliberately never called:
 
@@ -336,11 +353,11 @@ As consumed by this client. Canonical definitions live in the backend spec.
 
 **No database.** This client owns only in-browser state:
 
-| State | Where it lives | Lifetime | Persisted? |
-|---|---|---|---|
-| Access token | Module variable in `access-token.ts` | Until page unload or logout | **No** |
-| Refresh token | `HttpOnly` cookie set by the backend | 1 day | Yes, by the browser — **unreadable by this app** |
-| Current user | TanStack Query cache, key `['auth','me']` | Until invalidated or page unload | No |
+| State         | Where it lives                            | Lifetime                         | Persisted?                                       |
+| ------------- | ----------------------------------------- | -------------------------------- | ------------------------------------------------ |
+| Access token  | Module variable in `access-token.ts`      | Until page unload or logout      | **No**                                           |
+| Refresh token | `HttpOnly` cookie set by the backend      | 1 day                            | Yes, by the browser — **unreadable by this app** |
+| Current user  | TanStack Query cache, key `['auth','me']` | Until invalidated or page unload | No                                               |
 
 - **DM-1** **Nothing auth-related is written to `localStorage`, `sessionStorage`, or IndexedDB.** This is a hard rule, and a code review check.
 - **DM-2** The client never sets or reads a cookie itself.
@@ -352,21 +369,21 @@ As consumed by this client. Canonical definitions live in the backend spec.
 
 ### Credential handling
 
-| Credential | Where | Why |
-|---|---|---|
-| Access token | React memory (module variable) | Attached to most requests, so it is the most exposed — keeping it out of persistent storage means injected script has no artefact to steal, and a reload discards it |
-| Refresh token | `HttpOnly` cookie | Long-lived, so it is put where script cannot reach it at all and where the server can revoke it |
+| Credential    | Where                          | Why                                                                                                                                                                  |
+| ------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Access token  | React memory (module variable) | Attached to most requests, so it is the most exposed — keeping it out of persistent storage means injected script has no artefact to steal, and a reload discards it |
+| Refresh token | `HttpOnly` cookie              | Long-lived, so it is put where script cannot reach it at all and where the server can revoke it                                                                      |
 
 **Never in `localStorage`.** Any XSS vulnerability can read `localStorage`; it cannot read an `HttpOnly` cookie, and it can only reach an in-memory token for the current page's lifetime.
 
 ### Route matrix
 
-| Route | Anonymous | INTERVIEWER | RECRUITER |
-|---|---|---|---|
-| `/login` | ✅ | → `/my-interviews` | → `/pipeline` |
-| `/pipeline` | → `/login?next=` | ✅ (placeholder) | ✅ (placeholder) |
-| `/my-interviews` | → `/login?next=` | ✅ (placeholder) | ✅ (placeholder) |
-| `/forbidden` | ✅ | ✅ | ✅ |
+| Route            | Anonymous        | INTERVIEWER        | RECRUITER        |
+| ---------------- | ---------------- | ------------------ | ---------------- |
+| `/login`         | ✅               | → `/my-interviews` | → `/pipeline`    |
+| `/pipeline`      | → `/login?next=` | ✅ (placeholder)   | ✅ (placeholder) |
+| `/my-interviews` | → `/login?next=` | ✅ (placeholder)   | ✅ (placeholder) |
+| `/forbidden`     | ✅               | ✅                 | ✅               |
 
 **The matrix has one axis, not two:** authenticated or not. No cell differs between `INTERVIEWER` and `RECRUITER` except the post-login landing route — no route is role-gated.
 
@@ -381,16 +398,16 @@ As consumed by this client. Canonical definitions live in the backend spec.
 
 ## Validation
 
-Client schemas live in `src/lib/schemas/auth.ts`, following the [`quick-note.ts`](../../../src/lib/schemas/quick-note.ts) pattern (zod object + `z.infer` type export), and **mirror the backend rules** for responsiveness.
+Client schemas live in [`src/lib/schemas/auth.ts`](../../../src/lib/schemas/auth.ts), following the house pattern (zod object + `z.infer` type export), and **mirror the backend rules** for responsiveness.
 
 **`loginSchema` is the only schema this feature defines.** With no provisioning form, there is no `createInterviewerSchema`.
 
 ### `loginSchema`
 
-| Field | Rule | Message |
-|---|---|---|
-| `email` | required, trimmed, valid email | "Enter a valid email address" |
-| `password` | required, non-empty | "Password is required" |
+| Field      | Rule                           | Message                       |
+| ---------- | ------------------------------ | ----------------------------- |
+| `email`    | required, trimmed, valid email | "Enter a valid email address" |
+| `password` | required, non-empty            | "Password is required"        |
 
 **VAL-1** The login schema deliberately does **not** enforce the 8-character minimum. A short password must produce a server `401`, not a client `400` — otherwise the form reveals that no account can have a short password.
 
@@ -405,20 +422,20 @@ Client schemas live in `src/lib/schemas/auth.ts`, following the [`quick-note.ts`
 
 Every backend error arrives as an `ApiError` with `status`, `message` and `body: { code, message, details? }`.
 
-| Status / `code` | Where | UI behaviour |
-|---|---|---|
-| `400 VALIDATION_ERROR` | Login form (the only form) | Map `details` onto fields via `setError`; no toast |
-| `401 INVALID_CREDENTIALS` | Login only | Form-level message, password cleared, email retained, focus to password |
-| `401 UNAUTHENTICATED` | Any other call | Interceptor refreshes once and replays; on refresh failure, clear state and redirect to `/login` |
-| `403 FORBIDDEN` | Any call | Render the 403 view. **Never** a toast-and-stay — the user must know the action is not theirs. Unreachable from the four endpoints this client calls, and handled anyway (AZ-1) |
-| `500 INTERNAL_ERROR` | Any call | Generic retryable message: *"Something went wrong. Please try again."* |
-| Network failure (`TypeError` from `fetch`) | Any call | Same generic message — never a raw error string, never an indefinite hang |
+| Status / `code`                            | Where                      | UI behaviour                                                                                                                                                                    |
+| ------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400 VALIDATION_ERROR`                     | Login form (the only form) | Map `details` onto fields via `setError`; no toast                                                                                                                              |
+| `401 INVALID_CREDENTIALS`                  | Login only                 | Form-level message, password cleared, email retained, focus to password                                                                                                         |
+| `401 UNAUTHENTICATED`                      | Any other call             | Interceptor refreshes once and replays; on refresh failure, clear state and redirect to `/login`                                                                                |
+| `403 FORBIDDEN`                            | Any call                   | Render the 403 view. **Never** a toast-and-stay — the user must know the action is not theirs. Unreachable from the four endpoints this client calls, and handled anyway (AZ-1) |
+| `500 INTERNAL_ERROR`                       | Any call                   | Generic retryable message: _"Something went wrong. Please try again."_                                                                                                          |
+| Network failure (`TypeError` from `fetch`) | Any call                   | Same generic message — never a raw error string, never an indefinite hang                                                                                                       |
 
 ### Rules
 
 - **ERR-1** Branch on `body.code`, not on `message` copy. `code` is the stable contract.
 - **ERR-2** A raw error object, stack, or status number is **never** rendered to a user.
-- **ERR-3** Form errors render inline; only successful *actions* use toasts. A failure is not a toast.
+- **ERR-3** Form errors render inline; only successful _actions_ use toasts. A failure is not a toast.
 - **ERR-4** Every mutation has a visible error state. None fail silently.
 - **ERR-5** If a response ever contains a field this client should not have received, that is **reported as a backend bug**, not hidden in the UI ([../../../CLAUDE.md](../../../CLAUDE.md)).
 
@@ -426,28 +443,28 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 
 ## Edge Cases
 
-| # | Case | Required behaviour |
-|---|---|---|
-| EC-01 | Access token expires mid-session | The failing request `401`s; the interceptor refreshes and replays. **The user sees no interruption and loses no form input.** |
-| EC-02 | Ten queries `401` at once | **Exactly one** `POST /api/auth/refresh`; all ten replay with the new token (FE-4.4). |
-| EC-03 | Refresh itself returns `401` | Clear token, clear cache, redirect `/login?next=<current>`. |
-| EC-04 | Replay after a successful refresh also `401`s | Surface the error to the caller. **No second refresh** (FE-4.3). |
-| EC-05 | Hard reload on a guarded route, cookie present | Middleware allows render; layout shows the loading state during bootstrap; content appears after `/me`. **No login flash.** |
-| EC-06 | Hard reload on a guarded route, no cookie | Middleware redirects to `/login?next=<path>` before any app JS runs. |
-| EC-07 | Logged-in user opens `/login` | Redirected away (FE-6.3). |
-| EC-08 | `?next=https://evil.example.com` | Discarded; role-based default used (FE-8.4). |
-| EC-09 | `?next=//evil.example.com` | Also discarded — a protocol-relative URL is not a same-origin path. |
-| EC-10 | `?next=/team` (a route that no longer exists) | The path is same-origin, so it is honoured, and Next renders its **404** page. `resolveRedirect` validates the *shape* of `next`, never that the route exists — and must not start doing so. Accepted: a stale bookmark shows a 404, which is correct and honest. |
-| EC-11 | Logout while offline | The request fails; local state is cleared and the user is redirected anyway (FR-4.3). |
-| EC-12 | Log out in tab A while tab B is open | Tab B's next request `401`s, its refresh fails (family revoked server-side), and it clears state and redirects. **Eventual, not instant, cross-tab consistency — accepted and documented.** |
-| EC-13 | Two tabs refresh at the same instant | The backend's rotation reuse-detection may revoke the family, logging **both** tabs out. This is the accepted trade-off of reuse detection; the UI handles it as an ordinary refresh failure (EC-03). |
-| EC-14 | Backend unreachable | `fetch` throws `TypeError`; presented as the generic retryable message, never a stack, never an indefinite spinner. |
-| EC-15 | Double-click on submit | Impossible — the button and inputs are disabled for the duration (FE-8.3). |
-| EC-16 | Browser autofill populates fields | react-hook-form picks up the values; validation runs normally on submit. |
-| EC-17 | A user asks how to add a colleague to the app | There is no UI answer. The app shows no "contact an admin" prompt either — it simply has no such surface (FR-6.4). Onboarding is an out-of-band operator task. |
-| EC-18 | User's role changes server-side mid-session | Up to 15 minutes of staleness before the next `/me` reflects it. Harmless — no role-change endpoint exists, and role gates nothing in the client (AZ-4). |
-| EC-19 | JS disabled or bundle fails to load | The app does not function; no server-rendered fallback is provided. **Accepted for a POC.** |
-| EC-20 | Deep link to `/team` while anonymous | `/login?next=/team`, then post-login navigation to `/team`, which 404s (EC-10). No crash, no redirect loop, and no 403 — the route does not exist rather than being forbidden. |
+| #     | Case                                           | Required behaviour                                                                                                                                                                                                                                                                                                   |
+| ----- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EC-01 | Access token expires mid-session               | The failing request `401`s; the interceptor refreshes and replays. **The user sees no interruption and loses no form input.**                                                                                                                                                                                        |
+| EC-02 | Ten queries `401` at once                      | **Exactly one** `POST /api/auth/refresh`; all ten replay with the new token (FE-4.4).                                                                                                                                                                                                                                |
+| EC-03 | Refresh itself returns `401`                   | Clear token, clear cache, redirect `/login?next=<current>`.                                                                                                                                                                                                                                                          |
+| EC-04 | Replay after a successful refresh also `401`s  | Surface the error to the caller. **No second refresh** (FE-4.3).                                                                                                                                                                                                                                                     |
+| EC-05 | Hard reload on a guarded route, cookie present | Middleware allows render; layout shows the loading state during bootstrap; content appears after `/me`. **No login flash.**                                                                                                                                                                                          |
+| EC-06 | Hard reload on a guarded route, no cookie      | Middleware redirects to `/login?next=<path>` before any app JS runs.                                                                                                                                                                                                                                                 |
+| EC-07 | Logged-in user opens `/login`                  | Redirected away (FE-6.3).                                                                                                                                                                                                                                                                                            |
+| EC-08 | `?next=https://evil.example.com`               | Discarded; role-based default used (FE-8.4).                                                                                                                                                                                                                                                                         |
+| EC-09 | `?next=//evil.example.com`                     | Also discarded — a protocol-relative URL is not a same-origin path.                                                                                                                                                                                                                                                  |
+| EC-10 | `?next=/team` (a route that no longer exists)  | The path is same-origin, so it is honoured, and Next renders its **404** page. `resolveRedirect` validates the _shape_ of `next`, never that the route exists — and must not start doing so. Accepted: a stale bookmark shows a 404, which is correct and honest.                                                    |
+| EC-11 | Logout while offline                           | The request fails; local state is cleared and the user is redirected anyway (FR-4.3).                                                                                                                                                                                                                                |
+| EC-12 | Log out in tab A while tab B is open           | Tab B's next request `401`s, its refresh fails (family revoked server-side), and it clears state and redirects. **Eventual, not instant, cross-tab consistency — accepted and documented.**                                                                                                                          |
+| EC-13 | Two tabs refresh at the same instant           | The backend's rotation reuse-detection may revoke the family, logging **both** tabs out. This is the accepted trade-off of reuse detection; the UI handles it as an ordinary refresh failure (EC-03).                                                                                                                |
+| EC-14 | Backend unreachable                            | `fetch` throws `TypeError`; presented as the generic retryable message, never a stack, never an indefinite spinner.                                                                                                                                                                                                  |
+| EC-15 | Double-click on submit                         | Impossible — the button and inputs are disabled for the duration (FE-8.3).                                                                                                                                                                                                                                           |
+| EC-16 | Browser autofill populates fields              | react-hook-form picks up the values; validation runs normally on submit.                                                                                                                                                                                                                                             |
+| EC-17 | A user asks how to add a colleague to the app  | There is no UI answer. The app shows no "contact an admin" prompt either — it simply has no such surface (FR-6.4). Onboarding is an out-of-band operator task.                                                                                                                                                       |
+| EC-18 | User's role changes server-side mid-session    | Stale until the next page load, logout, or an explicit retry — `['auth','me']` is cached indefinitely so navigating between authenticated routes costs zero extra `/me` calls (PERF-4, AC-F21). Harmless for the same reason as before: no role-change endpoint exists, and role gates nothing in the client (AZ-4). |
+| EC-19 | JS disabled or bundle fails to load            | The app does not function; no server-rendered fallback is provided. **Accepted for a POC.**                                                                                                                                                                                                                          |
+| EC-20 | Deep link to `/team` while anonymous           | `/login?next=/team`, then post-login navigation to `/team`, which 404s (EC-10). No crash, no redirect loop, and no 403 — the route does not exist rather than being forbidden.                                                                                                                                       |
 
 ---
 
@@ -456,7 +473,7 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 - **SEC-1 — No credential in browser storage.** No token is ever written to `localStorage`, `sessionStorage`, or IndexedDB. The access token is a module variable; the refresh token is an `HttpOnly` cookie this app cannot read. **This is a review checklist item, not just an implementation detail.**
 - **SEC-2 — XSS containment.** Injected script can, at worst, use the in-memory access token for the current page's lifetime. It cannot exfiltrate a persistent credential and cannot read the refresh token at all.
 - **SEC-3 — Open-redirect prevention.** `?next=` is honoured only when it begins with a single `/` and not `//`. Absolute and protocol-relative URLs fall back to the role-based default (EC-08, EC-09).
-- **SEC-4 — Client guards are never the control.** `middleware.ts` and `<RequireAuth>` are UX. The UI must behave correctly when the backend returns `403`, even though the client gates nothing by role itself (AZ-1, FE-7.4).
+- **SEC-4 — Client guards are never the control.** `<RequireAuth>` is UX. The UI must behave correctly when the backend returns `403`, even though the client gates nothing by role itself (AZ-1, FE-7.4). With the routing gate dropped (FE-6), **every** guard in this app is client-side — which changes nothing, because none of them was ever the control.
 - **SEC-4.1 — No account creation in the browser.** The client cannot create a user of any role, because it ships no caller for a creation endpoint and no schema carrying a `role` (FR-6, VAL-2). Privilege escalation through this client is structurally impossible rather than validated against. **The corresponding risk moved to the backend** — `POST /api/auth/signup` is anonymous and role-accepting, and is now the only provisioning path (backend SEC-11.1). Removing the UI did not remove that exposure; it relocated who can reach it.
 - **SEC-5 — No token introspection.** The client never decodes the JWT to read a role or an expiry. Identity comes only from `GET /api/auth/me`.
 - **SEC-6 — No secrets in client config.** Only `NEXT_PUBLIC_API_URL` is exposed. No signing key, no shared secret, no seed password is ever referenced in frontend code.
@@ -492,7 +509,7 @@ Given/When/Then. **There is no automated test suite for this POC** — every cri
 - **AC-F01** — **Given** the login form, **when** it is submitted with an empty email, **then** a field-level validation message renders and **no network request is made**.
 - **AC-F02** — **Given** the login form, **when** it is submitted with `"notanemail"` as the email, **then** a field-level message renders and no request is made.
 - **AC-F03** — **Given** the login form, **when** submission is in flight, **then** the submit button and both inputs are disabled, so a second submit cannot be triggered.
-- **AC-F04** — **Given** the API returns `401 INVALID_CREDENTIALS`, **when** the form handles it, **then** one form-level message *"Invalid email or password."* renders, the password field is cleared, the email field retains its value, and focus moves to the password field.
+- **AC-F04** — **Given** the API returns `401 INVALID_CREDENTIALS`, **when** the form handles it, **then** one form-level message _"Invalid email or password."_ renders, the password field is cleared, the email field retains its value, and focus moves to the password field.
 - **AC-F05** — **Given** the API returns `500`, **when** the form handles it, **then** the generic retryable message renders and **both** fields retain their values.
 - **AC-F06** — **Given** the network is unreachable and `fetch` rejects, **when** the form handles it, **then** the generic retryable message renders — not a raw error string, and not an indefinite spinner.
 - **AC-F07** — **Given** the login page, **when** it renders, **then** it contains **no signup link, no forgot-password link, and no "request an account" affordance of any kind**.
@@ -528,7 +545,7 @@ Given/When/Then. **There is no automated test suite for this POC** — every cri
 ### No account-creation surface
 
 - **AC-F27** — **Given** the whole authenticated app, **when** every route and every piece of chrome is walked, **then** there is **no form that creates a user** — no signup, no invite, no provisioning.
-- **AC-F28** — **Given** the built client bundle, **when** it is searched, **then** it contains **no request to `POST /api/users` and no request to `POST /api/auth/signup`**. *(Check the source and the built output, not just the Network tab — an unreachable call site still ships.)*
+- **AC-F28** — **Given** the built client bundle, **when** it is searched, **then** it contains **no request to `POST /api/users` and no request to `POST /api/auth/signup`**. _(Check the source and the built output, not just the Network tab — an unreachable call site still ships.)_
 - **AC-F29** — **Given** the client's source, **when** `features/auth/api/auth.api.ts` is read, **then** it exports exactly `login`, `logout`, `refresh` and `getMe` — no `createInterviewer`, no `listInterviewers`, no `signup` (API-5).
 - **AC-F30** — **Given** the client's source, **when** `src/lib/schemas/auth.ts` is read, **then** `loginSchema` is the only export and **no schema anywhere in the client has a `role` field** (VAL-2).
 - **AC-F31** — **Given** a `RECRUITER` session, **when** the app is used end to end, **then** it makes **no request to `/api/users`** — the endpoint exists on the backend but this client never touches it.
@@ -555,27 +572,27 @@ Given/When/Then. **There is no automated test suite for this POC** — every cri
 
 Explicitly excluded. Each is a deliberate decision, not an omission.
 
-| Excluded | Note |
-|---|---|
-| **Interviewer provisioning UI (`/team`)** | No create-interviewer form, no interviewer list, no `/api/users` call. Accounts are provisioned by an operator against the API. Building any of it is a new feature with its own spec (FR-6.5). |
-| **`<RequireRole>`** | Not built — no route is role-gated (FE-7.2), so it would ship with no consumer. It arrives with the first feature that actually needs it. The `/forbidden` view **is** built, because an API `403` still has to render somewhere (FE-7.4). |
-| **`skeleton` shadcn primitive** | Not added — nothing in this feature has a list or table to show a loading placeholder for. It introduces no new primitive. |
-| **Signup page** | No `/signup` route or form. The backend endpoint is operator-only and this client never calls it. |
-| **Password reset / forgot password** | No link, no page, no flow. |
-| **Email verification** | No pending-verification state in the UI. |
-| **MFA / SSO / OAuth** | No provider buttons, no second-factor step. |
-| **Profile / account settings** | No page to change a name, email, or password. |
-| **Role switcher / impersonation** | No dev-only role toggle — that would contradict brief §6. |
-| **Any user-management UI** | No edit, deactivate, delete, list, search or sort — there is no user-management surface at all. |
-| **`HIRING_MANAGER` views** | The role does not exist in this POC. |
-| **"Remember me" / session-length choice** | Fixed by the backend. |
-| **Cross-tab session sync** (`BroadcastChannel` / storage events) | Logout in one tab reaches others only on their next request (EC-12). |
-| **Proactive refresh on a timer** | Refresh is reactive only — on bootstrap and on `401`. |
-| **Offline support / request queueing** | No service worker, no retry queue. |
-| **SSR-rendered authenticated content** | All authenticated data is fetched client-side; `middleware.ts` does no server-side session validation. |
-| **Real content for `/pipeline` and `/my-interviews`** | Guarded placeholders only; their content belongs to later features. |
-| **Automated tests of any kind** (Vitest, React Testing Library, Playwright) | Every criterion above is verified manually against the running app. A test runner and suite are a deliberate later decision — no test dependency, config or file is added by this feature. |
-| **i18n / theming work** | English copy only; existing theme untouched. |
+| Excluded                                                                    | Note                                                                                                                                                                                                                                       |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Interviewer provisioning UI (`/team`)**                                   | No create-interviewer form, no interviewer list, no `/api/users` call. Accounts are provisioned by an operator against the API. Building any of it is a new feature with its own spec (FR-6.5).                                            |
+| **`<RequireRole>`**                                                         | Not built — no route is role-gated (FE-7.2), so it would ship with no consumer. It arrives with the first feature that actually needs it. The `/forbidden` view **is** built, because an API `403` still has to render somewhere (FE-7.4). |
+| **`skeleton` shadcn primitive**                                             | Not added — nothing in this feature has a list or table to show a loading placeholder for. It introduces no new primitive.                                                                                                                 |
+| **Signup page**                                                             | No `/signup` route or form. The backend endpoint is operator-only and this client never calls it.                                                                                                                                          |
+| **Password reset / forgot password**                                        | No link, no page, no flow.                                                                                                                                                                                                                 |
+| **Email verification**                                                      | No pending-verification state in the UI.                                                                                                                                                                                                   |
+| **MFA / SSO / OAuth**                                                       | No provider buttons, no second-factor step.                                                                                                                                                                                                |
+| **Profile / account settings**                                              | No page to change a name, email, or password.                                                                                                                                                                                              |
+| **Role switcher / impersonation**                                           | No dev-only role toggle — that would contradict brief §6.                                                                                                                                                                                  |
+| **Any user-management UI**                                                  | No edit, deactivate, delete, list, search or sort — there is no user-management surface at all.                                                                                                                                            |
+| **`HIRING_MANAGER` views**                                                  | The role does not exist in this POC.                                                                                                                                                                                                       |
+| **"Remember me" / session-length choice**                                   | Fixed by the backend.                                                                                                                                                                                                                      |
+| **Cross-tab session sync** (`BroadcastChannel` / storage events)            | Logout in one tab reaches others only on their next request (EC-12).                                                                                                                                                                       |
+| **Proactive refresh on a timer**                                            | Refresh is reactive only — on bootstrap and on `401`.                                                                                                                                                                                      |
+| **Offline support / request queueing**                                      | No service worker, no retry queue.                                                                                                                                                                                                         |
+| **SSR-rendered authenticated content**                                      | All authenticated data is fetched client-side; there is no server-side session validation anywhere (FE-6).                                                                                                                                 |
+| **Real content for `/pipeline` and `/my-interviews`**                       | Guarded placeholders only; their content belongs to later features.                                                                                                                                                                        |
+| **Automated tests of any kind** (Vitest, React Testing Library, Playwright) | Every criterion above is verified manually against the running app. A test runner and suite are a deliberate later decision — no test dependency, config or file is added by this feature.                                                 |
+| **i18n / theming work**                                                     | English copy only; existing theme untouched.                                                                                                                                                                                               |
 
 ---
 
@@ -605,17 +622,17 @@ It must also be **seeded**, since there is no longer any way to create an accoun
 
 ### Modified existing files
 
-| File | Change |
-|---|---|
-| [`src/lib/api.ts`](../../../src/lib/api.ts) | Bearer attachment, `credentials: 'include'`, single-flight refresh interceptor — **the existing `apiFetch` signature and `ApiError` contract are preserved** |
-| [`src/app/layout.tsx`](../../../src/app/layout.tsx) | Real metadata (currently `"Create Next App"`); auth provider wiring alongside the existing `QueryProvider` and `Toaster` |
-| [`src/app/page.tsx`](../../../src/app/page.tsx) | The demo page (`ApiStatusCard`, `QuickNoteForm`) is replaced by a redirect to the role-appropriate landing route |
-| `package.json` | Adds a `typecheck` script (`tsc --noEmit`) — **no new dependency** |
-| **New:** `src/middleware.ts`, `src/features/auth/**`, `src/lib/schemas/auth.ts`, `src/app/(auth)/**`, `src/app/(app)/**`, `src/app/forbidden/page.tsx` | Per FE-1 — note `(app)/` contains **two** pages, not three |
+| File                                                                                                                              | Change                                                                                                                                                       |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`src/lib/api.ts`](../../../src/lib/api.ts)                                                                                       | Bearer attachment, `credentials: 'include'`, single-flight refresh interceptor — **the existing `apiFetch` signature and `ApiError` contract are preserved** |
+| [`src/app/layout.tsx`](../../../src/app/layout.tsx)                                                                               | Real metadata (currently `"Create Next App"`); auth provider wiring alongside the existing `QueryProvider` and `Toaster`                                     |
+| [`src/app/page.tsx`](../../../src/app/page.tsx)                                                                                   | The demo page (`ApiStatusCard`, `QuickNoteForm`) is replaced by a redirect to the role-appropriate landing route                                             |
+| `package.json`                                                                                                                    | Adds a `typecheck` script (`tsc --noEmit`) — **no new dependency**                                                                                           |
+| **New:** `src/features/auth/**`, `src/lib/schemas/auth.ts`, `src/app/(auth)/**`, `src/app/(app)/**`, `src/app/forbidden/page.tsx` | Per FE-1 — note `(app)/` contains **two** pages, not three                                                                                                   |
 
 ### Framework note
 
-[../../../AGENTS.md](../../../AGENTS.md) warns that **this is Next.js 16 and its APIs differ from older versions**. Before implementing `middleware.ts`, route groups, or `layout.tsx` changes, read the relevant guide in `node_modules/next/dist/docs/` rather than relying on remembered Next.js conventions.
+[../../../AGENTS.md](../../../AGENTS.md) warns that **this is Next.js 16 and its APIs differ from older versions**. Before implementing route groups or `layout.tsx` changes, read the relevant guide in `node_modules/next/dist/docs/` rather than relying on remembered Next.js conventions. **Confirmed during implementation:** Next 16 deprecated `middleware.ts` and renamed it `proxy.ts`; the point is moot here since FE-6 drops the file entirely.
 
 ### External dependencies
 

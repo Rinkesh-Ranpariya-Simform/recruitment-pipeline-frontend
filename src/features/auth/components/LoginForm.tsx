@@ -1,0 +1,207 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { ApiError } from '@/lib/api';
+import { loginSchema, type LoginValues } from '@/lib/schemas/auth';
+import { useAuthContext } from '../AuthProvider';
+import { useAuth } from '../hooks/useAuth';
+import { resolveRedirect } from '../redirect';
+import type { ApiErrorBody } from '../types';
+
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
+const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
+
+/** Narrows an unknown thrown value to the backend's flat error body. */
+function errorBodyOf(error: unknown): ApiErrorBody | null {
+  if (!(error instanceof ApiError)) {
+    return null;
+  }
+
+  const body = error.body;
+
+  if (body && typeof body === 'object' && 'code' in body) {
+    return body as ApiErrorBody;
+  }
+
+  return null;
+}
+
+/**
+ * The only form in this client.
+ *
+ * Client validation here is UX: it mirrors the backend's rules so the form can
+ * respond without a round trip, and is never treated as a substitute for them.
+ * Failures branch on the error `code`, never on message copy.
+ */
+export function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { status } = useAuthContext();
+  const { login, role } = useAuth();
+  const [formError, setFormError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const next = searchParams.get('next');
+
+  const {
+    register,
+    handleSubmit,
+    setError,
+    setFocus,
+    resetField,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+    // Validate on submit, then re-validate as the user corrects — not on every
+    // keystroke from the start.
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+  });
+
+  useEffect(() => {
+    setFocus('email');
+  }, [setFocus]);
+
+  // Focus moves to the password field only once submission has settled: both
+  // inputs are disabled while a submit is in flight (AC-F03), and focusing a
+  // disabled element does nothing. Driven off the rejection itself rather than
+  // called inside the submit handler, where `isSubmitting` is still true.
+  useEffect(() => {
+    if (formError === INVALID_CREDENTIALS_MESSAGE && !isSubmitting) {
+      setFocus('password');
+    }
+  }, [formError, isSubmitting, setFocus]);
+
+  // Someone who is already signed in has no business on the login form. The
+  // backend is unaffected either way; this is purely so the app doesn't ask for
+  // credentials it already has.
+  useEffect(() => {
+    if (status === 'authenticated' && role) {
+      router.replace(resolveRedirect(next, role));
+    }
+  }, [status, role, next, router]);
+
+  const onSubmit = async (values: LoginValues) => {
+    setFormError(null);
+
+    try {
+      const user = await login(values);
+      router.replace(resolveRedirect(next, user.role));
+      return;
+    } catch (error) {
+      const body = errorBodyOf(error);
+
+      if (body?.code === 'VALIDATION_ERROR' && body.details) {
+        // `details` is keyed by request-body field name, so it maps straight
+        // onto the inputs — a rule the client missed still lands on the right
+        // field rather than in a generic banner.
+        for (const [field, message] of Object.entries(body.details)) {
+          if (field === 'email' || field === 'password') {
+            setError(field, { type: 'server', message });
+          }
+        }
+        return;
+      }
+
+      if (body?.code === 'INVALID_CREDENTIALS') {
+        setFormError(INVALID_CREDENTIALS_MESSAGE);
+        resetField('password');
+        // Clearing the field but leaving it revealed would expose whatever is
+        // typed next on a shared screen. Re-mask with the reset.
+        setShowPassword(false);
+        return;
+      }
+
+      // 500s and a `fetch` that rejected outright (backend unreachable) are the
+      // same story to the user: try again. Never a raw error string.
+      setFormError(GENERIC_ERROR_MESSAGE);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <FieldGroup>
+        <Field data-invalid={!!errors.email}>
+          <FieldLabel htmlFor="email" className="font-semibold">
+            Email
+          </FieldLabel>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@company.com"
+            autoComplete="username"
+            disabled={isSubmitting}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'email-error' : undefined}
+            {...register('email')}
+          />
+          <FieldError
+            id="email-error"
+            className="text-xs"
+            errors={errors.email ? [errors.email] : undefined}
+          />
+        </Field>
+
+        <Field data-invalid={!!errors.password}>
+          <FieldLabel htmlFor="password" className="font-semibold">
+            Password
+          </FieldLabel>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              disabled={isSubmitting}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'password-error' : undefined}
+              className="pr-9"
+              {...register('password')}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((shown) => !shown)}
+              disabled={isSubmitting}
+              // The input is already labelled; the toggle needs its own name, and
+              // `aria-pressed` is what tells a screen reader which state it is in.
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-pressed={showPassword}
+              aria-controls="password"
+              className="absolute inset-y-0 right-0 flex items-center px-2.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:text-foreground disabled:pointer-events-none disabled:opacity-50"
+            >
+              {showPassword ? (
+                <EyeOffIcon className="size-4" aria-hidden="true" />
+              ) : (
+                <EyeIcon className="size-4" aria-hidden="true" />
+              )}
+            </button>
+          </div>
+          <FieldError
+            id="password-error"
+            className="text-xs"
+            errors={errors.password ? [errors.password] : undefined}
+          />
+        </Field>
+
+        {formError && (
+          <div role="alert" className="text-center text-sm font-normal text-destructive">
+            {formError}
+          </div>
+        )}
+
+        <Button type="submit" disabled={isSubmitting} className="w-full font-medium">
+          {isSubmitting ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </FieldGroup>
+    </form>
+  );
+}

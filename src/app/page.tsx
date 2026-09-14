@@ -1,28 +1,37 @@
-import { ApiStatusCard } from '@/components/api-status-card';
-import { QuickNoteForm } from '@/components/quick-note-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+import { RequireAuth } from '@/features/auth/components/RequireAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import { resolveRedirect } from '@/features/auth/redirect';
+
+function RoleRedirect() {
+  const { role } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (role) {
+      router.replace(resolveRedirect(null, role));
+    }
+  }, [role, router]);
+
+  return null;
+}
+
+/**
+ * The root route only decides where a signed-in user belongs.
+ *
+ * Role is known once `/api/auth/me` resolves, so the redirect waits for
+ * bootstrap rather than guessing. `<RequireAuth>` supplies that wait — and the
+ * anonymous and failed-identity paths — so this route can never sit blank on a
+ * session it could not resolve.
+ */
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Recruitment Pipeline</h1>
-        <p className="text-sm text-muted-foreground">
-          Frontend scaffold — Next.js, Tailwind, shadcn/ui, TanStack Query, React Hook Form, Zod.
-        </p>
-      </div>
-
-      <ApiStatusCard />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Form wiring check</CardTitle>
-          <CardDescription>react-hook-form + zod validation, no backend route yet</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <QuickNoteForm />
-        </CardContent>
-      </Card>
-    </main>
+    <RequireAuth>
+      <RoleRedirect />
+    </RequireAuth>
   );
 }

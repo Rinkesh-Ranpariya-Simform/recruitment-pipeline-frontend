@@ -17,11 +17,11 @@ a backend bug to flag, not something to conditionally hide here.
 
 ## Actors
 
-| Role | Sees |
-|---|---|
-| Interviewer | Only candidates/rounds they're assigned to; never contact details |
-| Recruiter | Full pipeline, all candidates, contact details, can assign interviewers + override stages |
-| Hiring manager (stretch) | Pipeline/ageing for their own open roles |
+| Role                     | Sees                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| Interviewer              | Only candidates/rounds they're assigned to; never contact details                         |
+| Recruiter                | Full pipeline, all candidates, contact details, can assign interviewers + override stages |
+| Hiring manager (stretch) | Pipeline/ageing for their own open roles                                                  |
 
 Build views and API calls per the current user's role — don't build one "candidate view" that
 conditionally renders contact fields based on a client-side role check.
@@ -31,11 +31,16 @@ conditionally renders contact fields based on a client-side role check.
 - Next.js 16 App Router, React 19, TypeScript
 - Styling: Tailwind v4 + shadcn/ui primitives in `src/components/ui/` (base-ui under the hood) —
   use/extend these rather than hand-rolling new primitives
+- Theme: the palette, radii and fonts in `src/app/globals.css` track the `sdd` project. `dark` is
+  pinned on `<html>` in `layout.tsx` and there is **no theme provider** — the app is dark-only, so
+  style from the tokens (`bg-background`, `text-muted-foreground`, …) and never hardcode a color
+- Fonts: Inter as `--font-sans`, JetBrains Mono as `--font-geist-mono`; `globals.css` maps both
+  into Tailwind, so use `font-sans` / `font-mono` rather than naming a family
 - Data fetching/mutations: TanStack Query (`src/components/providers/query-provider.tsx` wraps
   the app); call the backend only through `apiFetch` in `src/lib/api.ts`, which normalizes
   non-2xx responses into `ApiError`
 - Forms: `react-hook-form` + `@hookform/resolvers/zod`, with schemas under `src/lib/schemas/`
-  (see `quick-note.ts` for the pattern) — validate on the client, but never treat client
+  (see `auth.ts` for the pattern) — validate on the client, but never treat client
   validation as a substitute for the backend's authorization/validation
 - Toasts: `sonner`
 - `npm run dev` runs on port 3001; backend is expected at `NEXT_PUBLIC_API_URL`
@@ -73,15 +78,22 @@ Feature specs live in `specs/features/<feature>/`, each holding `spec.md` (what 
 `plan.md` (how). Phases run in that order and each is approved before the next begins; if implementation reveals
 the spec is wrong, update the spec and get it re-approved rather than letting code and spec drift.
 
-| Feature | spec | plan | code |
-|---|---|---|---|
-| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | — |
+| Feature                                                 | spec        | plan                                                | code                                                  |
+| ------------------------------------------------------- | ----------- | --------------------------------------------------- | ----------------------------------------------------- |
+| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend |
 
 **The app has no account-creation surface.** No signup, no interviewer provisioning, no `/team` page,
 no role selector, and no call to `/api/users`. Accounts are provisioned by an operator against the
 backend API, so **a seeded database is required to log in at all.** Two things that look inconsistent
 but aren't: `<RequireRole>` is not built (no route is role-gated), while `/forbidden` is (an API `403`
 must render somewhere). The client calls four endpoints — login, refresh, me, logout.
+
+**There is no `middleware.ts` / `proxy.ts`, and that is deliberate** (spec FE-6, revised during
+implementation). The backend scopes the refresh cookie `Path=/api/auth`, so a frontend route request
+never carries it and a cookie-presence gate would read "signed out" for everyone. Route protection is
+entirely client-side: `<RequireAuth>` for guarded routes, `LoginForm` for redirecting an
+already-authenticated visitor away from `/login`. Neither was ever the security control — the backend
+re-authorizes every request.
 
 Authentication blocks every other view — there is no anonymous path and no role-switcher, so
 nothing renders until a real user is known. The backend counterpart is
