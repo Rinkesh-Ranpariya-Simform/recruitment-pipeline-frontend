@@ -56,7 +56,11 @@ conditionally renders contact fields based on a client-side role check.
 - **Stage override** (recruiter): requires a reason; surfaces who performed it and when once
   recorded.
 
-## Testing / verification
+## Verification
+
+**This project has no automated test suite.** Verification is manual: every acceptance criterion is
+signed off by driving the running app with DevTools open. Automated tests are a deliberate later
+decision — do not add a test runner, test files, or test dependencies unless asked.
 
 For UI changes, run the dev server and exercise the flow as both an interviewer and a recruiter
 (or whatever role-switching mechanism the auth layer ends up using) — confirm the interviewer
@@ -65,8 +69,24 @@ is rejected by the API rather than just unlinked in the UI.
 
 ## Development process (Spec-Driven Development)
 
-[recruitment-pipeline.md](../recruitment-pipeline.md) (and an approved implementation plan, when
-one exists) is the source of truth for behavior — not assumption, not "what would be nice to have."
+Feature specs live in `specs/features/<feature>/`, each holding `spec.md` (what & why) and
+`plan.md` (how). Phases run in that order and each is approved before the next begins; if implementation reveals
+the spec is wrong, update the spec and get it re-approved rather than letting code and spec drift.
+
+| Feature | spec | plan | code |
+|---|---|---|---|
+| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | — |
+
+Authentication blocks every other view — there is no anonymous path and no role-switcher, so
+nothing renders until a real user is known. The backend counterpart is
+[../backend/specs/features/authentication/spec.md](../backend/specs/features/authentication/spec.md);
+the two share one API contract, so a change to endpoints, the error shape, or the cookie name
+must be made in both.
+
+[recruitment-pipeline.md](../recruitment-pipeline.md) (and an approved spec/plan, where one
+exists) is the source of truth for behavior — not assumption, not "what would be nice to have."
+Where an approved spec is more specific than the brief, the spec wins; where it is silent, the
+brief governs.
 
 **Before implementing:** re-read the relevant part of the spec, inspect existing frontend code for
 a pattern that already fits (don't assume a component/hook/util/API/dependency exists — check),
@@ -84,6 +104,6 @@ but never treat a client-side check as a substitute for what the API enforces. I
 backend contract look inconsistent, check the spec and the actual backend implementation before
 changing anything; don't silently invent a new contract on the frontend side.
 
-**Before calling it done:** run lint, type-check, and any relevant tests; verify against the spec;
+**Before calling it done:** run lint and type-check, then verify against the spec by hand;
 and report back plainly — what changed, what was verified, and any deviation from the spec or
 scope you couldn't resolve, rather than papering over it.
