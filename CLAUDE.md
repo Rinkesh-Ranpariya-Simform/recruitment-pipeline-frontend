@@ -77,6 +77,12 @@ the spec is wrong, update the spec and get it re-approved rather than letting co
 |---|---|---|---|
 | [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | — |
 
+**The app has no account-creation surface.** No signup, no interviewer provisioning, no `/team` page,
+no role selector, and no call to `/api/users`. Accounts are provisioned by an operator against the
+backend API, so **a seeded database is required to log in at all.** Two things that look inconsistent
+but aren't: `<RequireRole>` is not built (no route is role-gated), while `/forbidden` is (an API `403`
+must render somewhere). The client calls four endpoints — login, refresh, me, logout.
+
 Authentication blocks every other view — there is no anonymous path and no role-switcher, so
 nothing renders until a real user is known. The backend counterpart is
 [../backend/specs/features/authentication/spec.md](../backend/specs/features/authentication/spec.md);
