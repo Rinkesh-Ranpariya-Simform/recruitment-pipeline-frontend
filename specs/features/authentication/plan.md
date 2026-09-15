@@ -126,6 +126,12 @@ All paths relative to `frontend/`. Every entry is **NEW** unless marked MODIFIED
 
 - **Required modification:** the demo content (`ApiStatusCard`, `QuickNoteForm`) is replaced by a redirect to the role-appropriate landing route. `ApiStatusCard` is **kept as a file** — it still polls `GET /`, which the backend preserves — but is no longer mounted here.
 
+> **Revision (post-roles):** keeping the file did not survive contact with a second feature. Unmounted
+> and unimported, it was dead code that read as a live dependency — the backend's `GET /` comment
+> cited it as the reason the route exists. `src/components/api-status-card.tsx` and the now-unused
+> `API_URL` re-export from `src/lib/api.ts` are **deleted**. `GET /` stays, as an operator and
+> `docker compose` health check; no frontend surface polls it.
+
 **`src/app/(auth)/login/page.tsx`** — NEW · page
 
 - **Responsibility:** renders `LoginForm` in a centred card. No chrome, no guard.
@@ -196,7 +202,7 @@ This is a frontend plan. The backend work is planned in [../../../../backend/spe
 | `POST /api/auth/logout` → 204 always                                 | § API Changes                                                                                                                                        |
 | CORS `credentials: true`, explicit origin                            | § Backend Changes → `app.ts`                                                                                                                         |
 | Cookie named `refresh_token`, `Path=/api/auth`                       | § Backend Changes → `lib/cookies.ts`                                                                                                                 |
-| `GET /` unchanged                                                    | Preserved as a health check, so `ApiStatusCard` keeps working                                                                                        |
+| `GET /` unchanged                                                    | Preserved as a health check (originally so `ApiStatusCard` kept working; that component is since deleted, the route is not)                           |
 | **A seeded database**                                                | § Backend Changes → `prisma/seed.ts`. Not merely convenient: with no signup UI, seeded (or Postman-created) accounts are the **only** way to log in. |
 
 **`POST /api/users` does not exist on either side.** `GET /api/users` exists on the backend but is **not consumed here** — it is an operator tool.

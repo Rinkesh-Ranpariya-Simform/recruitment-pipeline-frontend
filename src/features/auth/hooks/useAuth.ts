@@ -8,14 +8,14 @@ import type { LoginValues } from '@/lib/schemas/auth';
 import { useAuthContext } from '../AuthProvider';
 import { clearAccessToken, setAccessToken } from '../access-token';
 import { getMe, login as loginRequest, logout as logoutRequest } from '../api/auth.api';
-import type { Role, User } from '../types';
+import type { User, UserRole } from '../types';
 
 /** The one query key this feature introduces. */
 export const ME_QUERY_KEY = ['auth', 'me'] as const;
 
 type UseAuthResult = {
   user: User | null;
-  role: Role | null;
+  role: UserRole | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (values: LoginValues) => Promise<User>;

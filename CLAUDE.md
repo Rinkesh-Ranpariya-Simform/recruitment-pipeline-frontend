@@ -19,7 +19,7 @@ a backend bug to flag, not something to conditionally hide here.
 
 | Role                     | Sees                                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------- |
-| Interviewer              | Only candidates/rounds they're assigned to; never contact details                         |
+| Interviewer              | Only candidates/rounds they're assigned to; never contact details, and **no roles at all** |
 | Recruiter                | Full pipeline, all candidates, contact details, can assign interviewers + override stages |
 | Hiring manager (stretch) | Pipeline/ageing for their own open roles                                                  |
 
@@ -78,15 +78,38 @@ Feature specs live in `specs/features/<feature>/`, each holding `spec.md` (what 
 `plan.md` (how). Phases run in that order and each is approved before the next begins; if implementation reveals
 the spec is wrong, update the spec and get it re-approved rather than letting code and spec drift.
 
-| Feature                                                 | spec        | plan                                                | code                                                  |
-| ------------------------------------------------------- | ----------- | --------------------------------------------------- | ----------------------------------------------------- |
-| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend |
+| Feature                                                 | spec        | plan                                                | code                                                                                                                    |
+| ------------------------------------------------------- | ----------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                   |
+| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off |
+
+The roles plan renames the exported `Role` type to `UserRole`, so `Role` can mean _open requisition_. No
+request or response field moves — `/api/auth/me` still returns `role`. It also corrects
+`ApiErrorBody.details` from `Record<string, string>` to `Record<string, string[]>`, which is what the API
+has always sent; the mismatch is masked only by a backend defect that the roles feature fixes.
+
+**The app chrome is a sidebar with role-based sections** (spec FR-7, revised during implementation).
+`(app)/layout.tsx` holds `NAV_SECTIONS`, a `Record<UserRole, NavSection[]>` — a **lookup table, not a
+comparison**, so a user role is named in exactly one place (`features/roles/permissions.ts`). A recruiter is
+offered **Pipeline** and **Roles**; an interviewer is offered **My interviews** and nothing else. **The
+sidebar gates no route** — `/pipeline` still renders for an interviewer who types the URL. `/roles` does not,
+but that is `<RequireRole>`'s doing, not the sidebar's. The signed-in user lives in a header account menu
+(name, email, Sign out); the old inline role chip is gone.
+
+**Roles are recruiter-only, end to end** (roles spec § Revision, both repos). The API answers an
+interviewer's `GET /api/roles` with a `403`, and `(app)/roles/layout.tsx` wraps both roles routes in
+`<RequireRole allow={ROLES_USER_ROLES}>` so an interviewer gets **the app's 404**, not `/forbidden`: a route
+you may not open should look like a route that isn't there. **Three different "nothing here" renderings, and
+they are not interchangeable** — `components/not-found-view.tsx` (route 404: unmatched URL *or* refused
+route), `features/roles/components/RoleNotFound.tsx` (data 404: a recruiter's `/roles/9999`), and
+`app/forbidden/page.tsx` (a **server** `403` on a route the user may open — still wired to `apiFetch`, still
+reachable). None of the three is a security control; the backend re-authorizes every request.
 
 **The app has no account-creation surface.** No signup, no interviewer provisioning, no `/team` page,
 no role selector, and no call to `/api/users`. Accounts are provisioned by an operator against the
-backend API, so **a seeded database is required to log in at all.** Two things that look inconsistent
-but aren't: `<RequireRole>` is not built (no route is role-gated), while `/forbidden` is (an API `403`
-must render somewhere). The client calls four endpoints — login, refresh, me, logout.
+backend API, so **a seeded database is required to log in at all.** The client calls **eight** endpoints —
+login, refresh, me, logout, and the four roles routes. There is no `DELETE /api/roles/:roleId` and no `deleteRole` wrapper, because the
+endpoint does not exist: `CLOSED` is a requisition's end state.
 
 **There is no `middleware.ts` / `proxy.ts`, and that is deliberate** (spec FE-6, revised during
 implementation). The backend scopes the refresh cookie `Path=/api/auth`, so a frontend route request

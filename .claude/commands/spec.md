@@ -52,6 +52,7 @@ Cover these, skipping only what genuinely does not apply:
 **Correctness & non-functional** — validation (client rules, and where they deliberately differ from the server's) · error cases (each backend `code` → a specific UI behaviour) · edge cases (reload, stale cache, concurrent tabs, slow network, offline, back button, open redirect) · authentication (what this needs from the session layer) · authorization (which routes are guarded — **guards are UX, never security**) · security (token handling, open redirects, data that must never reach this client) · performance (request counts, caching, perceived latency, what must not be polled) · accessibility (keyboard path, focus management, error association) · notifications (what deserves a toast — successful actions, not failures) · backwards compatibility (does this change a route, URL shape, or existing component contract) · verification (the manual browser checks that will prove each acceptance criterion)
 
 **For this POC specifically, always resolve:**
+
 - Does this view need data that **must never reach an interviewer** (candidate contact details)? If so, spec **separate role-scoped calls**, not a shared payload with conditional rendering.
 - If a restricted field could ever arrive in this client's payload, the spec must say that is **a backend bug to flag**, not something to hide in the UI.
 - Does the UI handle a `403` correctly even on a route the client believes is permitted?
@@ -109,7 +110,7 @@ Create `specs/features/[feature-name]/spec.md` (kebab-case slug) with **exactly 
 
 Write them in precise **Given / When / Then** form, numbered `AC-F01…`.
 
-**This project writes no automated tests — every criterion is verified by hand**, so each one must be checkable by a person driving the running app with DevTools open. Write the *observable* outcome, not an assertion.
+**This project writes no automated tests — every criterion is verified by hand**, so each one must be checkable by a person driving the running app with DevTools open. Write the _observable_ outcome, not an assertion.
 
 - **Every state gets one** — loading, empty, error, disabled, unauthorized. A view whose empty state has no AC is not specced.
 - State **counts** where they matter ("exactly one request", observed in the Network tab), not just outcomes.

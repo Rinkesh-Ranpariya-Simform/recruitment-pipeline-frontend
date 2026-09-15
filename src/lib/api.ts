@@ -145,5 +145,3 @@ export async function apiFetch<T>(
 
   return parseResponse<T>(res, path);
 }
-
-export { API_URL };

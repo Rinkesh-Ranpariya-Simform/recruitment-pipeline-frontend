@@ -1,7 +1,7 @@
-import type { Role } from './types';
+import type { UserRole } from './types';
 
 /** Where each role lands when no explicit `?next=` target applies. */
-const ROLE_LANDING: Record<Role, string> = {
+const ROLE_LANDING: Record<UserRole, string> = {
   RECRUITER: '/pipeline',
   INTERVIEWER: '/my-interviews',
 };
@@ -18,7 +18,7 @@ const ROLE_LANDING: Record<Role, string> = {
  * bookmark to a removed route is honoured and renders the app's 404, which is
  * correct and honest.
  */
-export function resolveRedirect(next: string | null | undefined, role: Role): string {
+export function resolveRedirect(next: string | null | undefined, role: UserRole): string {
   if (next && next.startsWith('/') && !next.startsWith('//')) {
     return next;
   }

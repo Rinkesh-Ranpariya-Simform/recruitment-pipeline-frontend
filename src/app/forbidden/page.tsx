@@ -10,12 +10,13 @@ import { resolveRedirect } from '@/features/auth/redirect';
 /**
  * The 403 view.
  *
- * **This is not dead code, and it is not orphaned by the absence of
- * `<RequireRole>`.** No client-side guard routes here — no route in this app is
- * role-gated. It is reached when the *server* refuses a call with
- * `403 FORBIDDEN`, which it may do on any request regardless of what the client
- * believes it is allowed to ask for. Deleting it would leave the app with no
- * rendering for a refusal.
+ * **`<RequireRole>` does not route here, and that is deliberate.** A user on a
+ * route their role has no business with gets the app's **404** instead — being
+ * told a page is refused is more than they were owed. This page is for the other
+ * case: the *server* refusing a call with `403 FORBIDDEN` on a route the user
+ * can legitimately open, which it may do on any request regardless of what the
+ * client believes it is allowed to ask for. Deleting it would leave the app with
+ * no rendering for a refusal.
  */
 export default function ForbiddenPage() {
   const { role } = useAuth();

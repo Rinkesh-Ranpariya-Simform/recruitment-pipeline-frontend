@@ -6,7 +6,14 @@
  * change to the backend's safe-user shape or error shape must be made here too.
  */
 
-export type Role = 'INTERVIEWER' | 'RECRUITER';
+/**
+ * What a *user* is allowed to be. Named `UserRole`, not `Role`, because `Role`
+ * means an **open requisition** elsewhere in this app
+ * (`features/roles/types.ts`). The wire values are unchanged — `/api/auth/me`
+ * still returns `role: "RECRUITER" | "INTERVIEWER"` — so this rename moves no
+ * request or response field.
+ */
+export type UserRole = 'INTERVIEWER' | 'RECRUITER';
 
 /**
  * The backend's "safe user representation" (backend FR-6.1), and the only user
@@ -21,7 +28,7 @@ export type User = {
   id: number;
   name: string;
   email: string;
-  role: Role;
+  role: UserRole;
   createdAt: string;
 };
 
@@ -50,5 +57,14 @@ export type MeResponse = {
 export type ApiErrorBody = {
   code: string;
   message: string;
-  details?: Record<string, string>;
+  /**
+   * Keyed by request-body field name, so it maps straight onto form inputs.
+   *
+   * **Each value is an array** — the backend accumulates every message a field
+   * failed on. This client declared a bare `string` until the roles feature,
+   * which was invisible only because the backend's accumulator was broken and
+   * always produced `{}`. Read it through `fieldMessage` in
+   * `lib/error-details.ts` rather than passing it to `setError` directly.
+   */
+  details?: Record<string, string[]>;
 };

@@ -9,30 +9,14 @@ import { EyeIcon, EyeOffIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { ApiError } from '@/lib/api';
+import { errorBodyOf, fieldMessage } from '@/lib/error-details';
 import { loginSchema, type LoginValues } from '@/lib/schemas/auth';
 import { useAuthContext } from '../AuthProvider';
 import { useAuth } from '../hooks/useAuth';
 import { resolveRedirect } from '../redirect';
-import type { ApiErrorBody } from '../types';
 
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
-
-/** Narrows an unknown thrown value to the backend's flat error body. */
-function errorBodyOf(error: unknown): ApiErrorBody | null {
-  if (!(error instanceof ApiError)) {
-    return null;
-  }
-
-  const body = error.body;
-
-  if (body && typeof body === 'object' && 'code' in body) {
-    return body as ApiErrorBody;
-  }
-
-  return null;
-}
 
 /**
  * The only form in this client.
@@ -103,10 +87,12 @@ export function LoginForm() {
       if (body?.code === 'VALIDATION_ERROR' && body.details) {
         // `details` is keyed by request-body field name, so it maps straight
         // onto the inputs — a rule the client missed still lands on the right
-        // field rather than in a generic banner.
-        for (const [field, message] of Object.entries(body.details)) {
+        // field rather than in a generic banner. Each value is an **array**, so
+        // it is read through `fieldMessage` rather than passed to `setError` as
+        // it arrives.
+        for (const field of Object.keys(body.details)) {
           if (field === 'email' || field === 'password') {
-            setError(field, { type: 'server', message });
+            setError(field, { type: 'server', message: fieldMessage(body.details, field) });
           }
         }
         return;

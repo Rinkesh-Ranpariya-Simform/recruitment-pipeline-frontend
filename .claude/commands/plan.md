@@ -17,7 +17,7 @@ If I gave you no feature name above, list the folders under `specs/features/` an
 
 ## Step 1 — Read the spec
 
-Read `specs/features/[feature-name]/spec.md` in full. It is the source of truth for this plan; the plan explains *how*, never *what* or *why*.
+Read `specs/features/[feature-name]/spec.md` in full. It is the source of truth for this plan; the plan explains _how_, never _what_ or _why_.
 
 Also read, for cross-boundary context (paths relative to this repo's root; skip any not present):
 
@@ -107,10 +107,10 @@ The safest sequence, as numbered steps. Types and schemas before components; the
 **## Acceptance Criteria Mapping**
 A table with **every** acceptance criterion from `spec.md` — `AC-F*` and `AC-M*` alike, none omitted:
 
-| Acceptance Criterion | Implementation | Manual Verification |
-| -------------------- | -------------- | ------------------- |
-| AC-F01 — empty email blocks submit | `src/features/auth/components/LoginForm.tsx`, `src/lib/schemas/auth.ts` | Submit with the email empty — a field message renders and the Network tab shows no request |
-| AC-M01 — refresh cookie is HttpOnly | `src/lib/api.ts` (no cookie access) | DevTools › Application › Cookies — `refresh_token` flagged HttpOnly |
+| Acceptance Criterion                | Implementation                                                          | Manual Verification                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| AC-F01 — empty email blocks submit  | `src/features/auth/components/LoginForm.tsx`, `src/lib/schemas/auth.ts` | Submit with the email empty — a field message renders and the Network tab shows no request |
+| AC-M01 — refresh cookie is HttpOnly | `src/lib/api.ts` (no cookie access)                                     | DevTools › Application › Cookies — `refresh_token` flagged HttpOnly                        |
 
 Reference implementation entries by the file paths used in **## Frontend Changes**, so the table and the plan agree.
 

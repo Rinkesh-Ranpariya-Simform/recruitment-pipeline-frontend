@@ -1,0 +1,942 @@
+# Implementation Plan — Roles (Frontend)
+
+> **Derived from:** [spec.md](./spec.md) — approved
+> **Counterpart:** [../../../../backend/specs/features/roles/plan.md](../../../../backend/specs/features/roles/plan.md)
+> **Builds on:** [../authentication/plan.md](../authentication/plan.md) — implemented
+> **Blocked by:** the backend roles feature being implemented **and seeded**. No criterion below can be signed off against an empty database.
+> **Status:** Ready for review
+
+**Deliberately not built:** an `alert-dialog` primitive · any optimistic update.
+
+> **Revised after implementation: roles became a recruiter-only surface.** `RequireRole` and a `/roles`
+> route gate moved from "deliberately not built" to **built here** — see the spec's
+> [Revision](./spec.md#revision--roles-became-recruiter-only) and § [Route protection](#route-protection).
+
+> **Revised a second time: a `CLOSED` role can be deleted.** `deleteRole` moved from "deliberately not
+> built" to **built here**, along with `useDeleteRole` and a new `RoleDeleteAction` component — see the
+> spec's [Revision 2](./spec.md#revision-2--delete-role-on-a-closed-role) and
+> [step 10b](#step-10b--delete-added-in-revision-2). **Still not built:** an `alert-dialog` primitive
+> (the existing `dialog` carries the confirmation, exactly as `RoleStatusAction` does), any undo, and
+> any delete control on the list.
+
+**Built, and easy to mistake for dead code:** `RoleNotFound` (a _data_ 404 inside the app chrome, not
+Next's route 404) · the `403` path in `apiFetch`, which stays reachable even though this UI exposes no
+control that should produce one (AC-M03).
+
+**Net:** two routes, one dialog that serves both create and edit, two new shadcn primitives
+(`skeleton`, `dropdown-menu`), a rebuilt app chrome, the app's first toast — and no new npm dependency.
+
+> **Revised during implementation (2026-09-15), at the product owner's request.** The chrome was
+> rebuilt as a **sidebar with role-based sections** plus a header account menu — see
+> [spec.md FR-7](./spec.md#fr-7--navigation), revised in the same pass. That pulled in a second
+> primitive (`dropdown-menu`) and rewrote `(app)/layout.tsx` rather than editing two lines of it.
+> Both changes are marked **[chrome revision]** below. **Nothing else in this plan moved**: the roles
+> feature itself is built exactly as written.
+
+---
+
+## Architecture Impact
+
+### New structure
+
+| Path                                    | What                                                                         |
+| --------------------------------------- | ---------------------------------------------------------------------------- |
+| `src/app/(app)/roles/page.tsx`          | The list route. Server component; wraps a client child in `<Suspense>`       |
+| `src/app/(app)/roles/[roleId]/page.tsx` | **The app's first dynamic route.** Server component; `await`s `params`       |
+| `src/features/roles/**`                 | The feature module — api, hooks, components, types, permissions              |
+| `src/lib/schemas/role.ts`               | `roleCreateSchema` / `roleEditSchema`, following the `auth.ts` pattern       |
+| `src/lib/format-date.ts`                | **NEW shared util** — absolute + relative timestamps                         |
+| `src/lib/error-details.ts`              | **NEW shared util** — `ApiError` body narrowing and `details` field messages |
+| `src/components/ui/skeleton.tsx`        | The one new primitive, via the shadcn CLI                                    |
+
+### Changes to shared files
+
+- **`src/app/(app)/layout.tsx`** — **[chrome revision]** rewritten as a sidebar + header shell. The
+  flat `NAV_LINKS` array becomes `NAV_SECTIONS`, a `Record<UserRole, NavSection[]>` lookup table, and
+  the active-state check changes. Every future feature adding a nav entry inherits both.
+- **`src/features/auth/types.ts`** — two changes: `Role` → `UserRole`, and
+  `ApiErrorBody.details` from `Record<string, string>` to `Record<string, string[]>`. The second is a
+  **correction to a contract the client has had wrong since the auth feature shipped** (R-1).
+- **`src/lib/api.ts`** — **unchanged.** This feature needs no new HTTP behaviour.
+
+### Patterns this establishes
+
+First list, first table, first paginated view, first URL-driven filter, first dialog, first
+multi-field form, first toast. Candidates and feedback will copy all of it, which is why the choices
+are written down rather than left to the implementation.
+
+### Next.js 16 caveats — confirmed against `node_modules/next/dist/docs/`
+
+[../../../AGENTS.md](../../../AGENTS.md) warns this is not the Next.js in your training data. Two
+things here depend on it, both verified:
+
+1. **`params` is a `Promise`.** The global helper is `PageProps<'/roles/[roleId]'>` and the body is
+   `const { roleId } = await props.params`
+   ([`01-app/03-api-reference/03-file-conventions/page.md`](../../../node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/page.md)).
+   Types are generated by `next dev` / `next build` / `next typegen`, so `PageProps` needs no import.
+2. **`useSearchParams()` is a Client Component hook** and forces a `<Suspense>` boundary
+   ([`01-app/03-api-reference/04-functions/use-search-params.md`](../../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-search-params.md))
+   — exactly why [`src/app/(auth)/login/page.tsx`](<../../../src/app/(auth)/login/page.tsx>) already
+   wraps `LoginForm`.
+
+**Consequence: both new pages are server components that resolve their inputs and render a client
+child.** That is why this plan adds `RolesListView.tsx` and `RoleDetailView.tsx`, which the spec's
+file tree did not list — see the note under § Frontend Changes.
+
+Also read
+[`.../04-functions/use-router.md`](../../../node_modules/next/dist/docs/01-app/03-api-reference/04-functions/use-router.md)
+before writing the filter and pager, and
+[`.../02-guides/client-side-data-fetching/tanstack-query.md`](../../../node_modules/next/dist/docs/01-app/02-guides/client-side-data-fetching/tanstack-query.md)
+for the query layer.
+
+---
+
+## Frontend Changes
+
+All paths relative to `frontend/`. Every entry is **NEW** unless marked MODIFIED.
+
+> **Three files here are not in the spec's file tree:** `RolesListView.tsx` and `RoleDetailView.tsx`
+> (forced by the Next 16 server/client boundary above) and `search-params.ts` (VAL-7's sanitisation,
+> needed by both the view and the pager, so it cannot live inside either). `lib/format-date.ts` and
+> `lib/error-details.ts` are likewise additions. Each is justified at its entry.
+
+### Types & schemas
+
+**`src/features/roles/types.ts`** — NEW · types
+
+- **Responsibility:** the client's mirror of the backend role contract.
+- **Required modification:**
+  ```ts
+  export type RoleStatus = 'OPEN' | 'CLOSED';
+  export type Role = {
+    id: number;
+    title: string;
+    description: string;
+    status: RoleStatus;
+    createdAt: string;
+    updatedAt: string;
+  };
+  export type Pagination = { page: number; pageSize: number; total: number; totalPages: number };
+  export type RolesListResponse = { roles: Role[]; pagination: Pagination };
+  export type RoleResponse = { role: Role };
+  ```
+- **`Role` has no reference to a user of any kind** — no hiring manager, no creator, no assignee —
+  matching the backend model exactly (FE-8). A payload that ever carried one is a **backend bug to
+  flag**, not a field to filter here ([../../../CLAUDE.md](../../../CLAUDE.md), ERR-5, SEC-3).
+
+**`src/features/auth/types.ts`** — MODIFIED · types
+
+1. **Rename:** the exported `Role` → `UserRole`. The `role` field on `User` and every value it holds
+   are unchanged, so **no request or response shape moves** and a live session is unaffected (FE-9).
+2. **Correct:** `details?: Record<string, string>` → `details?: Record<string, string[]>`.
+   **This is a bug fix, not a preference.** The backend has always declared
+   `ErrorDetails = Record<string, string[]>`; this client has always declared a string and passed it
+   straight to `setError`. It is invisible only because the backend's `details` accumulator is broken
+   and always yields `{}`. The backend fixes that in this same feature (backend BE-5), at which point
+   the **login form** — untouched by this work — starts rendering `["Password is required"]`. See R-1.
+
+**`src/lib/schemas/role.ts`** — NEW · zod schemas
+
+- **Responsibility:** client-side validation for both dialog modes. **UX only** — never a substitute
+  for the backend's rules; where they disagree, the backend is correct and this file is the bug
+  (VAL-4).
+- **Required modification:** `roleCreateSchema` with `title` (trimmed, 1–120) and `description`
+  (trimmed, 1–5000), messages exactly as spec § Validation lists them. `roleEditSchema` applies the
+  **same** rules — an edit may not empty a field that create required (VAL-1). Export
+  `RoleCreateValues` / `RoleEditValues` via `z.infer`, per the `auth.ts` house pattern.
+- **No schema in this file has a `status` field** (VAL-3, AC-F34). There is no payload shape in which
+  the client could set a status on create.
+- `.trim()` before `.min(1)`, so `"   "` fails client-side exactly as the server would (VAL-2).
+
+**`src/features/roles/permissions.ts`** — NEW · module
+
+- **Responsibility:** the one place a user role is named. Exports `ROLES_USER_ROLES` (the allowed
+  `UserRole` list) and `canManageRoles(user)` built from it — **the one place that comparison is
+  written** (FE-2.1, FE-10.4, AC-F17).
+- `canManageRoles` gates **rendering of controls**; `ROLES_USER_ROLES` is what the route guard passes to
+  `<RequireRole allow>` (FE-2.2, FE-10.3). Neither gates a field, a column, or a query.
+
+**`src/features/roles/search-params.ts`** — NEW · module _(not in the spec's tree)_
+
+- **Responsibility:** VAL-7's sanitisation, in one place. `parseRolesSearchParams(sp: ReadonlyURLSearchParams)`
+  → `{ status: RoleStatus | undefined; page: number }`: an unrecognised `status` becomes **no filter**,
+  a non-numeric or `< 1` `page` becomes **1**. Plus `buildRolesHref({ status, page })` for the filter
+  and pager to share.
+- **Why its own file:** both `RolesListView` (reads) and `RolesPagination`/`RolesStatusFilter`
+  (write hrefs) need it, so it cannot live inside either. Turning a mistyped URL into a working page
+  is better than turning it into an error state (EC-03, AC-F05).
+
+### Shared utilities
+
+**`src/lib/error-details.ts`** — NEW · module _(not in the spec's tree)_
+
+- **Responsibility:** narrowing an unknown thrown value to the backend error body, and reading a
+  field's messages out of `details`.
+- **Required modification:** move `errorBodyOf(error): ApiErrorBody | null` here verbatim from
+  [`LoginForm.tsx`](../../../src/features/auth/components/LoginForm.tsx), and add
+  `fieldMessage(details, field): string | undefined` returning the **first** message of the array.
+- **Why extract rather than copy:** `LoginForm` and `RoleFormDialog` both need it, and `LoginForm` has
+  to be edited anyway for the `details` type correction. This is the "extract it once it exists in
+  more than one place" rule, not an unrelated refactor.
+
+**`src/lib/format-date.ts`** — NEW · module _(not in the spec's tree)_
+
+- **Responsibility:** `formatAbsolute(iso)` and `formatRelative(iso)`.
+- **Why it exists:** FR-2.2 wants an absolute local date-time **with** the relative form alongside,
+  and the table wants a created date — and **there is no date library and no `Intl` usage anywhere in
+  this app today.** Built on `Intl.DateTimeFormat` and `Intl.RelativeTimeFormat`, so **no new
+  dependency** (spec § Dependencies).
+- Ageing is the brief's currency; a bare ISO string is not readable at a glance.
+
+### API layer
+
+**`src/features/roles/api/roles.api.ts`** — NEW · api module
+
+- **Responsibility:** every roles HTTP call. No component assembles a path or a header (API-1, API-2).
+- **Required modification:** exactly five wrappers *(revised; there were four)*, every one through
+  `apiFetch` — `listRoles({ status, page })`, `getRole(roleId)`, `createRole(values)`,
+  `updateRole(roleId, patch)`, `deleteRole(roleId)`. Query strings are built with `URLSearchParams`;
+  there is no query helper in `api.ts` and none is added.
+- **`deleteRole(roleId): Promise<void>`** — added in Revision 2, now that the endpoint exists
+  (FE-3.1, AC-F33). It sends `{ method: 'DELETE' }` and **no body** (API-5), and returns nothing: the
+  endpoint answers `204`. **`src/lib/api.ts` needs no change for that** — a `204` carries no JSON
+  content-type, so `parseResponse` reads it as text and resolves to `''`, which the `Promise<void>`
+  signature discards. Verified, not assumed.
+- The rule the old FE-3.2 illustrated **still stands**: no wrapper is exported here for an endpoint
+  that does not exist. Carry the same "exactly five, do not add a sixth" doc comment `auth.api.ts`
+  uses.
+- `createRole` and `updateRole` send **only** the contract's fields — never `id`, `createdAt`,
+  `updatedAt`, and never `status` on create (API-4).
+
+**`src/lib/api.ts`** — **UNCHANGED**
+
+Stated explicitly because it is the file a feature like this usually grows. The Bearer attachment, the
+single-flight 401 refresh-and-replay and the 403 redirect all already do what this feature needs.
+
+### Hooks
+
+**`src/features/roles/hooks/useRolesQuery.ts`** — NEW · hook
+
+- **Responsibility:** the list read. Query key `['roles', 'list', { status, page }]` (FE-3.3), values
+  taken from `search-params.ts` so changing either is an ordinary refetch and browser history does the
+  rest (FE-3.4, AC-F02).
+- **Reuses:** the provider's default `staleTime: 30_000` / `retry: 1`. **No `staleTime: Infinity`** —
+  roles change rarely, but they change from other people's sessions (FE-3.5).
+
+**`src/features/roles/hooks/useRoleQuery.ts`** — NEW · hook
+
+- **Responsibility:** the detail read. Key `['roles', 'detail', roleId]`.
+- **Required modification:** `enabled` is false for a `roleId` that is not a positive integer, so
+  `/roles/abc` renders the not-found state **without making a request** (EC-05, AC-F13).
+- **The list response is not used to pre-seed this cache.** The two shapes are identical today, but
+  relying on that couples the detail view to a list it may not have come from (PERF-3).
+
+**`src/features/roles/hooks/useRoleMutations.ts`** — NEW · hook
+
+- **Responsibility:** `createRole`, `updateRole` **and `deleteRole`** as TanStack mutations. Create and
+  update share one invalidation policy; delete has its own (FE-5.1).
+- **Required modification:** on success, `setQueryData(['roles','detail',id], response)` **from the
+  response** and `invalidateQueries({ queryKey: ['roles','list'] })` — so returning to a list the user
+  has already paged through shows the change without a full cache clear (FE-5.3, PERF-4, AC-F30).
+- **No optimistic updates** (FE-5.2). Both mutations return the complete role, and the server's copy
+  is what renders. An optimistic requisition that a validation error then rolls back is worse than a
+  200 ms wait.
+- **`useDeleteRole` — added in Revision 2.** Its cache policy is the one that differs, and it has to:
+  a `204` carries no role to write back, so it calls **`removeQueries({ queryKey: roleDetailKey(id) })`**
+  — **not** `setQueryData(..., undefined)`, which would leave a cached `undefined` that renders as a
+  successful empty read (FE-5.5). The list is invalidated by prefix like every other write, and is
+  **not** patched in place: dropping a row locally leaves the page one short and `total` one high until
+  something refetches, and the pager makes that visible immediately.
+- **`useDeleteRole` does not navigate** (FE-5.6). Routing belongs to the caller — a mutation that
+  pushes a URL cannot be reused, and `RoleDetailView` is what knows "away" is `/roles`.
+- Raises the `sonner` toast on success — "Role created" / "Role updated" / "Role closed" /
+  "Role reopened" / **"Role deleted"**. **Failures never toast** (ERR-3).
+
+### Routes
+
+**`src/app/(app)/roles/page.tsx`** — NEW · **server** component
+
+- **Responsibility:** the `/roles` route shell.
+- **Required modification:** render `<Suspense fallback={<RolesTableSkeleton/>}><RolesListView/></Suspense>`.
+  The boundary is **required**, not stylistic — `RolesListView` calls `useSearchParams()`, and without
+  it the build fails. Same shape as
+  [`(auth)/login/page.tsx`](<../../../src/app/(auth)/login/page.tsx>).
+- **States rendered:** the Suspense fallback only; everything else belongs to the child.
+
+**`src/app/(app)/roles/[roleId]/page.tsx`** — NEW · **server** component
+
+- **Responsibility:** the app's first dynamic route.
+- **Required modification:** `export default async function Page(props: PageProps<'/roles/[roleId]'>)`,
+  then `const { roleId } = await props.params` and render `<RoleDetailView roleId={roleId} />`.
+  **`params` is a Promise in Next 16** — a non-async signature type-errors.
+- Passes the **raw string**; `RoleDetailView` decides whether it is an id at all (EC-05).
+
+**Both routes are role-gated, once, in the layout beside them** — see § [Route protection](#route-protection).
+No `middleware.ts` / `proxy.ts` is added: the auth feature's decision stands, and the guard is client-side
+like every other route decision in this app.
+
+### Components — list
+
+**`src/features/roles/components/RolesListView.tsx`** — NEW · client component _(not in the spec's tree)_
+
+- **Responsibility:** composes the filter, table and pager; owns every list-level state. Exists because
+  `useSearchParams()` cannot be called from the server page that provides its Suspense boundary.
+- **Reuses:** `useRolesQuery`, `parseRolesSearchParams`, `canManageRoles`, `useAuth`.
+- **States rendered:** **all six** —
+  | State               | Rendered                                                                                                        |
+  | ------------------- | --------------------------------------------------------------------------------------------------------------- |
+  | Loading             | Skeleton rows **in the table's own shape**, so nothing shifts when data lands (PERF-1, AC-F09)                  |
+  | Empty, no filter    | "No roles yet." with the New role action inline                                                                 |
+  | Empty, filtered     | "No closed roles." with a **Show all roles** action that clears the filter — never the unfiltered copy (AC-F06) |
+  | Page beyond the end | The filtered-empty state plus **Back to first page** (EC-08, AC-F08)                                            |
+  | Failed              | "Couldn't load roles." with a **Try again** control that refetches (EC-16, AC-F10)                              |
+  | Success             | The table                                                                                                       |
+- Renders the **New role** button only when `canManageRoles(user)` — now always true here, since the route
+  guard means only a recruiter mounts this view. The check stays: it asks the question the control is
+  actually about, rather than inheriting an answer from a guard two files away (FR-1.6).
+
+**`src/features/roles/components/RolesTable.tsx`** — NEW · client component
+
+- **Responsibility:** the rows. Columns **Title · Status · Created** — and nothing else. The
+  description is **not** in the table at all (FE-7.3).
+- **Reuses:** `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell` from
+  [`src/components/ui/table.tsx`](../../../src/components/ui/table.tsx); `RoleStatusBadge`;
+  `formatAbsolute`.
+- **Required modification:** the whole row is the click target **and** the title is a real `<Link>`, so
+  it is keyboard-reachable and middle-clickable (FR-1.2). A long title truncates with an ellipsis and
+  carries a `title` attribute; **the table never scrolls horizontally on a laptop screen** (FE-7.2,
+  EC-15) — note `table.tsx` already wraps itself in an `overflow-x-auto` container, so the truncation
+  has to be real, not delegated to that.
+- **States rendered:** success only. Loading, empty and error belong to `RolesListView`.
+
+**`src/features/roles/components/RolesStatusFilter.tsx`** — NEW · client component
+
+- **Responsibility:** **All** (default) · **Open** · **Closed**, reflected in the URL as
+  `?status=OPEN|CLOSED`, absent for All (FR-1.3).
+- **Reuses:** [`src/components/ui/select.tsx`](../../../src/components/ui/select.tsx).
+- **Required modification:** **this is base-ui, not Radix.** `Select` takes `value` and
+  `onValueChange(value, eventDetails)` — a **two-argument** callback — and `value` may be `null`.
+  Check `@base-ui/react/select` types before writing the handler. Changing the filter is
+  `router.push` (not `replace`) so **Back returns to the previous filter** (FR-1.5, EC-02, AC-F04),
+  and it **resets `page` to 1**.
+- **States rendered:** idle; disabled while the list query is fetching is _not_ required and is not
+  added — a filter that locks up mid-fetch is worse than one that queues.
+
+**`src/features/roles/components/RolesPagination.tsx`** — NEW · client component
+
+- **Responsibility:** previous/next and the current position, from `pagination.totalPages` — **never
+  inferred** (XBE-1).
+- **Reuses:** `Button`. **There is no pagination primitive in `src/components/ui/`** and none is added
+  — the spec names a feature component, not a new primitive.
+- **Required modification:** page size is fixed at the API default of 20 and is not user-configurable
+  (FR-1.4). Writes `?page=` while preserving `?status=`, via `buildRolesHref`.
+- **States rendered:** disabled at the first and last page.
+
+### Components — detail
+
+**`src/features/roles/components/RoleDetailView.tsx`** — NEW · client component _(not in the spec's tree)_
+
+- **Responsibility:** the whole detail surface and its states. Exists because the route is a server
+  component that must `await params`.
+- **Required modification:** shows title, status, full description and **both** timestamps — that is
+  every field the API returns, so there is nothing else to show (FR-2.1). `createdAt` renders absolute
+  **plus** relative (FR-2.2). The description renders with line breaks preserved via
+  `white-space: pre-wrap` — **never** `dangerouslySetInnerHTML`, no markdown renderer, no HTML parsing
+  (SEC-5, AC-F37). React escapes it; that is the whole defence and it is sufficient.
+- **States rendered:** loading (skeleton in the detail layout's shape) · `404` → `RoleNotFound` ·
+  failed → "Couldn't load this role." with **Try again** · success.
+- Renders **Edit** and **Close role**/**Reopen role** only when `canManageRoles(user)` (FR-2.3).
+
+**`src/features/roles/components/RoleNotFound.tsx`** — NEW · client component
+
+- **Responsibility:** the designed "Role not found" state, **inside the app chrome**, with a link back
+  to `/roles`.
+- **Required modification:** **not** Next's `not-found.tsx` and not `notFound()` — the route exists,
+  the data does not. A route 404 and a data 404 are different facts and must look different (FR-2.4,
+  EC-04, AC-F12).
+
+**`src/features/roles/components/RoleStatusBadge.tsx`** — NEW · client component
+
+- **Reuses:** [`src/components/ui/badge.tsx`](../../../src/components/ui/badge.tsx) — `OPEN` in the
+  accent/positive treatment, `CLOSED` in the muted one.
+- **Colour is never the only signal** — the badge carries the word (FE-7.1).
+
+### Components — write actions
+
+**`src/features/roles/components/RoleFormDialog.tsx`** — NEW · client component
+
+- **Responsibility:** create **and** edit in one component, differing only in default values, submit
+  label and which mutation it calls (FE-4.1). Two dialogs that drift apart is the failure mode being
+  avoided.
+- **Reuses:** `react-hook-form` + `zodResolver`; `Field`/`FieldGroup`/`FieldLabel`/`FieldError` from
+  [`field.tsx`](../../../src/components/ui/field.tsx); `Input`, `Textarea`, `Button`, `Dialog`;
+  `errorBodyOf`/`fieldMessage` from `lib/error-details.ts`.
+  [`LoginForm.tsx`](../../../src/features/auth/components/LoginForm.tsx) is the reference for the
+  whole shape — `data-invalid`, `aria-invalid`, `aria-describedby`, and labels that swap to an
+  ellipsis form while submitting.
+- **Required modification:**
+  1. **Exactly two fields** — Title and Description — and **no status control** in either mode
+     (FR-3.1, FR-3.2, FR-4.3, AC-F18, AC-F25).
+  2. **Edit sends only the fields that actually changed.** Submitting an untouched form closes the
+     dialog and **sends nothing** — the API would reject an empty patch, and asking it to is pointless
+     traffic (FR-4.2, EC-07, AC-F26, AC-F27). Use RHF's `dirtyFields`, not a value comparison.
+  3. A live character count on Description **once it passes 4,500 characters** — silent until the
+     5,000 limit is near, so it informs rather than nags (FE-4.4, EC-14).
+  4. Server `details` mapped onto fields with `setError`, behind an explicit key allow-list
+     (`'title' | 'description'`), exactly as `LoginForm` allow-lists `'email' | 'password'`.
+     **`details[field]` is an array** — take the first message via `fieldMessage`.
+- **States rendered** (FE-4.5, both modes):
+  | State                  | Behaviour                                                                                                          |
+  | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+  | Idle                   | Submit enabled (create); enabled-but-no-op when nothing changed (edit)                                             |
+  | Client-invalid         | Per-field messages; **no network request** (AC-F19, AC-F20)                                                        |
+  | Submitting             | Submit disabled with a spinner, inputs disabled, **dialog not dismissable** by Escape or backdrop (FR-3.4, AC-F23) |
+  | `400 VALIDATION_ERROR` | `details` → `setError`; dialog **stays open** with every value intact (AC-F24)                                     |
+  | `403 FORBIDDEN`        | **Nothing.** Handled globally — see R-2                                                                            |
+  | `404 NOT_FOUND` (edit) | Dialog closes; the detail view switches to the not-found state — the role went away underneath (EC-11)             |
+  | `500` / network        | Form-level _"Something went wrong. Please try again."_; every value retained (AC-F31)                              |
+  | Success                | Dialog closes → toast → navigate (create) or re-render (edit)                                                      |
+- **On create success the app navigates to the new role's detail view**, not back to the list: a new
+  role is `OPEN`, so on a list filtered to Closed it would vanish on creation, and a recruiter who
+  just typed a description deserves to see it saved rather than hunt for it (FR-3.3, EC-06, AC-F22).
+- Escape and click-outside close the dialog **only when idle**, and a dialog with unsaved changes asks
+  before discarding them (FE-4.6, EC-17).
+
+**`src/features/roles/components/RoleStatusAction.tsx`** — NEW · client component
+
+- **Responsibility:** **Close role** on an open role, **Reopen role** on a closed one (FR-5.1). Sends
+  `PATCH` with `{ status }` alone (FR-5.3).
+- **Required modification:** **closing asks for confirmation** in a dialog naming the role, because it
+  takes a requisition out of circulation. **Reopening does not** — it is additive and trivially undone
+  (FR-5.2, AC-F28, AC-F29). The action is disabled while in flight and the confirmation cannot be
+  dismissed mid-request (FR-5.5).
+- **Reuses:** `dialog.tsx` with a `destructive`-variant confirm button. **There is no `alert-dialog`
+  primitive in `src/components/ui/` and none is added** — the spec adds exactly one primitive, and it
+  is `skeleton`.
+
+**`src/features/roles/components/RoleDeleteAction.tsx`** — NEW in Revision 2 · client component
+
+- **Responsibility:** **Delete role**, behind a confirmation dialog. The app's only irreversible
+  action (FR-7).
+- **Required modification:** it **returns `null` when `role.status !== 'CLOSED'`** — the control is
+  absent from the DOM entirely on an open role, not disabled and not tooltipped (FR-7.1, FE-2.4,
+  AC-F41). That mirrors the server's rule; it does not implement it. The API answers `409` on an open
+  role whatever this renders (FR-7.2).
+- The confirmation names the role and says the action **cannot be undone**. It deliberately does
+  **not** borrow the close dialog's "you can reopen it later" reassurance — there is nothing to
+  reopen (FR-7.3, AC-F43).
+- **Three failures, three different behaviours**, and this is the component's real complexity:
+  `403` returns silently (inherited — `apiFetch` has already routed to `/forbidden` and rendering over
+  an unmounting view would flash); `404` closes the dialog and calls `onNotFound` — someone else
+  deleted it, so the user has the outcome they asked for (FR-7.7, AC-F47); **`409` keeps the dialog
+  open** with copy naming the remedy, because a retry would fail identically (FR-7.6, FE-6.4, AC-F46).
+  Anything else is the generic form-level message.
+- Takes **`onDeleted`** (required) and `onNotFound` (optional) rather than routing itself (FE-5.6).
+- **Reuses:** `dialog.tsx`, the same confirmation shape `RoleStatusAction` uses. **Still no
+  `alert-dialog` primitive**, and Revision 2 adds no primitive and no npm dependency.
+
+**`src/features/roles/components/RoleDetailView.tsx`** — **MODIFIED** in Revision 2
+
+- Renders `<RoleDeleteAction>` third in the action row, after Edit and the status action: **increasing
+  consequence, left to right** (FR-2.3). The row becomes `flex-wrap`, since it can now hold three
+  controls at phone width.
+- Supplies `onDeleted` as **`router.replace('/roles')`** — `replace`, not `push`, so **Back** does not
+  land on the deleted role's URL (FR-7.4, AC-F45).
+
+### Primitives
+
+**`src/components/ui/skeleton.tsx`** — NEW · shadcn primitive
+
+- `npx shadcn@latest add skeleton` — `components.json` is already configured (style `base-nova`,
+  base-ui, lucide). It is a local component file, not a dependency.
+- The auth plan recorded that it added **none** (its AC-F32) precisely because nothing in that feature
+  had a list to show a placeholder for. This is the feature that has the list.
+
+**`src/components/ui/dropdown-menu.tsx`** — NEW · shadcn primitive · **[chrome revision]**
+
+- `npx shadcn@latest add dropdown-menu`. **Not in the approved plan**, which budgeted exactly one
+  primitive. The header account menu needs a popup menu, and there is no menu primitive in
+  `components/ui/` — so this is the "the capability genuinely isn't covered" case, not a preference.
+  It wraps base-ui's `Menu`, which is already a dependency, so **no npm dependency is added**.
+- An **avatar** primitive was deliberately _not_ added: the API returns no image for a user, so the
+  initials circle is a styled `<span>` in the chrome, not a primitive with an unused image slot.
+
+- **Everything else is reused.** No new primitive may duplicate one of the twelve already in
+  [`src/components/ui/`](../../../src/components/ui/).
+
+### Route protection
+
+_Added by the revision that made roles recruiter-only. Four files, one of which fixes a gap that predates
+this feature._
+
+**`src/features/auth/components/RequireRole.tsx`** — NEW · client component
+
+- **Responsibility:** `{ allow: readonly UserRole[]; children }`. Renders `children` when
+  `useAuth().user.role` is in `allow`, `<NotFoundView />` when it is not, and `null` while `user` is
+  absent — the last is type narrowing behind `<RequireAuth>`, not a loading state of its own (FE-10.1,
+  FE-10.7).
+- **Lives in `features/auth/`, not `features/roles/`** — it is session machinery every future feature will
+  reuse, not a roles component. (The approved plan sketched it under `features/roles/`; that was written
+  when it was hypothetical.)
+- **It renders the 404 rather than throwing `notFound()`.** Inside `(app)` the chrome is already painted,
+  and a user who is merely in the wrong place keeps their nav.
+
+**`src/app/(app)/roles/layout.tsx`** — NEW · server component
+
+- **Responsibility:** `<RequireRole allow={ROLES_USER_ROLES}>{children}</RequireRole>`, and nothing else.
+- **Why a layout and not two page wrappers:** one gate covers `/roles` and `/roles/[roleId]`, and covers
+  the next roles route nobody has written yet (FE-10.3, AC-F35a).
+
+**`src/components/not-found-view.tsx`** — NEW · component
+
+- **Responsibility:** the route-404 body — icon, "Page not found", and a **Go back** to `/`.
+- **Why shared:** the guard's 404 and a mistyped URL's 404 must be indistinguishable, and the reliable way
+  to keep two things identical is for them to be one thing (FE-10.5).
+- **The way back is `/`, never a role-specific route**, so it is correct for an anonymous visitor too.
+
+**`src/app/not-found.tsx`** — NEW · server component
+
+- **Responsibility:** the app's route 404, which **did not exist** — every unmatched URL was falling through
+  to Next's default page, outside this app's shell and copy (FE-10.6).
+- Renders `<NotFoundView />` centred on its own page, deliberately **outside** the `(app)` chrome: a 404
+  must render for an anonymous visitor, and nothing on it needs a session.
+
+**Not renamed, not merged, not deleted:** `features/roles/components/RoleNotFound.tsx` stays exactly as it
+is. A recruiter opening `/roles/9999` still gets the *data* 404 inside the chrome with a link back to the
+list (FR-2.4). Three nothings, three renderings — route-404, data-404, and `/forbidden` for a server refusal.
+
+**`src/app/forbidden/page.tsx`** — UNCHANGED, and still reachable. `apiFetch`'s `403` handler still routes
+there; what changed is that a *route* refusal no longer would (FE-10.2).
+
+---
+
+### Chrome and the `UserRole` rename
+
+**`src/app/(app)/layout.tsx`** — MODIFIED · client component · **[chrome revision]**
+
+Rewritten rather than edited. The approved plan changed two lines here; spec FR-7's revision replaced
+the horizontal top nav with a sidebar + header shell.
+
+1. **`NAV_SECTIONS`, not `NAV_LINKS`.** A `Record<UserRole, NavSection[]>` giving each role its own
+   labelled sections (FR-7.1a). **Roles is recruiter-only**; an interviewer's sidebar is `Interviews → My
+   interviews` and nothing else (FR-7.1b, revised).
+2. **It is a lookup table, not a comparison.** Keying by the `UserRole` union means no
+   `role === 'RECRUITER'` is written here, so FE-2.1's "one place" rule and **AC-F17 are untouched** —
+   and adding a third user role makes this table a type error until it is filled in (FR-7.1d).
+3. **It gates no route.** `/pipeline` stays reachable by an interviewer who types the URL — it has no guard
+   of its own, and the pipeline feature owns that call. `/roles` is gated, but by `<RequireRole>` in its own
+   layout, never by this table (FR-7.1c).
+4. **Change the active check.** It was `pathname === link.href` — **exact equality**, so `/roles/123`
+   would leave **Roles** unhighlighted. Now a prefix match
+   (`pathname === href || pathname.startsWith(href + '/')`). _Not in the spec; found while reading the
+   file._ `aria-current` follows the same condition.
+5. **The account menu replaces the inline chrome.** The name, role chip and log-out button become a
+   header `DropdownMenu` at the top right carrying name, email and **Sign out** (FR-7.3). **The role
+   chip is dropped** — the sidebar now says what the role is by what it offers. Log-out behaviour,
+   including `isLoggingOut`, is unchanged.
+6. **Preserve:** `RequireAuth` wrapping everything.
+7. **Landing routes are unchanged** — `RECRUITER → /pipeline`, `INTERVIEWER → /my-interviews`.
+   Changing where a recruiter lands belongs to the pipeline feature (FR-7.2).
+8. **Responsive:** the sidebar collapses to an icon rail below `md` rather than disappearing, so every
+   destination stays reachable on a phone without introducing a drawer primitive.
+
+**`src/features/auth/hooks/useAuth.ts`** — MODIFIED · hook
+**`src/features/auth/redirect.ts`** — MODIFIED · module
+
+- `import type { Role }` → `UserRole`. Type-only; no behaviour, no values, no shapes change (FE-9).
+
+**`src/features/auth/components/LoginForm.tsx`** — MODIFIED · client component
+
+- **Remove:** the local `errorBodyOf` — it moves to `lib/error-details.ts`.
+- **Change:** the `details` loop now receives `string[]`. `setError(field, { type: 'server', message: fieldMessage(...) })`.
+  **Without this the login form regresses the moment the backend fix lands** (R-1).
+- **Preserve:** every other behaviour — the `401` path, `resetField('password')`, `setFocus`, the
+  retained email. This file is not otherwise touched.
+
+**`src/features/roles/components/RequireRole.tsx`** — **NOT BUILT AT THIS PATH**
+
+The component exists, but in `features/auth/components/` — see § [Route protection](#route-protection). It
+is session machinery, not a roles component, and the next feature that gates a route imports it from there.
+
+---
+
+## Backend Changes
+
+This is a frontend plan. The backend plan is
+[../../../../backend/specs/features/roles/plan.md](../../../../backend/specs/features/roles/plan.md).
+Everything below must exist **before** any criterion here can be signed off.
+
+| What the backend must provide                                                                              | Reference                                                                                                                 |
+| ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Four endpoints — `GET /api/roles`, `GET /api/roles/:roleId`, `POST /api/roles`, `PATCH /api/roles/:roleId` | backend API Changes                                                                                                       |
+| `{ roles, pagination: { page, pageSize, total, totalPages } }` on the list                                 | XBE-1                                                                                                                     |
+| **Both reads are `RECRUITER`-only** and answer an interviewer `403`                                        | XBE-2, backend AZ-1 — _revised; this previously read "not role-scoped — both user roles get the same rows"_               |
+| `404 NOT_FOUND` for an unknown id, in the standard error shape                                             | XBE-3                                                                                                                     |
+| `201` with the **complete** created role including its new `id`                                            | XBE-4                                                                                                                     |
+| `200` with the **complete** updated role on a partial `PATCH`                                              | XBE-5                                                                                                                     |
+| `403`, never `401`, for **any** authenticated interviewer call                                             | XBE-6 — a `401` would trigger the refresh-and-replay interceptor on an authorization failure                              |
+| **`400 VALIDATION_ERROR` with `details` actually populated**                                               | XBE-7 — the backend fixes a defect that currently leaves it `{}` (backend BE-5). **Without that fix AC-F24 cannot pass.** |
+| `message` on every error is user-safe copy this client renders verbatim                                    | XBE-8                                                                                                                     |
+| A seed creating three demo roles, two open and one closed                                                  | XBE-9 — **without a seeded database this feature has nothing to show**, and no UI path creates the data                   |
+| `status` cannot be set on create                                                                           | XBE-10                                                                                                                    |
+| The `UserRole` rename changes **no** request or response field                                             | XBE-11                                                                                                                    |
+
+**One obligation flows the other way:** the backend plan lists the `details` array type under its own
+Frontend Changes. The two repos must ship together, or the backend second.
+
+---
+
+## Database Changes
+
+**The frontend has no database.** It owns only view state, and none of it is persisted.
+
+| State                         | Where it lives                                  | Lifetime                    | Persisted?                                                        |
+| ----------------------------- | ----------------------------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| Status filter, page           | The URL query string                            | The history entry           | **Only as a URL** — shareable, which is the point (FR-1.5, US-07) |
+| Role list                     | TanStack Query `['roles','list',{status,page}]` | Until invalidated or unload | No                                                                |
+| Role detail                   | TanStack Query `['roles','detail',roleId]`      | Until invalidated or unload | No                                                                |
+| Dialog open/mode, form values | Component state                                 | Until the dialog closes     | No                                                                |
+
+**Invalidation triggers:** a successful `createRole` or `updateRole` sets
+`['roles','detail',id]` from the response and invalidates `['roles','list']` — never a full
+`queryClient.clear()` (that belongs to logout alone).
+
+- **DM-1 — nothing in this feature touches `localStorage`, `sessionStorage` or IndexedDB.** The auth
+  spec's hard rule is about credentials; this feature adds no exception to it for anything else either
+  (SEC-4, AC-F36).
+- **DM-2 — a draft in a half-filled create dialog is not preserved across a reload.** A decision, not
+  an oversight: preserving it means writing user-entered text to browser storage, which this app does
+  not do.
+
+---
+
+## API Changes
+
+Five calls *(revised; there were four)*. **This is the complete list.**
+
+| Endpoint             | Method | Sends                                          | Expects                     | Errors handled                                                                                                                             | Auth                  | Query key                        |
+| -------------------- | ------ | ---------------------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------- | -------------------------------- |
+| `/api/roles`         | GET    | `?status=` `?page=`                            | `200 { roles, pagination }` | `500`/network → "Couldn't load roles." + Try again. `400` should be unreachable — VAL-7 sanitises first — and falls back to the same state | Bearer, **RECRUITER** | `['roles','list',{status,page}]` |
+| `/api/roles/:roleId` | GET    | —                                              | `200 { role }`              | `404` → `RoleNotFound`. `500`/network → "Couldn't load this role." + Try again                                                             | Bearer, **RECRUITER** | `['roles','detail',roleId]`      |
+| `/api/roles`         | POST   | `{ title, description }`                       | `201 { role }`              | `400` → `details` onto fields. `403` → inherited `/forbidden`. `500`/network → form-level message                                          | Bearer, **RECRUITER** | — (mutation)                     |
+| `/api/roles/:roleId` | PATCH  | `{ title?, description? }` **or** `{ status }` | `200 { role }`              | `400` → fields. `403` → inherited. `404` → close dialog, detail switches to not-found. `500`/network → form-level                          | Bearer, **RECRUITER** | — (mutation)                     |
+| `/api/roles/:roleId` | DELETE | — (no body)                                    | `204` (empty)               | `403` → inherited. `404` → close dialog, detail switches to not-found — **not** an error (FR-7.7). **`409 ROLE_NOT_CLOSED` → dialog stays open** with its own message (FR-7.6). `500`/network → generic | Bearer, **RECRUITER** | — (mutation, removes the detail key) |
+
+All four are **consumed unchanged** — this feature requires no backend change beyond the roles feature
+itself being built.
+
+**`401` is never handled here.** `apiFetch` refreshes once and replays, and the dialog's contents
+survive because the replay reuses the captured body (EC-12, AC-M04).
+
+---
+
+## Shared Types / Contracts
+
+Two separate git repos. **Nothing is shared by import, only by agreement.**
+
+| Contract item                                 | Owned by                       | Mirrored here in                                  | What breaks here if it changes                                                                                                             |
+| --------------------------------------------- | ------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Role shape — six fields                       | Backend `ROLE_SELECT`          | `features/roles/types.ts`                         | The detail view renders blanks. **A seventh field — especially a user reference — is a backend bug to flag, not to filter** (ERR-5, SEC-3) |
+| `RoleStatus` = `OPEN` \| `CLOSED`             | Backend `enum RoleStatus`      | `features/roles/types.ts`                         | The badge, the filter and the close/reopen action all branch on these literals                                                             |
+| `UserRole` = `INTERVIEWER` \| `RECRUITER`     | Backend `enum UserRole`        | `features/auth/types.ts`                          | `canManageRoles` and the landing route. **The rename is a type name only — the wire values are unchanged**                                 |
+| Pagination envelope                           | Backend `listRoles`            | `features/roles/types.ts`                         | `RolesPagination` renders from `totalPages`; a rename gives it `undefined` pages                                                           |
+| Query parameters `status`, `page`, `pageSize` | Backend `listRolesQuerySchema` | `features/roles/search-params.ts`, `roles.api.ts` | Linkable filter URLs break; a renamed parameter is stripped as unknown and the list silently returns unfiltered                            |
+| Error body `{ code, message, details? }`      | Backend `errorHandler`         | `features/auth/types.ts` `ApiErrorBody`           | Every error branch keys off `body.code` (ERR-1) — never off `message` copy                                                                 |
+| **`details: Record<string, string[]>`**       | Backend `ErrorDetails`         | `features/auth/types.ts`                          | **Currently wrong here — see R-1.** A string type makes `setError` render `["…"]`                                                          |
+| `403` (not `401`) for **any** interviewer call | Backend `requireRole`         | `lib/api.ts`, unchanged                           | A `401` would send the interceptor into a pointless refresh-and-replay. Reads are recruiter-only too since the revision (XBE-2, XBE-6)     |
+| Page size default of 20                       | Backend `listRolesQuerySchema` | `RolesPagination`, implicitly                     | The pager's arithmetic assumes the server's default; it is never sent                                                                      |
+| Cookie `refresh_token`, path `/api/auth`      | Backend                        | `lib/api.ts` `credentials: 'include'`             | Untouched by this feature                                                                                                                  |
+
+---
+
+## Verification Commands
+
+The backend must be running on port 3000 **against a seeded database**, and the frontend on 3001.
+Run from `frontend/`.
+
+```bash
+# 1. Dependencies — no new ones
+npm install
+#    proves: package.json is unchanged (spec § Dependencies)
+
+# 2. The one new primitive
+npx shadcn@latest add skeleton
+#    proves: src/components/ui/skeleton.tsx exists and matches the base-nova style
+
+# 3. Static checks
+npm run lint && npm run typecheck
+#    proves: the UserRole rename is complete, and the details type change compiles
+#            everywhere it is consumed (LoginForm included)
+
+# 4. Production build
+npm run build
+#    proves: the Suspense boundary around useSearchParams is present.
+#            A missing boundary fails HERE, not at runtime.
+
+# 5. `role === 'RECRUITER'` appears in exactly one place
+grep -rn "'RECRUITER'" src/ --include=*.ts --include=*.tsx
+#    expect: ONE hit, in src/features/roles/permissions.ts (AC-F17).
+#            features/auth/types.ts declares the union — a type, not a comparison — and is exempt.
+
+# 6. DELETE is wrapped, never issued from a component  [revised in Revision 2]
+grep -rn "method: 'DELETE'" src/
+#    expect: EXACTLY ONE match, inside deleteRole in features/roles/api/roles.api.ts
+#            (API-1, API-2, AC-F35). A hit in a component is a failure.
+
+# 6b. The delete control exists on the detail view and nowhere else
+grep -rn "RoleDeleteAction" src/
+#    expect: TWO hits — the component itself, and RoleDetailView.tsx.
+#            A hit in RolesTable.tsx or RolesListView.tsx is a failure (FR-7.9, AC-F49).
+
+# 7. The route guard appears exactly where it should
+grep -rn "RequireRole" src/
+#    expect: THREE hits — the component itself, and its single use in
+#            app/(app)/roles/layout.tsx. Neither roles page repeats it (FE-10.3, AC-F35a).
+
+# 7b. One route-404 body, two renderers
+grep -rn "NotFoundView" src/
+#    expect: the component, app/not-found.tsx, and RequireRole.tsx — nothing else (FE-10.5)
+
+# 8. Nothing user-entered reaches browser storage
+grep -rn "localStorage\|sessionStorage\|indexedDB" src/features/roles/
+#    expect: NO match (DM-1, DM-2, AC-F36)
+
+# 9. Run it
+npm run dev
+#    proves: /roles renders against the live API
+```
+
+### Sessions needed
+
+| Account                  | Password         | Used for               |
+| ------------------------ | ---------------- | ---------------------- |
+| `recruiter@demo.test`    | `$SEED_PASSWORD` | every write criterion  |
+| `interviewer1@demo.test` | `$SEED_PASSWORD` | AC-F14, AC-F14a, AC-F15, AC-F32, AC-M03 |
+
+Two browser profiles (or one normal + one private window) are needed for AC-M05.
+
+### Checks needing particular care
+
+- **AC-F09 (nothing shifts)** — throttle to Slow 3G in DevTools › Network, reload `/roles`, and watch
+  the **row positions**, not just that a skeleton appeared. A skeleton of the wrong height passes a
+  glance and fails the criterion.
+- **AC-F02 / PERF-2 (exactly one request)** — clear the Network tab _before_ changing the filter. A
+  filter change must not also refetch the previous filter's page.
+- **AC-F13 (`/roles/abc` makes no request)** — the assertion is on **absence** in the Network tab. A
+  request that 400s and is handled still fails this.
+- **AC-F24 (`details` lands on the field)** — **this cannot pass until the backend ships BE-5.** If it
+  fails, check `jq '.details'` on the raw response before touching the dialog: an empty `{}` is the
+  backend defect, not this component.
+- **AC-F26 (untouched edit sends nothing)** — open Edit, click Save without typing. The Network tab
+  must show **no `PATCH` at all**. A `PATCH` that the server rejects with a `400` is a failure.
+- **AC-F14 / AC-F14a (the 404, and no flash)** — as an **interviewer**, type `/roles` and `/roles/9` into
+  the address bar. Each must render the app's 404 **with no `/api/roles` request in the Network tab**, and
+  it must be the same body `/nonsense` renders (AC-F35b). Then throttle to Slow 3G and reload: the guard
+  must not paint a 404 before identity resolves — and repeat as a **recruiter** to prove the inverse
+  (AC-F14b). Both directions matter; checking only one hides an inverted condition.
+- **AC-M03 (the refusal is real)** — from an **interviewer** session, in the DevTools console. **Issue both
+  the `POST` below and a plain `GET ${API}/api/roles`** — the read is refused too now, and it is the call
+  the route guard would otherwise be credited with preventing:
+  ```js
+  await fetch(`${API}/api/roles`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+    body: JSON.stringify({ title: 'By hand', description: 'Should be refused' }),
+  });
+  ```
+  → `403`, **no row created** (confirm with `psql`), and the app renders `/forbidden`. _This is the
+  criterion that proves the hidden buttons are not what is protecting the endpoint._
+- **AC-M04 (one refresh, dialog intact)** — leave a dialog open with text typed, wait past the access
+  token's TTL, then submit. Exactly **one** `/api/auth/refresh`, then the replayed write, and the
+  typed values still on screen throughout.
+- **AC-F38 (zero extra `/me` calls)** — navigate `/roles` → `/pipeline` → `/my-interviews` → `/roles`
+  with the Network tab filtered to `me`. The identity cache's `staleTime: Infinity` must not be
+  disturbed.
+
+---
+
+## Risks
+
+| #    | Risk                                                                                                                                                                                                                                                                          | Impact                                                                                                                                                                                                                       | Mitigation                                                                                                                                                                                                                               |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R-1  | **`ApiErrorBody.details` is typed `Record<string, string>` here and produced as `Record<string, string[]>` by the backend.** `LoginForm` passes the value straight to `setError`. It is masked today only because the backend's accumulator is broken and always yields `{}`. | The backend fixes that defect **in this same feature**. The moment it lands, the **login form** — untouched by this work — renders `["Password is required"]`. A regression in a shipped feature, caused by a fix elsewhere. | Correct the type and route both forms through `fieldMessage` in `lib/error-details.ts`. Verified by AC-F24 and by re-running the auth feature's own `400` check. **The two repos ship together, or the backend ships second.**           |
+| R-2  | **`apiFetch` calls `onForbidden()` _and still throws_.** A `403` navigates to `/forbidden` and also rejects the mutation, so `onError` fires on a page the user is leaving.                                                                                                   | A flash of "Something went wrong" over a view that is unmounting.                                                                                                                                                            | In every mutation `onError`, branch on `error instanceof ApiError && error.status === 403` and **return without setting a form error**. `403` handling is entirely inherited; this feature adds no `403` branch of its own (FE-6.2).     |
+| R-3  | **Next.js 16 differs from remembered conventions.** `params` is a Promise, and `useSearchParams` needs a Suspense boundary.                                                                                                                                                   | A non-async page signature type-errors; a missing boundary fails `next build`, not `next dev` — so it is found late.                                                                                                         | Both verified against `node_modules/next/dist/docs/` and recorded under § Architecture Impact. `npm run build` (verification step 4) is the gate.                                                                                        |
+| R-4  | **`src/components/ui/` is base-ui, not Radix.** `Select` uses `onValueChange(value, eventDetails)` — two arguments — and composition is `render={<Link/>}`, not `asChild`.                                                                                                    | Code written from Radix memory compiles against the wrong signature or silently drops the event.                                                                                                                             | Read `@base-ui/react/select` types before writing `RolesStatusFilter`. The `render=` idiom is already visible in `(app)/layout.tsx`.                                                                                                     |
+| R-5  | **Changing `NAV_LINKS`' active check touches a shared file** every route depends on.                                                                                                                                                                                          | A wrong prefix match highlights Pipeline on unrelated routes.                                                                                                                                                                | Change the comparison only; keep the `NAV_LINKS` shape. Check all four nav targets plus `/roles/1` after the edit.                                                                                                                       |
+| R-6  | **Cache invalidation could be too broad.** A `queryClient.clear()` after a mutation would also drop the identity cache.                                                                                                                                                       | An unnecessary `/api/auth/me` on every write, breaking AC-F38 and PERF-5.                                                                                                                                                    | Invalidate `['roles','list']` only, and `setQueryData` the detail from the response (FE-5.3). `clear()` belongs to logout alone.                                                                                                         |
+| R-7  | **A description is user-supplied content rendered to other users.**                                                                                                                                                                                                           | XSS, if it is ever rendered as markup.                                                                                                                                                                                       | React escapes it; line breaks come from `white-space: pre-wrap`, **not** from converting them to markup. No `dangerouslySetInnerHTML`, no markdown renderer, no HTML parsing is introduced (SEC-5, AC-F37).                              |
+| R-8  | **The client could invent a narrowing the server does not perform** — or, since the revision, be mistaken for the thing performing it.                                                                                                                                        | Exactly the pattern `CLAUDE.md` forbids, or a reviewer crediting a client guard with the refusal.                                                                                                                            | The guard mirrors an API that already refuses an interviewer (XBE-2); it narrows nothing the server does not. **AC-M03 issues the read by hand, outside every client guard**, so the server's `403` is what gets signed off (SEC-2a).   |
+| R-12 | **The route guard could be mistaken for a security control** in a later review, and the API's `403` quietly relaxed because "the UI blocks it anyway".                                                                                                                        | The only real control disappears and nothing visibly breaks — an interviewer who opens DevTools gets the whole requisition list.                                                                                              | Stated in FE-10.2, SEC-2a and in `RequireRole.tsx`'s own doc comment, and checked by AC-M03 rather than by walking the UI. This row exists so the next reviewer meets the argument before the temptation.                                |
+| R-9  | **No new dependency is allowed**, yet FR-2.2 needs relative timestamps and the app has no date library.                                                                                                                                                                       | Reaching for `date-fns` would break the spec's "none, runtime or dev".                                                                                                                                                       | `lib/format-date.ts` over `Intl.DateTimeFormat` + `Intl.RelativeTimeFormat` — built in, zero bytes added.                                                                                                                                |
+| R-10 | **Every criterion is manual and needs a seeded backend.** No UI path creates roles for an interviewer session to read.                                                                                                                                                        | Nothing can be signed off until the backend feature is implemented and `npm run db:seed` has run.                                                                                                                            | Stated as the blocking dependency at the top of this plan. AC-M01 is the gate for all the rest.                                                                                                                                          |
+| R-11 | **A stale tab can show a role another recruiter has since changed** (EC-09, EC-10), and there is no client-side throttling on repeated writes.                                                                                                                                | A recruiter acts on data that is up to `staleTime` old.                                                                                                                                                                      | **Not mitigated by this plan.** Accepted: the view re-renders from each response rather than a local merge, so the _next_ read is correct. Matches the backend's documented absence of rate limiting and optimistic concurrency (SEC-7). |
+
+---
+
+## Implementation Order
+
+Each step leaves the app building and type-checking.
+
+1. **`skeleton` primitive.** `npx shadcn@latest add skeleton`. Independent of everything else.
+2. **The `UserRole` rename and the `details` type correction** — `features/auth/types.ts`,
+   `useAuth.ts`, `redirect.ts`, and `LoginForm.tsx` (plus the new `lib/error-details.ts`). **Do this
+   first and run `npm run typecheck` before anything else**, so a pre-existing file's regression is
+   never entangled with new code. Independent of the backend.
+3. **`features/roles/types.ts`, `permissions.ts`, `search-params.ts`, `lib/schemas/role.ts`,
+   `lib/format-date.ts`.** Pure data and pure functions; no I/O, no components. Independent of steps
+   1 and 2.
+4. **`api/roles.api.ts`** — the four wrappers. Blocked on the backend only for _running_, not for
+   writing.
+5. **`hooks/useRolesQuery.ts`, `useRoleQuery.ts`, `useRoleMutations.ts`.** The api module must exist
+   first.
+6. **`RoleStatusBadge.tsx`, `RoleNotFound.tsx`** — leaf components with no data dependency.
+7. **List: `RolesTable.tsx`, `RolesStatusFilter.tsx`, `RolesPagination.tsx`, `RolesListView.tsx`,
+   then `app/(app)/roles/page.tsx`.** The route last, so the Suspense boundary is added once its
+   child actually calls `useSearchParams`. AC-F01…AC-F10 become checkable here.
+8. **Detail: `RoleDetailView.tsx`, then `app/(app)/roles/[roleId]/page.tsx`.** AC-F11…AC-F13.
+9. **`RoleFormDialog.tsx`** — create mode wired into the list, then edit mode into the detail.
+   AC-F18…AC-F27.
+10. **`RoleStatusAction.tsx`** — reopen first (no confirmation, simpler), then close with its
+    confirmation dialog. AC-F28…AC-F31.
+10b. **Delete** _(added in Revision 2, and done last — after everything below is working)_ — see
+    [step 10b](#step-10b--delete-added-in-revision-2) at the end of this section.
+11. **`app/(app)/layout.tsx`** — the nav link and the active-state fix. Deliberately late: it touches
+    a shared file, so it lands when there is a working route to point at. AC-F32.
+12. **Route protection** _(added by the revision)_ — `components/not-found-view.tsx`, then
+    `app/not-found.tsx`, then `features/auth/components/RequireRole.tsx`, then
+    `app/(app)/roles/layout.tsx`. In that order: the shared body first, so neither renderer invents its
+    own; the guard last, because it is the only step that can make a working route stop working.
+    AC-F14, AC-F14a, AC-F14b, AC-F35a, AC-F35b.
+13. **Verification.** The command list, then the manual table — **as both a recruiter and an
+    interviewer.**
+
+Steps 1, 2 and 3 are mutually independent and could run in parallel. **Steps 7 onward cannot be
+signed off until the backend is implemented and seeded** (R-10), though they can be written against
+it beforehand.
+
+### Step 10b — Delete (added in Revision 2)
+
+Done against a working feature, and **blocked on the backend's own
+[step 9b](../../../../backend/specs/features/roles/plan.md#step-9b--delete-added-in-revision-2)** for
+verification — though it can be written first. No new primitive, no new dependency, no change to
+`src/lib/api.ts`.
+
+1. **`api/roles.api.ts`** — add `deleteRole(roleId): Promise<void>`. Confirm by hand that a `204`
+   resolves rather than throwing in `parseResponse`.
+2. **`hooks/useRoleMutations.ts`** — add `useDeleteRole`: `removeQueries` on the detail key,
+   `invalidateQueries` on the list prefix, "Role deleted" toast. **No navigation** (FE-5.6).
+3. **`components/RoleDeleteAction.tsx`** — the button and its confirmation. Write the
+   `status !== 'CLOSED' → null` guard **first**, before the dialog: it is the rule, and it is the one
+   thing that must not be forgotten under a later refactor.
+4. **`components/RoleDetailView.tsx`** — wire it in third in the action row, with
+   `onDeleted = () => router.replace('/roles')`.
+5. **`npm run typecheck && npm run lint`**, then the greps in § Verification (6 and 6b), then
+   AC-F41…AC-F49 in the browser — **on an open role first**, to confirm the control is genuinely
+   absent.
+
+---
+
+## Acceptance Criteria Mapping
+
+Every criterion in [spec.md § Acceptance Criteria](./spec.md#acceptance-criteria) appears below — all
+`AC-F*` (thirty-eight, plus AC-F14a, AC-F14b, AC-F35a and AC-F35b from the revision) and all six
+`AC-M*`. Implementation entries use the paths from § Frontend Changes.
+
+The third column is the **manual check** — this repo has no automated tests and none are being added.
+"Network tab" means DevTools › Network; "Storage" means DevTools › Application.
+
+### List view
+
+| Acceptance Criterion                                     | Implementation                                                              | Manual Verification                                                                                                                      |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-F01 — list renders seeded roles newest-first          | `RolesListView.tsx`, `RolesTable.tsx`, `useRolesQuery.ts`, `format-date.ts` | Open `/roles` as a recruiter → title, status badge and created date per row, newest first                                                |
+| AC-F02 — Open filter: URL changes, one request           | `RolesStatusFilter.tsx`, `search-params.ts`, `useRolesQuery.ts`             | Clear the Network tab, choose **Open** → URL is `/roles?status=OPEN`, only open roles listed, **exactly one** `GET /api/roles` (PERF-2)  |
+| AC-F03 — reload keeps the filter                         | `roles/page.tsx` + `search-params.ts` (URL is the source of truth)          | Load `/roles?status=CLOSED`, reload → Closed still applied (FR-1.5)                                                                      |
+| AC-F04 — Back returns to the previous filter             | `RolesStatusFilter.tsx` using `router.push`, not `replace`                  | Filter to Closed, press Back → the previous filter renders (EC-02)                                                                       |
+| AC-F05 — garbage params render the unfiltered first page | `search-params.ts` `parseRolesSearchParams`                                 | Open `/roles?status=BANANA&page=-2` → unfiltered page 1, and the Network tab shows **no `400`** (VAL-7, EC-03)                           |
+| AC-F06 — filtered-empty offers Show all roles            | `RolesListView.tsx` empty-filtered state                                    | Filter to a status with no roles → "No closed roles." plus a **Show all roles** action that clears the filter. Never the unfiltered copy |
+| AC-F07 — pager writes `?page=`, no row on two pages      | `RolesPagination.tsx`, `search-params.ts`                                   | With more roles than one page, page forward → URL carries `?page=`, correct rows, and no `id` appears on both pages                      |
+| AC-F08 — page past the end offers Back to first page     | `RolesListView.tsx` beyond-the-end state                                    | Open `/roles?page=99` → empty state with **Back to first page**. Not an error, not a blank table (EC-08)                                 |
+| AC-F09 — skeleton in the table's shape, nothing shifts   | `RolesListView.tsx` loading state, `ui/skeleton.tsx`                        | Throttle to Slow 3G, reload `/roles` → skeleton rows, and **row positions do not move** when data lands (PERF-1)                         |
+| AC-F10 — list failure offers Try again                   | `RolesListView.tsx` error state                                             | Stop the backend, open `/roles` → "Couldn't load roles." with a **Try again** that refetches when the backend returns (EC-16)            |
+
+### Detail view
+
+| Acceptance Criterion                                   | Implementation                                                                                | Manual Verification                                                                                                                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-F11 — row opens detail, one request                 | `RolesTable.tsx` row link, `roles/[roleId]/page.tsx`, `RoleDetailView.tsx`, `useRoleQuery.ts` | Clear the Network tab, click a row → title, status, full description, both timestamps, and **exactly one** `GET /api/roles/:roleId` (PERF-3) |
+| AC-F12 — unknown id renders RoleNotFound in the chrome | `RoleNotFound.tsx`, `RoleDetailView.tsx` 404 branch                                           | Open `/roles/9999` → "Role not found" **inside the app chrome** with a link to `/roles`. Next's own 404 page is a failure (EC-04)            |
+| AC-F13 — `/roles/abc` makes no request                 | `useRoleQuery.ts` `enabled` guard                                                             | Open `/roles/abc` → the same not-found state, and the Network tab shows **no request at all** (EC-05)                                        |
+
+### Role-based affordances
+
+| Acceptance Criterion                                       | Implementation                                              | Manual Verification                                                                                                                                                                 |
+| ---------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-F14 — interviewer gets the app's 404 on both routes     | `app/(app)/roles/layout.tsx`, `RequireRole.tsx`, `not-found-view.tsx` | As an interviewer, type `/roles` and `/roles/9` → the app's 404 both times, **no `/api/roles` request in the Network tab**, and the same body `/nonsense` renders (FE-10.2, EC-01) |
+| AC-F14a — no 404 flash before identity resolves            | `RequireRole.tsx` `!user → null` branch                     | As an interviewer on Slow 3G, reload `/roles` → blank/loading, then 404. A 404 that appears and stays is right; one that appears *before* the session resolves is the bug (FE-10.7) |
+| AC-F14b — no 404 flash for a recruiter                     | same                                                        | As a recruiter on Slow 3G, reload `/roles` → skeleton then list, and **no 404 at any point**. The inverse of AC-F14a, and the one that catches an inverted condition                |
+| AC-F15 — interviewer's sidebar has no Roles link           | `app/(app)/layout.tsx` `NAV_SECTIONS`                       | As an interviewer, read the sidebar → **Interviews: My interviews** only. No Roles, no Pipeline (FR-7.1a, FR-7.1b)                                                                  |
+| AC-F16 — recruiter sees all three controls                 | `permissions.ts` call sites                                 | As a recruiter, the same pages → New role, Edit and the status action all present                                                                                                   |
+| AC-F17 — `role === 'RECRUITER'` in exactly one place       | `permissions.ts`                                            | `grep -rn "'RECRUITER'" src/ --include=*.ts --include=*.tsx` → one hit, in `permissions.ts`. The union declaration in `features/auth/types.ts` is a type, not a comparison (FE-2.1) |
+
+### Creating
+
+| Acceptance Criterion                                          | Implementation                                                                                       | Manual Verification                                                                                                                                                                                                                    |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-F18 — create dialog has two fields, no status              | `RoleFormDialog.tsx`, `lib/schemas/role.ts`                                                          | Open New role → **exactly** Title and Description. Any status control is a failure (FR-3.1, FR-3.2)                                                                                                                                    |
+| AC-F19 — empty submit blocks the request                      | `RoleFormDialog.tsx`, `roleCreateSchema`                                                             | Submit empty → per-field messages, and the Network tab shows **no** `POST /api/roles`                                                                                                                                                  |
+| AC-F20 — whitespace title fails client-side                   | `roleCreateSchema` `.trim().min(1)`                                                                  | Title `"   "`, valid description, submit → client-side failure, no request (VAL-2)                                                                                                                                                     |
+| AC-F21 — success: close, toast, navigate to the new role      | `useRoleMutations.ts`, `RoleFormDialog.tsx`                                                          | Create a valid role → dialog closes, **"Role created"** toast, app lands on the new role's detail view showing `status: OPEN` (FR-3.3)                                                                                                 |
+| AC-F22 — creating from a Closed-filtered list still navigates | `RoleFormDialog.tsx` create-success navigation                                                       | Filter to Closed, create a role → lands on the new role's detail, **not** an empty filtered list (EC-06)                                                                                                                               |
+| AC-F23 — in-flight dialog cannot be dismissed                 | `RoleFormDialog.tsx` submitting state                                                                | Throttle the network, submit, press Escape and click the backdrop → dialog stays open, submit stays disabled (FR-3.4)                                                                                                                  |
+| AC-F24 — server `details` lands under the right field         | `RoleFormDialog.tsx` `setError` allow-list, `lib/error-details.ts`, **and `features/auth/types.ts`** | Force a `400` the client does not catch (e.g. a 121-char title with client validation bypassed) → the message renders **under Title**, dialog stays open, description retained. _Fails unless the backend's `details` defect is fixed_ |
+
+### Editing and status
+
+| Acceptance Criterion                                                  | Implementation                                  | Manual Verification                                                                                                     |
+| --------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| AC-F25 — edit is prefilled, no status field                           | `RoleFormDialog.tsx` edit mode                  | Open Edit → current title and description prefilled, **no status control** (FR-4.3)                                     |
+| AC-F26 — untouched edit sends nothing                                 | `RoleFormDialog.tsx` `dirtyFields`              | Open Edit, submit without typing → dialog closes and the Network tab shows **no `PATCH`** (EC-07)                       |
+| AC-F27 — only changed fields are sent                                 | `RoleFormDialog.tsx` `dirtyFields` → patch body | Change only the title, submit → inspect the request payload: **only** `title` (API-4)                                   |
+| AC-F28 — closing asks for confirmation                                | `RoleStatusAction.tsx` confirm dialog           | On an open role click **Close role** → a confirmation naming the role; the `PATCH` fires only after confirming (FR-5.2) |
+| AC-F29 — reopening does not                                           | `RoleStatusAction.tsx`                          | On a closed role click **Reopen role** → the `PATCH` fires with **no** confirmation step                                |
+| AC-F30 — status change: toast, badge, and the list is right on return | `useRoleMutations.ts` invalidation              | Close a role → toast, badge updates; navigate to `/roles` → the new status shows **without a manual reload** (FE-5.3)   |
+| AC-F31 — a `500` keeps the dialog open with values intact             | `RoleFormDialog.tsx` 500/network state          | Stop the backend mid-edit and submit → form-level message, dialog **stays open**, every entered value retained (ERR-4)  |
+
+### Cross-cutting
+
+| Acceptance Criterion                                   | Implementation                                                        | Manual Verification                                                                                                                                                                              |
+| ------------------------------------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AC-F32 — sections match the role exactly               | `app/(app)/layout.tsx` `NAV_SECTIONS`                                 | Check the chrome in both sessions → recruiter sees **Hiring**: Pipeline, Roles; interviewer sees **Interviews**: My interviews and nothing else (FR-7.1a, FR-7.1b)                               |
+| AC-F32a — the sidebar gates no route                   | `app/(app)/layout.tsx` (no redirect, no guard)                        | As an **interviewer**, type `/pipeline` → the page renders. The link is absent; the route is not gated (FR-7.1c)                                                                                 |
+| AC-F32b — the account menu carries identity + sign out | `app/(app)/layout.tsx` `UserMenu`                                     | Open the header menu in both sessions → name and email shown, **Sign out** present and working (FR-7.3)                                                                                          |
+| AC-F33 — the api module exports exactly five *(revised)* | `api/roles.api.ts`                                                  | Read the file → `listRoles`, `getRole`, `createRole`, `updateRole`, `deleteRole` — and no sixth (FE-3.1)                                                                                         |
+| AC-F34 — no schema has a `status` field                | `lib/schemas/role.ts`                                                 | Read the file → neither `roleCreateSchema` nor `roleEditSchema` mentions `status` (VAL-3)                                                                                                        |
+| AC-F35 — DELETE is issued only from the wrapper *(revised)* | `roles.api.ts`                                                   | `grep -rn "method: 'DELETE'" src/` → **exactly one** hit, inside `deleteRole`. A hit in any component is a failure (API-1, API-2)                                                                |
+| AC-F35a — the guard appears once, in the layout        | `app/(app)/roles/layout.tsx`                                          | `grep -rn "RequireRole" src/` → the component, and **one** use, in the roles layout. Neither roles page repeats it (FE-10.3)                                                                     |
+| AC-F35b — an unmatched URL renders the same 404        | `app/not-found.tsx`, `components/not-found-view.tsx`                  | Open `/nonsense` → the same body an interviewer gets at `/roles`, inside the app's own shell rather than Next's default page (FE-10.5, FE-10.6)                                                  |
+| AC-F36 — storage stays clean                           | `useRoleMutations.ts`, `RoleFormDialog.tsx` (nothing persists)        | Use the whole feature, then Application › Storage → neither `localStorage` nor `sessionStorage` holds a role, a draft or a filter (DM-1, DM-2)                                                   |
+| AC-F37 — a `<script>` description renders literally    | `RoleDetailView.tsx` (`pre-wrap`, no `dangerouslySetInnerHTML`)       | Create a role whose description is `<script>alert(1)</script>`, open its detail → the text is **displayed literally**, no dialog fires (SEC-5)                                                   |
+| AC-F38 — no extra `/api/auth/me` calls                 | `useRolesQuery.ts` / `useRoleMutations.ts` — no `queryClient.clear()` | Filter the Network tab to `me`, navigate `/roles` → `/pipeline` → `/my-interviews` → `/roles` → **zero** additional calls (PERF-5)                                                               |
+| AC-F41 — no Delete control on an OPEN role             | `RoleDeleteAction.tsx` — `status !== 'CLOSED'` → `null`               | Open an **open** role's detail, search the DOM for "Delete" → **no element at all**. A disabled button or a tooltip is a failure (FR-7.1, FE-2.4)                                                |
+| AC-F42 — it appears once the role is closed            | `RoleDeleteAction.tsx`, `RoleDetailView.tsx`                          | On the same role click **Close role** → **Delete role** appears **without a page reload** (FR-7.1)                                                                                              |
+| AC-F43 — the confirmation names the role and the finality | `RoleDeleteAction.tsx` dialog copy                                 | Click **Delete role** → the dialog names the role and says it **cannot be undone**, and offers no wording implying a restore (FR-7.3)                                                            |
+| AC-F44 — confirming deletes, toasts and navigates      | `useDeleteRole`, `RoleDetailView.tsx` `onDeleted`                     | Confirm → **exactly one** `DELETE` in the Network tab, a **"Role deleted"** toast, the app at `/roles`, and the role absent from the list (FR-7.4, FE-5.4)                                       |
+| AC-F45 — Back does not return to the deleted role      | `router.replace('/roles')`                                            | After a delete press **Back** → the deleted role's URL is **not** in the history and no not-found state appears (FR-7.4, EC-21)                                                                  |
+| AC-F46 — a 409 keeps the dialog open with its own copy | `RoleDeleteAction.tsx` 409 branch                                     | Reopen the role in a second tab, then confirm in the first → the dialog **stays open** saying the role is open again. "Something went wrong. Please try again." is a failure (FR-7.6, FE-6.4)    |
+| AC-F47 — a 404 is not surfaced as a failure            | `RoleDeleteAction.tsx` 404 branch                                     | Delete the role in a second tab, then confirm in the first → the dialog closes, `RoleNotFound` renders, **no error message** (FR-7.7, EC-20)                                                     |
+| AC-F48 — the dialog is not dismissable mid-request     | `RoleDeleteAction.tsx` `onOpenChange` guard                           | Throttle the network, confirm, then press Escape and click the backdrop → the dialog stays, the button reads "Deleting…" (FR-7.8)                                                                |
+| AC-F49 — no delete from the list                       | `RolesTable.tsx`, `RolesListView.tsx` (absent by design)              | `grep -rn "RoleDeleteAction" src/` → **two** hits: the component and `RoleDetailView.tsx`. A hit in the table or list view is a failure (FR-7.9)                                                 |
+
+### Manual verification — needs a running, seeded backend
+
+| Acceptance Criterion                                        | Implementation                                                     | Manual Verification                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-M01 — the seed gives the filter something to prove       | backend `prisma/seed.ts`; `RolesListView.tsx`                      | Fresh DB → `npm run db:seed` → open `/roles` as a recruiter: **three** roles, two open and one closed, and the filter is exercisable against real data (XBE-9)                                                                                                                                       |
+| AC-M02 — a UI-created role is really in the database        | `roles.api.ts` `createRole`, `RoleFormDialog.tsx`                  | Create a role in the browser, then `psql -c 'SELECT id,title,status,"createdAt" FROM "Role" ORDER BY id DESC LIMIT 1;'` → the row exists with `status = 'OPEN'` and the timestamps the UI displayed                                                                                                  |
+| AC-M03 — the server refuses calls the UI never offers       | backend `requireRole`; `lib/api.ts` 403 handler                    | From an **interviewer** session, issue the `POST` **and** a plain `GET /api/roles` by hand in the DevTools console (see § Checks needing particular care) → `403` both times, **no row created**, and the app renders `/forbidden`. _This is the criterion that proves neither the hidden buttons nor the route guard is what is protecting the endpoint_ (SEC-1, SEC-2a, AZ-4) |
+| AC-M04 — expiry mid-dialog costs one refresh, loses nothing | `lib/api.ts` single-flight refresh (inherited, unchanged)          | Open an edit dialog, type, idle past the access token's TTL, submit → succeeds after **exactly one** `/api/auth/refresh`, and the dialog's contents are intact throughout (EC-12)                                                                                                                    |
+| AC-M05 — the view renders the response, not its own merge   | `useRoleMutations.ts` (no optimistic update), `RoleDetailView.tsx` | Two windows on the same role: close it in one, then edit the title in the other → the second window shows **both** the new title **and** `CLOSED` (EC-10)                                                                                                                                            |
+| AC-M06 — the backend log attributes, without the text       | backend `roles.service.ts` logging                                 | Create a role in the UI, read the backend log → a `role.created` line carrying the acting recruiter's `actorId` and **no description text** (backend FR-8.4)                                                                                                                                         |
