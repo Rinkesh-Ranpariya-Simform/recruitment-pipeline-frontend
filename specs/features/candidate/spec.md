@@ -55,18 +55,18 @@ endpoints are unchanged and still recruiter-only, so `<RequireRole>` on `/roles`
 
 ### Translation from the request
 
-The feature was described as a set of views — *Job List, Job Details, My Applications* — with a candidate
+The feature was described as a set of views — _Job List, Job Details, My Applications_ — with a candidate
 sidebar. Two translations were made and are stated openly:
 
-| Described                  | Built as                                                                                                 |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Described                  | Built as                                                                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "Jobs"                     | `/jobs` and `/jobs/[jobId]`, reading `GET /api/roles`. **The wire keys stay `roles` and `role`** — the client renames the concept, not the contract |
-| "Profile"                  | `/profile`, rendered from `GET /api/auth/me` for **every** role, not only candidates. There is no profile endpoint and no edit form |
-| "Status" + "Current stage" | **Two fields**, `status` and `currentStage`, rendered as two labelled lines. The example `Status: Interview` is the *stage* line |
+| "Profile"                  | `/profile`, rendered from `GET /api/auth/me` for **every** role, not only candidates. There is no profile endpoint and no edit form                 |
+| "Status" + "Current stage" | **Two fields**, `status` and `currentStage`, rendered as two labelled lines. The example `Status: Interview` is the _stage_ line                    |
 
 ### Current state of `frontend/`
 
-|                  | Today                                                                                                                         |
+|                  | Today                                                                                                                           |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | Stack            | Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui over base-ui, TanStack Query, react-hook-form + zod, sonner |
 | Theme            | Dark-only. `dark` pinned on `<html>`, no theme provider, tokens in `globals.css`                                                |
@@ -78,7 +78,7 @@ sidebar. Two translations were made and are stated openly:
 | Forms            | `react-hook-form` + `zodResolver`, schemas in [`lib/schemas/`](../../../src/lib/schemas/)                                       |
 | "Nothing here"   | Three distinct renderings: `NotFoundView` (route), `RoleNotFound` (data 404), `/forbidden` (server 403)                         |
 | Endpoints called | Eight. `auth.api.ts` exports exactly four functions and explicitly forbids a signup wrapper                                     |
-| Tests            | **none**, and none planned — verification is manual, in-browser, with DevTools open                                            |
+| Tests            | **none**, and none planned — verification is manual, in-browser, with DevTools open                                             |
 
 ### Decisions carried from the interview
 
@@ -91,17 +91,17 @@ takes no `role`), D-6 (unlimited applications per role), D-7 (two fields, not on
 
 ## Users / Actors
 
-| Actor           | Sees, after this feature                                                                                                              |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Anonymous**   | `/login` and, new, `/signup`. Nothing else renders                                                                                    |
-| **Candidate**   | Sidebar: **Jobs**, **My Applications**, **Profile**. `/roles`, `/pipeline`, `/my-interviews` all render the app's 404                 |
+| Actor           | Sees, after this feature                                                                                                                 |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Anonymous**   | `/login` and, new, `/signup`. Nothing else renders                                                                                       |
+| **Candidate**   | Sidebar: **Jobs**, **My Applications**, **Profile**. `/roles`, `/pipeline`, `/my-interviews` all render the app's 404                    |
 | **Interviewer** | Sidebar: **My interviews**, **Profile**. `/jobs` and `/applications` render the app's 404, even though the API would answer `/api/roles` |
-| **Recruiter**   | Sidebar: **Pipeline**, **Roles**, **Profile**. `/jobs` and `/applications` render the app's 404                                       |
+| **Recruiter**   | Sidebar: **Pipeline**, **Roles**, **Profile**. `/jobs` and `/applications` render the app's 404                                          |
 
 **Deliberate trade-offs:**
 
 - An interviewer is **not** offered a Jobs link even though the API would now serve them one. The sidebar
-  decides what a user is *invited* to, and an interviewer has no reason to browse requisitions.
+  decides what a user is _invited_ to, and an interviewer has no reason to browse requisitions.
 - Applying is never disabled after a successful apply (D-6). The button stays live and the page says how many
   times the candidate has already applied. Disabling it would be a client-side rule the server does not have.
 - **No client-side guard is a security control.** Every statement in the route × role matrix is a rendering
@@ -111,18 +111,18 @@ takes no `role`), D-6 (unlimited applications per role), D-7 (two fields, not on
 
 ## User Stories
 
-| ID        | Story                                                                                                                                   |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **US-01** | As a visitor, I want to create an account from the login page, so that I do not need anyone to provision me.                            |
-| **US-02** | As a visitor, I want the signup form to tell me exactly which field is wrong, so that I am not guessing at a rejected submission.        |
-| **US-03** | As a candidate, I want to land on Jobs after signing in, so that the first thing I see is what I can do.                                 |
-| **US-04** | As a candidate, I want to search open positions by title, so that I can find one without paging through the list.                        |
-| **US-05** | As a candidate, I want my search to survive a reload and the Back button, so that I do not lose my place.                                |
-| **US-06** | As a candidate, I want to read a position in full before applying, so that I am not applying blind.                                      |
-| **US-07** | As a candidate, I want to apply in one click and be told it worked, so that I am never unsure whether it went through.                   |
-| **US-08** | As a candidate, I want to see everything I applied to with its date and current stage, so that I am not left guessing.                   |
-| **US-09** | As a candidate, I want a profile page showing who I am signed in as, so that the account I am acting under is never ambiguous.           |
-| **US-10** | As a recruiter or interviewer, I want the candidate routes to be invisible to me, so that the app I see is the app I am meant to use.    |
+| ID        | Story                                                                                                                                 |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **US-01** | As a visitor, I want to create an account from the login page, so that I do not need anyone to provision me.                          |
+| **US-02** | As a visitor, I want the signup form to tell me exactly which field is wrong, so that I am not guessing at a rejected submission.     |
+| **US-03** | As a candidate, I want to land on Jobs after signing in, so that the first thing I see is what I can do.                              |
+| **US-04** | As a candidate, I want to search open positions by title, so that I can find one without paging through the list.                     |
+| **US-05** | As a candidate, I want my search to survive a reload and the Back button, so that I do not lose my place.                             |
+| **US-06** | As a candidate, I want to read a position in full before applying, so that I am not applying blind.                                   |
+| **US-07** | As a candidate, I want to apply in one click and be told it worked, so that I am never unsure whether it went through.                |
+| **US-08** | As a candidate, I want to see everything I applied to with its date and current stage, so that I am not left guessing.                |
+| **US-09** | As a candidate, I want a profile page showing who I am signed in as, so that the account I am acting under is never ambiguous.        |
+| **US-10** | As a recruiter or interviewer, I want the candidate routes to be invisible to me, so that the app I see is the app I am meant to use. |
 
 ---
 
@@ -133,7 +133,7 @@ takes no `role`), D-6 (unlimited applications per role), D-7 (two fields, not on
 - **FR-1.1** `UserRole` in [`features/auth/types.ts`](../../../src/features/auth/types.ts) becomes
   `'INTERVIEWER' | 'RECRUITER' | 'CANDIDATE'`.
 - **FR-1.2** Adding it must **break the build** until every `Record<UserRole, …>` is filled in. There are two
-  today — `NAV_SECTIONS` in [`(app)/layout.tsx`](../../../src/app/(app)/layout.tsx) and `ROLE_LANDING` in
+  today — `NAV_SECTIONS` in [`(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) and `ROLE_LANDING` in
   [`features/auth/redirect.ts`](../../../src/features/auth/redirect.ts) — and both must stay keyed by the
   union rather than becoming a filtered array or a comparison.
 - **FR-1.3** `ROLE_LANDING.CANDIDATE` is `/jobs`.
@@ -159,7 +159,7 @@ takes no `role`), D-6 (unlimited applications per role), D-7 (two fields, not on
   route, exactly as `LoginForm` already does for `/login`.
 - **FR-2.8** `signup` is added to [`features/auth/api/auth.api.ts`](../../../src/features/auth/api/auth.api.ts),
   which now exports **five** functions. Its doc comment must be updated: the reason it previously forbade a
-  signup wrapper — *"anonymous and role-accepting"* — no longer holds, and the forbidding of a `/api/users`
+  signup wrapper — _"anonymous and role-accepting"_ — no longer holds, and the forbidding of a `/api/users`
   wrapper still does.
 
 ### FR-3 — Navigation and route guards
@@ -248,11 +248,11 @@ takes no `role`), D-6 (unlimited applications per role), D-7 (two fields, not on
   - **Stage:** the `currentStage` label
 - **FR-7.3** Status labels — exact copy, no others:
 
-  | `status`   | Label         | Badge variant |
-  | ---------- | ------------- | ------------- |
-  | `ACTIVE`   | In progress   | default       |
-  | `HIRED`    | Hired         | default       |
-  | `REJECTED` | Not selected  | secondary     |
+  | `status`   | Label        | Badge variant |
+  | ---------- | ------------ | ------------- |
+  | `ACTIVE`   | In progress  | default       |
+  | `HIRED`    | Hired        | default       |
+  | `REJECTED` | Not selected | secondary     |
 
 - **FR-7.4** Stage labels — exact copy, no others:
 
@@ -359,60 +359,60 @@ Primitives are reused from `components/ui/`: `Card`, `Button`, `Input`, `Label`,
 
 ### State matrix — `/signup`
 
-| State                | Trigger                       | Renders                                                                       |
-| -------------------- | ----------------------------- | ----------------------------------------------------------------------------- |
-| Bootstrapping        | auth still resolving          | The `/login` loading treatment, unchanged                                     |
-| Already signed in    | `user !== null`               | Immediate redirect to `ROLE_LANDING[user.role]`; nothing flashes              |
-| Idle                 | first render                  | Three empty fields, Submit **enabled** (validation is on submit, as on login) |
-| Invalid              | client zod failure            | Per-field message under the field; no request sent                            |
-| Submitting           | request in flight             | Submit shows **"Creating account…"**, disabled; fields disabled               |
-| `400 VALIDATION_ERROR` | server rejected a field     | `details` mapped onto fields via `fieldMessage`; focus the first failing field |
-| `409 EMAIL_TAKEN`    | email exists                  | Under Email: **"An account with this email already exists."** plus a `/login` link |
-| Network / `500`      | `ApiError` without a known code | Error toast **"Could not create your account. Try again."**; fields stay filled |
-| Success              | `201`                         | Redirect to `/login` + success toast **"Account created. Sign in to continue."** |
+| State                  | Trigger                         | Renders                                                                            |
+| ---------------------- | ------------------------------- | ---------------------------------------------------------------------------------- |
+| Bootstrapping          | auth still resolving            | The `/login` loading treatment, unchanged                                          |
+| Already signed in      | `user !== null`                 | Immediate redirect to `ROLE_LANDING[user.role]`; nothing flashes                   |
+| Idle                   | first render                    | Three empty fields, Submit **enabled** (validation is on submit, as on login)      |
+| Invalid                | client zod failure              | Per-field message under the field; no request sent                                 |
+| Submitting             | request in flight               | Submit shows **"Creating account…"**, disabled; fields disabled                    |
+| `400 VALIDATION_ERROR` | server rejected a field         | `details` mapped onto fields via `fieldMessage`; focus the first failing field     |
+| `409 EMAIL_TAKEN`      | email exists                    | Under Email: **"An account with this email already exists."** plus a `/login` link |
+| Network / `500`        | `ApiError` without a known code | Error toast **"Could not create your account. Try again."**; fields stay filled    |
+| Success                | `201`                           | Redirect to `/login` + success toast **"Account created. Sign in to continue."**   |
 
 ### State matrix — `/jobs`
 
-| State           | Trigger                        | Renders                                                                                   |
-| --------------- | ------------------------------ | ----------------------------------------------------------------------------------------- |
-| Loading         | first fetch                    | Six `Skeleton` cards; the search input stays live and keeps focus                          |
-| Success         | `roles.length > 0`             | Card list + pager                                                                          |
-| Empty, no search | `roles: []` and no `?q=`      | **"No open positions right now."** / *"Check back later — new roles are posted here."*     |
-| Empty, searching | `roles: []` with `?q=`        | **"No positions match "{q}"."** with a **Clear search** button                             |
-| Refetching      | `q` or `page` changed          | Previous list dimmed, pager disabled — never an empty flash between pages                  |
-| `401`           | token expired                  | Handled by `apiFetch` — one refresh, then retry; on failure, redirect to `/login`          |
-| Error           | any other `ApiError`           | **"Could not load open positions."** with a **Try again** button that refetches            |
+| State            | Trigger                  | Renders                                                                                |
+| ---------------- | ------------------------ | -------------------------------------------------------------------------------------- |
+| Loading          | first fetch              | Six `Skeleton` cards; the search input stays live and keeps focus                      |
+| Success          | `roles.length > 0`       | Card list + pager                                                                      |
+| Empty, no search | `roles: []` and no `?q=` | **"No open positions right now."** / _"Check back later — new roles are posted here."_ |
+| Empty, searching | `roles: []` with `?q=`   | **"No positions match "{q}"."** with a **Clear search** button                         |
+| Refetching       | `q` or `page` changed    | Previous list dimmed, pager disabled — never an empty flash between pages              |
+| `401`            | token expired            | Handled by `apiFetch` — one refresh, then retry; on failure, redirect to `/login`      |
+| Error            | any other `ApiError`     | **"Could not load open positions."** with a **Try again** button that refetches        |
 
 ### State matrix — `/jobs/[jobId]`
 
-| State            | Trigger                     | Renders                                                                            |
-| ---------------- | --------------------------- | ------------------------------------------------------------------------------------ |
-| Loading          | first fetch                 | Skeleton title, three skeleton description lines, skeleton button                    |
-| Success          | `200`                       | Title, posted date, full description, Apply button, FR-5.5 line if applicable         |
-| Data 404         | `404`, or a non-numeric id  | `JobNotFound`: **"This position is no longer open"** + **Back to open positions**    |
-| Apply idle       | —                           | Button reads **Apply**                                                               |
-| Apply submitting | request in flight           | Button reads **"Applying…"**, disabled                                               |
-| Apply success    | `201`                       | Toast **"Application submitted."**; FR-5.5 line appears or increments                 |
-| Apply 404        | requisition closed meanwhile | Toast **"This position is no longer open."**; the page switches to `JobNotFound`     |
-| Apply 403        | unreachable behind FR-3.4   | `onForbidden` → `/forbidden`                                                         |
-| Apply error      | any other `ApiError`        | Toast **"Could not submit your application. Try again."**; button returns to idle    |
+| State            | Trigger                      | Renders                                                                           |
+| ---------------- | ---------------------------- | --------------------------------------------------------------------------------- |
+| Loading          | first fetch                  | Skeleton title, three skeleton description lines, skeleton button                 |
+| Success          | `200`                        | Title, posted date, full description, Apply button, FR-5.5 line if applicable     |
+| Data 404         | `404`, or a non-numeric id   | `JobNotFound`: **"This position is no longer open"** + **Back to open positions** |
+| Apply idle       | —                            | Button reads **Apply**                                                            |
+| Apply submitting | request in flight            | Button reads **"Applying…"**, disabled                                            |
+| Apply success    | `201`                        | Toast **"Application submitted."**; FR-5.5 line appears or increments             |
+| Apply 404        | requisition closed meanwhile | Toast **"This position is no longer open."**; the page switches to `JobNotFound`  |
+| Apply 403        | unreachable behind FR-3.4    | `onForbidden` → `/forbidden`                                                      |
+| Apply error      | any other `ApiError`         | Toast **"Could not submit your application. Try again."**; button returns to idle |
 
 ### State matrix — `/applications`
 
-| State    | Trigger                 | Renders                                                                                                 |
-| -------- | ----------------------- | --------------------------------------------------------------------------------------------------------- |
-| Loading  | first fetch             | Three `Skeleton` cards                                                                                   |
-| Success  | `applications.length > 0` | Cards, newest first, in server order — **the client does not re-sort**                                 |
-| Empty    | `applications: []`      | **"You have not applied to anything yet."** / *"Browse open positions to get started."* + a `/jobs` button |
-| Error    | any `ApiError`          | **"Could not load your applications."** + **Try again**                                                  |
+| State   | Trigger                   | Renders                                                                                                    |
+| ------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Loading | first fetch               | Three `Skeleton` cards                                                                                     |
+| Success | `applications.length > 0` | Cards, newest first, in server order — **the client does not re-sort**                                     |
+| Empty   | `applications: []`        | **"You have not applied to anything yet."** / _"Browse open positions to get started."_ + a `/jobs` button |
+| Error   | any `ApiError`            | **"Could not load your applications."** + **Try again**                                                    |
 
 ### State matrix — `/profile`
 
-| State   | Trigger                  | Renders                                                            |
-| ------- | ------------------------ | ------------------------------------------------------------------ |
-| Loading | `RequireAuth` bootstrapping | The shared loading treatment; this page adds none of its own    |
-| Success | user present             | Four labelled rows. **No edit affordance of any kind** (FR-8.4)    |
-| Error   | —                        | Unreachable: a failed `getMe` is already an auth failure upstream  |
+| State   | Trigger                     | Renders                                                           |
+| ------- | --------------------------- | ----------------------------------------------------------------- |
+| Loading | `RequireAuth` bootstrapping | The shared loading treatment; this page adds none of its own      |
+| Success | user present                | Four labelled rows. **No edit affordance of any kind** (FR-8.4)   |
+| Error   | —                           | Unreachable: a failed `getMe` is already an auth failure upstream |
 
 ### Other frontend rules
 
@@ -480,14 +480,14 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 ## API Contract
 
-| Call                          | When                                          | Sends                             | Expects                                    |
-| ----------------------------- | --------------------------------------------- | --------------------------------- | ------------------------------------------ |
-| `POST /api/auth/signup`       | Signup form submitted                         | `{ name, email, password }`       | `201 { user }` · `400` · `409`             |
-| `GET /api/roles?q=&page=`     | `/jobs` mounts; `q` or `page` changes         | —                                 | `200 { roles, pagination }` · `400` · `401` |
-| `GET /api/roles/:roleId`      | `/jobs/[jobId]` mounts                        | —                                 | `200 { role }` · `401` · `404`             |
-| `POST /api/applications`      | Apply clicked                                 | `{ roleId }`                      | `201 { application }` · `403` · `404`      |
-| `GET /api/applications`       | `/applications` mounts; `ApplyAction` reads cache | —                             | `200 { applications }` · `403`             |
-| `GET /api/auth/me`            | Already called by `AuthProvider` — **not re-called** | —                          | `200 { user }`                             |
+| Call                      | When                                                 | Sends                       | Expects                                     |
+| ------------------------- | ---------------------------------------------------- | --------------------------- | ------------------------------------------- |
+| `POST /api/auth/signup`   | Signup form submitted                                | `{ name, email, password }` | `201 { user }` · `400` · `409`              |
+| `GET /api/roles?q=&page=` | `/jobs` mounts; `q` or `page` changes                | —                           | `200 { roles, pagination }` · `400` · `401` |
+| `GET /api/roles/:roleId`  | `/jobs/[jobId]` mounts                               | —                           | `200 { role }` · `401` · `404`              |
+| `POST /api/applications`  | Apply clicked                                        | `{ roleId }`                | `201 { application }` · `403` · `404`       |
+| `GET /api/applications`   | `/applications` mounts; `ApplyAction` reads cache    | —                           | `200 { applications }` · `403`              |
+| `GET /api/auth/me`        | Already called by `AuthProvider` — **not re-called** | —                           | `200 { user }`                              |
 
 Client-side rules:
 
@@ -508,16 +508,16 @@ Client-side rules:
 
 Client state only. Nothing new is persisted.
 
-| State                       | Where it lives                                  | Lifetime                        | Persisted?              |
-| --------------------------- | ----------------------------------------------- | ------------------------------- | ----------------------- |
-| Access token                | Module variable in `features/auth/access-token` | Tab session; cleared on logout  | **Never** — memory only |
-| Signed-in user (incl. role) | TanStack Query cache, key `['auth','me']`       | Until logout or cache clear     | No                      |
-| Job list page               | TanStack Query, `['jobs','list',{q,page}]`      | 30 s stale, GC on unmount       | No                      |
-| Job detail                  | TanStack Query, `['jobs','detail',jobId]`       | 30 s stale                      | No                      |
+| State                       | Where it lives                                  | Lifetime                         | Persisted?              |
+| --------------------------- | ----------------------------------------------- | -------------------------------- | ----------------------- |
+| Access token                | Module variable in `features/auth/access-token` | Tab session; cleared on logout   | **Never** — memory only |
+| Signed-in user (incl. role) | TanStack Query cache, key `['auth','me']`       | Until logout or cache clear      | No                      |
+| Job list page               | TanStack Query, `['jobs','list',{q,page}]`      | 30 s stale, GC on unmount        | No                      |
+| Job detail                  | TanStack Query, `['jobs','detail',jobId]`       | 30 s stale                       | No                      |
 | Applications list           | TanStack Query, `['applications','list']`       | 30 s stale; invalidated on apply | No                      |
-| Search term / page          | **The URL** (`?q=`, `?page=`)                   | As long as the URL              | Only in browser history |
-| Debounce buffer             | `useState` in `JobsSearch`                      | Until the debounce fires        | No                      |
-| Signup form values          | `react-hook-form` state                         | Until unmount                   | No                      |
+| Search term / page          | **The URL** (`?q=`, `?page=`)                   | As long as the URL               | Only in browser history |
+| Debounce buffer             | `useState` in `JobsSearch`                      | Until the debounce fires         | No                      |
+| Signup form values          | `react-hook-form` state                         | Until unmount                    | No                      |
 
 - **DM-1** **Nothing** in this feature is written to `localStorage`, `sessionStorage`, or IndexedDB — not the
   token, not the role, not the user, not a draft application, not the last search. The existing app persists
@@ -533,18 +533,18 @@ Client state only. Nothing new is persisted.
 **This matrix is UX, not a control.** Every row describes what renders; the backend re-authorizes every
 request behind it.
 
-| Route            | Anonymous          | Candidate | Interviewer | Recruiter |
-| ---------------- | ------------------ | --------- | ----------- | --------- |
-| `/login`         | ✅                  | → landing | → landing   | → landing |
-| `/signup`        | ✅                  | → landing | → landing   | → landing |
-| `/jobs`          | → `/login`         | ✅         | app 404     | app 404   |
-| `/jobs/[jobId]`  | → `/login`         | ✅         | app 404     | app 404   |
-| `/applications`  | → `/login`         | ✅         | app 404     | app 404   |
-| `/profile`       | → `/login`         | ✅         | ✅           | ✅         |
-| `/roles`         | → `/login`         | app 404   | app 404     | ✅         |
-| `/pipeline`      | → `/login`         | app 404   | app 404     | ✅         |
-| `/my-interviews` | → `/login`         | app 404   | ✅           | app 404   |
-| `/forbidden`     | → `/login`         | ✅         | ✅           | ✅         |
+| Route            | Anonymous  | Candidate | Interviewer | Recruiter |
+| ---------------- | ---------- | --------- | ----------- | --------- |
+| `/login`         | ✅         | → landing | → landing   | → landing |
+| `/signup`        | ✅         | → landing | → landing   | → landing |
+| `/jobs`          | → `/login` | ✅        | app 404     | app 404   |
+| `/jobs/[jobId]`  | → `/login` | ✅        | app 404     | app 404   |
+| `/applications`  | → `/login` | ✅        | app 404     | app 404   |
+| `/profile`       | → `/login` | ✅        | ✅          | ✅        |
+| `/roles`         | → `/login` | app 404   | app 404     | ✅        |
+| `/pipeline`      | → `/login` | app 404   | app 404     | ✅        |
+| `/my-interviews` | → `/login` | app 404   | ✅          | app 404   |
+| `/forbidden`     | → `/login` | ✅        | ✅          | ✅        |
 
 - **AZ-1** **None of the above is a security control.** `<RequireAuth>` and `<RequireRole>` decide what
   renders. A candidate who calls `GET /api/roles` with a hand-made request gets the API's answer — `OPEN` rows
@@ -569,11 +569,11 @@ request behind it.
 
 ### `signupSchema` — new, in [`lib/schemas/auth.ts`](../../../src/lib/schemas/auth.ts)
 
-| Field      | Rule                                            | Message                                     |
-| ---------- | ----------------------------------------------- | ------------------------------------------- |
-| `name`     | string, trimmed, 1–100                          | `Name is required` / `Name must be at most 100 characters` |
-| `email`    | string, trimmed, valid email, ≤254              | `Enter a valid email address`               |
-| `password` | string, ≥8 chars **and** ≤72 bytes              | `Password must be at least 8 characters` / `Password must be at most 72 bytes` |
+| Field      | Rule                               | Message                                                                        |
+| ---------- | ---------------------------------- | ------------------------------------------------------------------------------ |
+| `name`     | string, trimmed, 1–100             | `Name is required` / `Name must be at most 100 characters`                     |
+| `email`    | string, trimmed, valid email, ≤254 | `Enter a valid email address`                                                  |
+| `password` | string, ≥8 chars **and** ≤72 bytes | `Password must be at least 8 characters` / `Password must be at most 72 bytes` |
 
 - **VAL-1** **Client validation is UX, never authorization.** It mirrors the backend so the form can respond
   without a round trip; where the two disagree, the backend is correct.
@@ -597,17 +597,17 @@ request behind it.
 
 ## Error Handling
 
-| Status | `code`                | Where                | UI behaviour                                                                     |
-| ------ | --------------------- | -------------------- | -------------------------------------------------------------------------------- |
-| 400    | `VALIDATION_ERROR`    | Signup               | Map `details` onto fields; focus the first failing field. No toast                |
-| 400    | `VALIDATION_ERROR`    | Jobs list (bad `q`)  | Unreachable — VAL-5 sanitises first. If it happens: the generic list error state  |
-| 401    | `UNAUTHENTICATED`     | Any                  | `apiFetch` refreshes once; on failure `onAuthFailure` clears the cache → `/login` |
-| 403    | `FORBIDDEN`           | Any                  | `onForbidden` → `/forbidden`. Unreachable for a candidate behind FR-3.4           |
-| 404    | `NOT_FOUND`           | Job detail           | `JobNotFound` panel — **"This position is no longer open"** + back link            |
-| 404    | `NOT_FOUND`           | Apply                | Error toast **"This position is no longer open."** + switch to the panel          |
-| 409    | `EMAIL_TAKEN`         | Signup               | Field-level message on Email + a link to `/login`. No toast                        |
-| 500    | `INTERNAL_ERROR`      | Any                  | The view's error state, or a toast for a mutation. Never a raw message            |
-| —      | network failure       | Any                  | Same as `500`. `ApiError` normalises both                                          |
+| Status | `code`             | Where               | UI behaviour                                                                      |
+| ------ | ------------------ | ------------------- | --------------------------------------------------------------------------------- |
+| 400    | `VALIDATION_ERROR` | Signup              | Map `details` onto fields; focus the first failing field. No toast                |
+| 400    | `VALIDATION_ERROR` | Jobs list (bad `q`) | Unreachable — VAL-5 sanitises first. If it happens: the generic list error state  |
+| 401    | `UNAUTHENTICATED`  | Any                 | `apiFetch` refreshes once; on failure `onAuthFailure` clears the cache → `/login` |
+| 403    | `FORBIDDEN`        | Any                 | `onForbidden` → `/forbidden`. Unreachable for a candidate behind FR-3.4           |
+| 404    | `NOT_FOUND`        | Job detail          | `JobNotFound` panel — **"This position is no longer open"** + back link           |
+| 404    | `NOT_FOUND`        | Apply               | Error toast **"This position is no longer open."** + switch to the panel          |
+| 409    | `EMAIL_TAKEN`      | Signup              | Field-level message on Email + a link to `/login`. No toast                       |
+| 500    | `INTERNAL_ERROR`   | Any                 | The view's error state, or a toast for a mutation. Never a raw message            |
+| —      | network failure    | Any                 | Same as `500`. `ApiError` normalises both                                         |
 
 - **ERR-1** **Branch on `code`, never on `message`.** `message` is copy that may change without being a
   breaking change.
@@ -625,28 +625,28 @@ request behind it.
 
 ## Edge Cases
 
-| ID        | Case                                                                | Behaviour                                                                                                                     |
-| --------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **EC-01** | Signed-in user opens `/signup` directly                             | Immediate redirect to `ROLE_LANDING[role]`. The form never flashes (FR-2.7)                                                     |
-| **EC-02** | Signup succeeds, user hits Back                                     | `/signup` renders again, empty. There is no session, so EC-01 does not apply and this is correct                                |
-| **EC-03** | Signup submitted twice by double-click                              | The button is disabled while in flight; the second click does nothing                                                          |
-| **EC-04** | Two tabs, one signs up, the other is on `/login`                    | No shared state to desync — the signup tab holds no session                                                                    |
-| **EC-05** | Candidate reloads `/jobs?q=engineer&page=2`                         | Renders that exact search and page. The URL is the source of truth (FR-4.3)                                                    |
-| **EC-06** | Candidate types fast, then clears the search box                    | One request after the debounce settles; the cleared box produces the same result as no `q` (XBE-7)                             |
-| **EC-07** | Candidate opens `/jobs/abc`                                         | `JobNotFound` panel, **no request sent** (FR-5.8, VAL-6)                                                                       |
-| **EC-08** | Candidate opens `/jobs/999999`                                      | One request, `404`, `JobNotFound` panel                                                                                        |
-| **EC-09** | Recruiter closes a requisition while a candidate has it open        | The page still renders from cache; **Apply** answers `404`, the toast fires and the page switches to the panel (FR-6.4)        |
-| **EC-10** | Candidate applies twice to the same job                             | Both succeed. The FR-5.5 line changes to the "{n} times" form. **The button stays enabled** (D-6, FR-5.7)                      |
-| **EC-11** | Candidate applies in one tab, reads `/applications` in another      | The second tab is up to 30 s stale, then refetches on focus. Acceptable; an application is not time-critical to the second      |
-| **EC-12** | Access token expires mid-apply                                      | `apiFetch`'s single-flight refresh runs; the apply retries once. Exactly one `POST /api/auth/refresh`, not one per query        |
-| **EC-13** | Candidate signs out, then hits Back into `/applications`            | `RequireAuth` finds no user and redirects to `/login`. The query cache was cleared by `onAuthFailure`, so nothing renders first |
-| **EC-14** | Recruiter types `/jobs`                                             | The app's 404 (FR-3.4) — not `/forbidden`, and not a redirect                                                                  |
-| **EC-15** | Candidate types `/pipeline`                                         | The app's 404 (FR-3.6). Before this feature it rendered                                                                        |
-| **EC-16** | A job's description is 5,000 characters                             | Clamped to two lines on the card; rendered in full on the detail page, wrapping, never truncated there                          |
-| **EC-17** | Candidate has 200 applications                                      | All render — there is no pager (XBE-10). Slow but correct; PERF-5 states when to revisit                                        |
-| **EC-18** | Application whose requisition was deleted                           | Cannot happen: the API refuses to delete a requisition with applications (backend FR-8.2)                                      |
-| **EC-19** | An application row arrives with an unknown `currentStage`           | The raw value renders. No crash, no blank (FR-7.6)                                                                             |
-| **EC-20** | Offline                                                             | `apiFetch` throws; queries show their error state with **Try again**, mutations toast. No spinner is left hanging              |
+| ID        | Case                                                           | Behaviour                                                                                                                       |
+| --------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | Signed-in user opens `/signup` directly                        | Immediate redirect to `ROLE_LANDING[role]`. The form never flashes (FR-2.7)                                                     |
+| **EC-02** | Signup succeeds, user hits Back                                | `/signup` renders again, empty. There is no session, so EC-01 does not apply and this is correct                                |
+| **EC-03** | Signup submitted twice by double-click                         | The button is disabled while in flight; the second click does nothing                                                           |
+| **EC-04** | Two tabs, one signs up, the other is on `/login`               | No shared state to desync — the signup tab holds no session                                                                     |
+| **EC-05** | Candidate reloads `/jobs?q=engineer&page=2`                    | Renders that exact search and page. The URL is the source of truth (FR-4.3)                                                     |
+| **EC-06** | Candidate types fast, then clears the search box               | One request after the debounce settles; the cleared box produces the same result as no `q` (XBE-7)                              |
+| **EC-07** | Candidate opens `/jobs/abc`                                    | `JobNotFound` panel, **no request sent** (FR-5.8, VAL-6)                                                                        |
+| **EC-08** | Candidate opens `/jobs/999999`                                 | One request, `404`, `JobNotFound` panel                                                                                         |
+| **EC-09** | Recruiter closes a requisition while a candidate has it open   | The page still renders from cache; **Apply** answers `404`, the toast fires and the page switches to the panel (FR-6.4)         |
+| **EC-10** | Candidate applies twice to the same job                        | Both succeed. The FR-5.5 line changes to the "{n} times" form. **The button stays enabled** (D-6, FR-5.7)                       |
+| **EC-11** | Candidate applies in one tab, reads `/applications` in another | The second tab is up to 30 s stale, then refetches on focus. Acceptable; an application is not time-critical to the second      |
+| **EC-12** | Access token expires mid-apply                                 | `apiFetch`'s single-flight refresh runs; the apply retries once. Exactly one `POST /api/auth/refresh`, not one per query        |
+| **EC-13** | Candidate signs out, then hits Back into `/applications`       | `RequireAuth` finds no user and redirects to `/login`. The query cache was cleared by `onAuthFailure`, so nothing renders first |
+| **EC-14** | Recruiter types `/jobs`                                        | The app's 404 (FR-3.4) — not `/forbidden`, and not a redirect                                                                   |
+| **EC-15** | Candidate types `/pipeline`                                    | The app's 404 (FR-3.6). Before this feature it rendered                                                                         |
+| **EC-16** | A job's description is 5,000 characters                        | Clamped to two lines on the card; rendered in full on the detail page, wrapping, never truncated there                          |
+| **EC-17** | Candidate has 200 applications                                 | All render — there is no pager (XBE-10). Slow but correct; PERF-5 states when to revisit                                        |
+| **EC-18** | Application whose requisition was deleted                      | Cannot happen: the API refuses to delete a requisition with applications (backend FR-8.2)                                       |
+| **EC-19** | An application row arrives with an unknown `currentStage`      | The raw value renders. No crash, no blank (FR-7.6)                                                                              |
+| **EC-20** | Offline                                                        | `apiFetch` throws; queries show their error state with **Try again**, mutations toast. No spinner is left hanging               |
 
 ---
 
@@ -717,16 +717,16 @@ Verified by hand, in the browser, with DevTools open. There is no test suite. Ro
   Email, Password — and **no role selector anywhere on the page** (SEC-1).
 - **AC-F03** — **Given** `/signup`, **when** Submit is pressed with every field empty, **then** three
   field-level messages render and the Network tab shows **no request**.
-- **AC-F04** — **Given** a 7-character password, **when** Submit is pressed, **then** *"Password must be at
-  least 8 characters"* renders under Password and **no request** is sent.
+- **AC-F04** — **Given** a 7-character password, **when** Submit is pressed, **then** _"Password must be at
+  least 8 characters"_ renders under Password and **no request** is sent.
 - **AC-F05** — **Given** a valid form, **when** Submit is pressed, **then** the Network tab shows exactly one
   `POST /api/auth/signup` whose request body has **exactly three keys** — no `role` (FR-2.3).
 - **AC-F06** — **Given** that request returns `201`, **when** it settles, **then** the app navigates to
   `/login` and the toast **"Account created. Sign in to continue."** appears.
 - **AC-F07** — **Given** the same, **when** the Network tab is inspected, **then** the response carried **no**
   `Set-Cookie` and **no** `accessToken`, and **no** follow-up `POST /api/auth/login` was sent (FR-2.4).
-- **AC-F08** — **Given** an email that already exists, **when** Submit is pressed, **then** *"An account with
-  this email already exists."* renders under Email with a link to `/login`, and the other fields keep their
+- **AC-F08** — **Given** an email that already exists, **when** Submit is pressed, **then** _"An account with
+  this email already exists."_ renders under Email with a link to `/login`, and the other fields keep their
   values.
 - **AC-F09** — **Given** the new candidate's credentials, **when** they sign in, **then** the app lands on
   **`/jobs`** (FR-1.3).
@@ -855,21 +855,21 @@ Verified by hand, in the browser, with DevTools open. There is no test suite. Ro
 
 ## Out of Scope
 
-| Excluded                                          | Why                                                                                                    |
-| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Editing any profile field                         | D-12 — no backend endpoint writes a `User` row, so an edit form would have nowhere to send               |
-| Phone, resume upload, cover letter                | D-2/D-12 — no `CandidateProfile` model exists; apply takes `roleId` and nothing else                     |
-| Withdrawing an application                        | D-8 — `WITHDRAWN` is not in the backend enum, and no endpoint writes one                                 |
-| A stage timeline or "days at stage"               | D-13 — the payload is flat by design; showing ageing to an applicant is a product decision not taken      |
-| Disabling Apply after applying                    | D-6/FR-5.7 — a client rule the server does not have is a lie the UI tells                                |
-| Description, location or department filters       | D-11 — `Role` has no such columns and adding them changes the recruiter's shipped forms                  |
-| Pagination on `/applications`                     | XBE-10 — the API has no pager; adding one client-side would page a list it already returned in full      |
-| Interviewer or recruiter application views        | Backend defers them to the pipeline feature, which owns the aggregates and ageing                        |
-| A `/team` page, interviewer provisioning UI, `/api/users` | This repo's existing rule, and **only the signup half of it is being reversed**                 |
-| Password reset, email verification, "remember me" | No backend contract exists for any of them (backend SEC-12)                                              |
-| A `middleware.ts` route gate                      | FE-9 — the refresh cookie is `Path=/api/auth`, so a cookie-presence gate reads "signed out" for everyone |
-| Light mode / a theme toggle                       | The app is dark-only by design; this feature does not change that                                        |
-| Automated tests                                   | Repo-wide decision — verification is manual, in-browser (CLAUDE.md)                                      |
+| Excluded                                                  | Why                                                                                                      |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Editing any profile field                                 | D-12 — no backend endpoint writes a `User` row, so an edit form would have nowhere to send               |
+| Phone, resume upload, cover letter                        | D-2/D-12 — no `CandidateProfile` model exists; apply takes `roleId` and nothing else                     |
+| Withdrawing an application                                | D-8 — `WITHDRAWN` is not in the backend enum, and no endpoint writes one                                 |
+| A stage timeline or "days at stage"                       | D-13 — the payload is flat by design; showing ageing to an applicant is a product decision not taken     |
+| Disabling Apply after applying                            | D-6/FR-5.7 — a client rule the server does not have is a lie the UI tells                                |
+| Description, location or department filters               | D-11 — `Role` has no such columns and adding them changes the recruiter's shipped forms                  |
+| Pagination on `/applications`                             | XBE-10 — the API has no pager; adding one client-side would page a list it already returned in full      |
+| Interviewer or recruiter application views                | Backend defers them to the pipeline feature, which owns the aggregates and ageing                        |
+| A `/team` page, interviewer provisioning UI, `/api/users` | This repo's existing rule, and **only the signup half of it is being reversed**                          |
+| Password reset, email verification, "remember me"         | No backend contract exists for any of them (backend SEC-12)                                              |
+| A `middleware.ts` route gate                              | FE-9 — the refresh cookie is `Path=/api/auth`, so a cookie-presence gate reads "signed out" for everyone |
+| Light mode / a theme toggle                               | The app is dark-only by design; this feature does not change that                                        |
+| Automated tests                                           | Repo-wide decision — verification is manual, in-browser (CLAUDE.md)                                      |
 
 ---
 
@@ -891,25 +891,25 @@ shadcn primitives cover all of it. `Intl` covers dates via the existing `format-
 
 **Modified existing files**
 
-| Path                                                                                      | Change                                                                       |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [`src/features/auth/types.ts`](../../../src/features/auth/types.ts)                       | `UserRole` gains `'CANDIDATE'`                                               |
-| [`src/features/auth/redirect.ts`](../../../src/features/auth/redirect.ts)                 | `ROLE_LANDING` gains `CANDIDATE: '/jobs'`                                    |
-| [`src/features/auth/api/auth.api.ts`](../../../src/features/auth/api/auth.api.ts)         | Adds `signup()`; the doc comment's signup prohibition is replaced             |
-| [`src/features/auth/components/LoginForm.tsx`](../../../src/features/auth/components/LoginForm.tsx) | Adds the **Create an account** link                                |
-| [`src/lib/schemas/auth.ts`](../../../src/lib/schemas/auth.ts)                             | Adds `signupSchema` + `SignupValues`                                         |
-| [`src/app/(app)/layout.tsx`](../../../src/app/(app)/layout.tsx)                           | `NAV_SECTIONS` gains `CANDIDATE`; a `Profile` link is added to all three      |
-| [`src/app/(app)/pipeline/page.tsx`](../../../src/app/(app)/pipeline/page.tsx)             | Wrapped in `<RequireRole allow={['RECRUITER']}>`                             |
-| [`src/app/(app)/my-interviews/page.tsx`](../../../src/app/(app)/my-interviews/page.tsx)   | Wrapped in `<RequireRole allow={['INTERVIEWER']}>`                           |
-| [`CLAUDE.md`](../../../CLAUDE.md)                                                         | Feature table; actors table; the "no account-creation surface" and "roles are recruiter-only" paragraphs; the endpoint count |
-| [`../roles/spec.md`](../roles/spec.md)                                                    | `Revision 3` — the API's roles reads are no longer recruiter-only            |
+| Path                                                                                                | Change                                                                                                                       |
+| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| [`src/features/auth/types.ts`](../../../src/features/auth/types.ts)                                 | `UserRole` gains `'CANDIDATE'`                                                                                               |
+| [`src/features/auth/redirect.ts`](../../../src/features/auth/redirect.ts)                           | `ROLE_LANDING` gains `CANDIDATE: '/jobs'`                                                                                    |
+| [`src/features/auth/api/auth.api.ts`](../../../src/features/auth/api/auth.api.ts)                   | Adds `signup()`; the doc comment's signup prohibition is replaced                                                            |
+| [`src/features/auth/components/LoginForm.tsx`](../../../src/features/auth/components/LoginForm.tsx) | Adds the **Create an account** link                                                                                          |
+| [`src/lib/schemas/auth.ts`](../../../src/lib/schemas/auth.ts)                                       | Adds `signupSchema` + `SignupValues`                                                                                         |
+| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>)                                   | `NAV_SECTIONS` gains `CANDIDATE`; a `Profile` link is added to all three                                                     |
+| [`src/app/(app)/pipeline/page.tsx`](<../../../src/app/(app)/pipeline/page.tsx>)                     | Wrapped in `<RequireRole allow={['RECRUITER']}>`                                                                             |
+| [`src/app/(app)/my-interviews/page.tsx`](<../../../src/app/(app)/my-interviews/page.tsx>)           | Wrapped in `<RequireRole allow={['INTERVIEWER']}>`                                                                           |
+| [`CLAUDE.md`](../../../CLAUDE.md)                                                                   | Feature table; actors table; the "no account-creation surface" and "roles are recruiter-only" paragraphs; the endpoint count |
+| [`../roles/spec.md`](../roles/spec.md)                                                              | `Revision 3` — the API's roles reads are no longer recruiter-only                                                            |
 
 **New files:** as listed in the file-structure block under **Frontend Requirements**.
 
 **Next.js 16 note.** [`AGENTS.md`](../../../AGENTS.md) carries the generated Next.js agent block: this is not
 the Next.js in your training data, so read `node_modules/next/dist/docs/` before writing routing code rather
 than assuming an API. Two specifics this feature depends on, both already demonstrated by
-[`(app)/roles/[roleId]/page.tsx`](../../../src/app/(app)/roles/[roleId]/page.tsx):
+[`(app)/roles/[roleId]/page.tsx`](<../../../src/app/(app)/roles/[roleId]/page.tsx>):
 
 - **`params` is a Promise.** `/jobs/[jobId]/page.tsx` must be an `async` server component that `await`s
   `props.params`, typed with the globally generated `PageProps<'/jobs/[jobId]'>` — no import, and no

@@ -17,12 +17,12 @@ a backend bug to flag, not something to conditionally hide here.
 
 ## Actors
 
-| Role                     | Sees                                                                                      |
-| ------------------------ | ----------------------------------------------------------------------------------------- |
-| Candidate                | Open positions only, their own applications, their own profile. Never feedback, interviewers, or recruiter internals |
+| Role                     | Sees                                                                                                                             |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Candidate                | Open positions only, their own applications, their own profile. Never feedback, interviewers, or recruiter internals             |
 | Interviewer              | Only candidates/rounds they're assigned to; never contact details. May read open requisitions, but is not offered a link to them |
-| Recruiter                | Full pipeline, all candidates, contact details, can assign interviewers + override stages |
-| Hiring manager (stretch) | Pipeline/ageing for their own open roles                                                  |
+| Recruiter                | Full pipeline, all candidates, contact details, can assign interviewers + override stages                                        |
+| Hiring manager (stretch) | Pipeline/ageing for their own open roles                                                                                         |
 
 Build views and API calls per the current user's role — don't build one "candidate view" that
 conditionally renders contact fields based on a client-side role check.
@@ -30,6 +30,29 @@ conditionally renders contact fields based on a client-side role check.
 ## Stack & conventions
 
 - Next.js 16 App Router, React 19, TypeScript
+- **Arrays are `Array<T>`, never `T[]`** — and `ReadonlyArray<T>`, never `readonly T[]`. This holds
+  everywhere a type is written: fields (`roles: Array<Role>`), returns
+  (`Promise<Array<Job>>`), parameters, casts (`FIELDS as ReadonlyArray<string>`) and nested
+  positions (`Record<string, Array<string>>`). Enforced by
+  `@typescript-eslint/array-type` (`generic`) in `eslint.config.mjs`, which autofixes it —
+  `npm run lint:fix`
+- **An object shape is an `interface`, never `type X = { … }`.** Applies to every object type,
+  not just component props: API response shapes (`Role`, `JobsListResponse`), context values,
+  hook results, params objects. `type` stays for what an interface genuinely can't express, and
+  only for that:
+  - unions, including string-literal unions (`UserRole`, `RoleStatus`) and discriminated unions
+    of object members (`RoleFormDialogProps` in `RoleFormDialog.tsx`)
+  - types derived from a value or another type — `z.infer<typeof schema>` (`LoginValues`),
+    `Omit<…>`, `typeof x`, indexed access (`(typeof FIELDS)[number]`)
+
+  A type alias that intersects an object onto a named object type becomes `extends`, not an
+  intersection: `interface RequestOptions extends Omit<RequestInit, 'body'> { body?: unknown }`
+  (`src/lib/api.ts`). Enforced by `@typescript-eslint/consistent-type-definitions`, also
+  autofixable
+
+  Both rules are style-only — `Array<T>` and `T[]` are the same type, so neither changes a
+  payload. [../backend/CLAUDE.md](../backend/CLAUDE.md) carries the identical pair, so a contract
+  type mirrored in both repos is written the same way on both sides
 - Components: declare props as an `interface` named `<ComponentName>Props` (not a type alias, not
   inline), and write the component as an arrow function typed `React.FC<…Props>` with the props
   destructured in the signature:
@@ -45,6 +68,19 @@ conditionally renders contact fields based on a client-side role check.
 - Arrow functions everywhere they work — components, hooks, handlers, helpers, callbacks. Use a
   `function` declaration only where an arrow genuinely can't go (Next.js `page.tsx` /
   `layout.tsx` default exports, generics that need a `this`, hoisting that's actually required)
+- File names: a file whose primary export is a React component is named for that component, in
+  `PascalCase` — `JobCard.tsx` exports `JobCard`, `RoleFormDialog.tsx` exports `RoleFormDialog`.
+  One component per file. Two exceptions, both of them forced rather than chosen:
+  - **Next.js reserved files** keep the framework's lowercase names — `page.tsx`, `layout.tsx`,
+    `not-found.tsx`, `loading.tsx`, `error.tsx`. Next resolves routes by filename, so these are
+    not ours to rename.
+  - **`src/components/ui/`** keeps shadcn's lowercase names (`button.tsx`, `dialog.tsx`), because
+    `npx shadcn add` regenerates them at those paths.
+
+  Everything that is _not_ a component stays `kebab-case` — hooks, API modules, schemas, utils
+  (`use-role-query.ts` is not the convention here; this codebase uses `useRoleQuery.ts` for hooks
+  and `format-date.ts` for utils, so match the neighbours in the folder you're editing)
+
 - Styling: Tailwind v4 + shadcn/ui primitives in `src/components/ui/` (base-ui under the hood) —
   use/extend these rather than hand-rolling new primitives
 - Theme: the palette, radii and fonts in `src/app/globals.css` track the `sdd` project. `dark` is
@@ -52,7 +88,7 @@ conditionally renders contact fields based on a client-side role check.
   style from the tokens (`bg-background`, `text-muted-foreground`, …) and never hardcode a color
 - Fonts: Inter as `--font-sans`, JetBrains Mono as `--font-geist-mono`; `globals.css` maps both
   into Tailwind, so use `font-sans` / `font-mono` rather than naming a family
-- Data fetching/mutations: TanStack Query (`src/components/providers/query-provider.tsx` wraps
+- Data fetching/mutations: TanStack Query (`src/components/providers/QueryProvider.tsx` wraps
   the app); call the backend only through `apiFetch` in `src/lib/api.ts`, which normalizes
   non-2xx responses into `ApiError`
 - Forms: `react-hook-form` + `@hookform/resolvers/zod`, with schemas under `src/lib/schemas/`
@@ -98,7 +134,7 @@ the spec is wrong, update the spec and get it re-approved rather than letting co
 | ------------------------------------------------------- | ----------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                   |
 | [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off |
-| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**            |
+| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**           |
 
 The **candidate** feature added `/signup`, a `CANDIDATE` role, and the Jobs / My Applications / Profile
 views. It **deliberately reversed two rules that used to be stated below**; both paragraphs are now rewritten
@@ -127,7 +163,7 @@ next role the same way and let the compiler find the gaps.
 the candidate feature — see below). `(app)/roles/layout.tsx` wraps both roles routes in
 `<RequireRole allow={ROLES_USER_ROLES}>` so an interviewer gets **the app's 404**, not `/forbidden`: a route
 you may not open should look like a route that isn't there. **Three different "nothing here" renderings, and
-they are not interchangeable** — `components/not-found-view.tsx` (route 404: unmatched URL *or* refused
+they are not interchangeable** — `components/NotFoundView.tsx` (route 404: unmatched URL _or_ refused
 route), `features/roles/components/RoleNotFound.tsx` and `features/jobs/components/JobNotFound.tsx` (data 404: a
 recruiter's `/roles/9999`, a candidate's closed position), and
 `app/forbidden/page.tsx` (a **server** `403` on a route the user may open — still wired to `apiFetch`, still

@@ -24,10 +24,8 @@ export type LoginValues = z.infer<typeof loginSchema>;
  * Client-side signup validation. Same rule as above: UX, never authorization.
  *
  * **There is deliberately no `role` field**, and there must never be one. The
- * backend removed `role` from the signup contract entirely and hard-codes
- * `CANDIDATE`, which is what closed its privilege-escalation gap — a role input
- * on a public form would be a selector for a privilege the server no longer
- * grants, and the next person to read this would assume it did.
+ * backend hard-codes `CANDIDATE`; a role input on a public form would be a
+ * selector for a privilege the server no longer grants.
  *
  * There is also no `confirmPassword`: the backend contract has no such field, so
  * adding one would invent a validation rule the server does not have.

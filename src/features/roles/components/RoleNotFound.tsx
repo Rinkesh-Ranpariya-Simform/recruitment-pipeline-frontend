@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
  * requisition that is gone. Keeping the nav in place leaves the user a way back
  * to the list.
  */
-export function RoleNotFound() {
+export const RoleNotFound: React.FC = () => {
   return (
     <section className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
       <FileQuestionIcon className="size-8 text-muted-foreground" aria-hidden="true" />
@@ -27,4 +27,4 @@ export function RoleNotFound() {
       </Button>
     </section>
   );
-}
+};

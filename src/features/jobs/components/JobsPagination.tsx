@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button';
 import { buildJobsHref } from '../search-params';
 import type { JobsPagination as JobsPaginationShape } from '../types';
 
+interface JobsPaginationProps {
+  pagination: JobsPaginationShape;
+  q: string | undefined;
+}
+
 /**
  * Previous / next, plus the current position — the same shape as the roles
  * pager, over `/jobs` hrefs instead of `/roles` ones.
@@ -15,13 +20,7 @@ import type { JobsPagination as JobsPaginationShape } from '../types';
  * and `pageSize`; duplicating that arithmetic is how a pager ends up offering a
  * page that doesn't exist.
  */
-export function JobsPagination({
-  pagination,
-  q,
-}: {
-  pagination: JobsPaginationShape;
-  q: string | undefined;
-}) {
+export const JobsPagination: React.FC<JobsPaginationProps> = ({ pagination, q }) => {
   const { page, totalPages } = pagination;
 
   if (totalPages <= 1) {
@@ -61,4 +60,4 @@ export function JobsPagination({
       </div>
     </nav>
   );
-}
+};

@@ -22,29 +22,29 @@
  * so a `CLOSED` row cannot arrive — and if one ever did, that is a **backend bug
  * to report**, not a row to filter here.
  */
-export type Job = {
+export interface Job {
   id: number;
   title: string;
   description: string;
   status: 'OPEN';
   createdAt: string;
-};
+}
 
 /** The list envelope, identical to the recruiter's. */
-export type JobsPagination = {
+export interface JobsPagination {
   page: number;
   pageSize: number;
   total: number;
   totalPages: number;
-};
+}
 
 /** `GET /api/roles` — 200. */
-export type JobsListResponse = {
-  roles: Job[];
+export interface JobsListResponse {
+  roles: Array<Job>;
   pagination: JobsPagination;
-};
+}
 
 /** `GET /api/roles/:roleId` — 200. */
-export type JobResponse = {
+export interface JobResponse {
   role: Job;
-};
+}

@@ -15,9 +15,9 @@ import type { ApplicationResponse, ApplicationsListResponse } from '../types';
  * The caller's own applications. Scoping is the server's, from the token — this
  * sends no candidate identifier, because there is no parameter for one.
  */
-export function listApplications(): Promise<ApplicationsListResponse> {
+export const listApplications = (): Promise<ApplicationsListResponse> => {
   return apiFetch<ApplicationsListResponse>('/api/applications');
-}
+};
 
 /**
  * Applies to one open position. Sends `roleId` and **nothing else** — the
@@ -35,9 +35,9 @@ export function listApplications(): Promise<ApplicationsListResponse> {
  * A 404 is checked BEFORE a 409 on the server, so a repeat apply to a role that
  * has since closed reports the closure, not the duplicate.
  */
-export function createApplication(roleId: number): Promise<ApplicationResponse> {
+export const createApplication = (roleId: number): Promise<ApplicationResponse> => {
   return apiFetch<ApplicationResponse>('/api/applications', {
     method: 'POST',
     body: { roleId },
   });
-}
+};

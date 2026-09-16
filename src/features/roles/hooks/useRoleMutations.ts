@@ -27,20 +27,20 @@ import { ROLES_LIST_KEY } from './useRolesQuery';
  * Not `queryClient.clear()` — that would drop the identity cache too and cost a
  * `GET /api/auth/me` on every write.
  */
-function useWriteSuccess() {
+const useWriteSuccess = () => {
   const queryClient = useQueryClient();
 
   return (response: RoleResponse) => {
     queryClient.setQueryData(roleDetailKey(response.role.id), response);
     void queryClient.invalidateQueries({ queryKey: ROLES_LIST_KEY });
   };
-}
+};
 
 /**
  * Success toasts only. Failures are rendered inline on the surface that caused
  * them, where the user can actually act on them.
  */
-export function useCreateRole() {
+export const useCreateRole = () => {
   const onWriteSuccess = useWriteSuccess();
 
   return useMutation({
@@ -50,10 +50,10 @@ export function useCreateRole() {
       toast.success('Role created');
     },
   });
-}
+};
 
 /** The success message for a patch, based on what it changed. */
-function updateMessage(patch: RolePatch): string {
+const updateMessage = (patch: RolePatch): string => {
   if (patch.status === 'CLOSED') {
     return 'Role closed';
   }
@@ -63,9 +63,9 @@ function updateMessage(patch: RolePatch): string {
   }
 
   return 'Role updated';
-}
+};
 
-export function useUpdateRole() {
+export const useUpdateRole = () => {
   const onWriteSuccess = useWriteSuccess();
 
   return useMutation({
@@ -76,7 +76,7 @@ export function useUpdateRole() {
       toast.success(updateMessage(patch));
     },
   });
-}
+};
 
 /**
  * Deletes a role permanently.
@@ -94,7 +94,7 @@ export function useUpdateRole() {
  * Navigating away is the caller's job — a list and a detail view need to go to
  * different places.
  */
-export function useDeleteRole() {
+export const useDeleteRole = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -105,4 +105,4 @@ export function useDeleteRole() {
       toast.success('Role deleted');
     },
   });
-}
+};

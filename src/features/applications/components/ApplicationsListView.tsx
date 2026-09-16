@@ -12,14 +12,12 @@ import { ApplicationCard } from './ApplicationCard';
  * Everything this candidate has applied to.
  *
  * The server scopes the list to the caller's own rows **inside the query**, so
- * there is nothing to filter here and no candidate id to send. There is also no
- * pager: the API returns the whole list, and paging it client-side would page
- * something already fetched in full.
+ * there is nothing to filter here and no candidate id to send. No pager either:
+ * the API returns the whole list.
  *
- * Rows render in server order — newest first. **No client-side re-sort**, so the
- * order the API documents is the order the user sees.
+ * Rows render in server order — newest first, with **no client-side re-sort**.
  */
-export function ApplicationsListView() {
+export const ApplicationsListView: React.FC = () => {
   const { data, isPending, isError, refetch } = useApplicationsQuery();
 
   return (
@@ -62,4 +60,4 @@ export function ApplicationsListView() {
       )}
     </div>
   );
-}
+};

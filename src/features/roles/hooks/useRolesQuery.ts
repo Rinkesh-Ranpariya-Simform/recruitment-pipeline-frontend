@@ -10,9 +10,9 @@ import type { RolesSearchParams } from '../search-params';
  * changing either is an ordinary key change and Back works without any extra
  * cache handling.
  */
-export function rolesListKey({ status, page }: RolesSearchParams) {
+export const rolesListKey = ({ status, page }: RolesSearchParams) => {
   return ['roles', 'list', { status, page }] as const;
-}
+};
 
 /** The key prefix every list page shares, for invalidation after a write. */
 export const ROLES_LIST_KEY = ['roles', 'list'] as const;
@@ -24,9 +24,9 @@ export const ROLES_LIST_KEY = ['roles', 'list'] as const;
  * people's sessions, and a recruiter reading the list is the one most likely to
  * care that it's current.
  */
-export function useRolesQuery(params: RolesSearchParams) {
+export const useRolesQuery = (params: RolesSearchParams) => {
   return useQuery({
     queryKey: rolesListKey(params),
     queryFn: () => listRoles(params),
   });
-}
+};

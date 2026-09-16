@@ -47,7 +47,7 @@ type RoleFormDialogProps =
  * Neither mode has a status control: a new role is always `OPEN`, and closing
  * one is a separate action with its own confirmation.
  */
-export function RoleFormDialog({ mode, role, onNotFound }: RoleFormDialogProps) {
+export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNotFound }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -318,4 +318,4 @@ export function RoleFormDialog({ mode, role, onNotFound }: RoleFormDialogProps) 
       </Dialog>
     </>
   );
-}
+};

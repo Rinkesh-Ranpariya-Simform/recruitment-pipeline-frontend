@@ -12,14 +12,14 @@
 
 let accessToken: string | null = null;
 
-export function getAccessToken(): string | null {
+export const getAccessToken = (): string | null => {
   return accessToken;
-}
+};
 
-export function setAccessToken(token: string): void {
+export const setAccessToken = (token: string): void => {
   accessToken = token;
-}
+};
 
-export function clearAccessToken(): void {
+export const clearAccessToken = (): void => {
   accessToken = null;
-}
+};

@@ -32,10 +32,10 @@ export const STAGE_LABELS: Record<PipelineStage, string> = {
  * input, and rendering `SOMETHING_NEW` is better than rendering a blank cell or
  * throwing. The lookups are indexed through a widened key for exactly that case.
  */
-export function statusLabel(status: ApplicationStatus): string {
+export const statusLabel = (status: ApplicationStatus): string => {
   return (STATUS_LABELS as Record<string, string | undefined>)[status] ?? status;
-}
+};
 
-export function stageLabel(stage: PipelineStage): string {
+export const stageLabel = (stage: PipelineStage): string => {
   return (STAGE_LABELS as Record<string, string | undefined>)[stage] ?? stage;
-}
+};

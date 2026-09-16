@@ -18,7 +18,7 @@ import { RoleStatusAction } from './RoleStatusAction';
 import { RoleStatusBadge } from './RoleStatusBadge';
 
 /** The loading state, shaped like the detail layout rather than a spinner. */
-function RoleDetailSkeleton() {
+const RoleDetailSkeleton: React.FC = () => {
   return (
     <div className="flex flex-col gap-6">
       <div className="space-y-3">
@@ -33,6 +33,10 @@ function RoleDetailSkeleton() {
       </div>
     </div>
   );
+};
+
+interface RoleDetailViewProps {
+  roleId: string;
 }
 
 /**
@@ -42,10 +46,10 @@ function RoleDetailSkeleton() {
  * Next 16 `params` is a Promise, so the page can't also run the query.
  *
  * Shows title, status, description and both timestamps, which is every field
- * the API returns. Only recruiters get here: `(app)/roles/layout.tsx` shows an
- * interviewer the 404, and the API would refuse their read anyway.
+ * the API returns. Only recruiters get here — `(app)/roles/layout.tsx` shows an
+ * interviewer the 404, which is a rendering decision, not a server refusal.
  */
-export function RoleDetailView({ roleId }: { roleId: string }) {
+export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
   const { user } = useAuth();
   const router = useRouter();
 
@@ -158,4 +162,4 @@ export function RoleDetailView({ roleId }: { roleId: string }) {
       </dl>
     </article>
   );
-}
+};

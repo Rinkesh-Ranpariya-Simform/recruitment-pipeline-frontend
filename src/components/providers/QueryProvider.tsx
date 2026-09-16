@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-export function QueryProvider({ children }: { children: React.ReactNode }) {
+interface QueryProviderProps {
+  children: React.ReactNode;
+}
+
+export const QueryProvider: React.FC<QueryProviderProps> = ({ children }) => {
   // Created once per browser session (not on every render) but still inside
   // component state so each request gets its own client on the server.
   const [queryClient] = useState(
@@ -19,4 +23,4 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
-}
+};

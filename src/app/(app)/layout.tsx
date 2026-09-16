@@ -24,8 +24,15 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { User, UserRole } from '@/features/auth/types';
 import { cn } from 'cn';
 
-type NavLink = { href: string; label: string; icon: LucideIcon };
-type NavSection = { label: string; links: NavLink[] };
+interface NavLink {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+interface NavSection {
+  label: string;
+  links: Array<NavLink>;
+}
 
 const PIPELINE: NavLink = { href: '/pipeline', label: 'Pipeline', icon: GitBranchIcon };
 const ROLES: NavLink = { href: '/roles', label: 'Roles', icon: BriefcaseIcon };
@@ -57,19 +64,12 @@ const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
  * re-authorizes every request it serves regardless. What this changes is what a
  * user is invited to.
  *
- * `Roles` is **recruiter-only** — the API now serves an interviewer's
- * `GET /api/roles` (open requisitions only), but creating and editing one is
- * still refused, and browsing the full requisition list is not an interviewer's
- * job. `Jobs` is the candidate's reading of the same endpoint. Offering either
- * link to the wrong role would be offering a door into the 404 those routes'
- * layouts render; those guards, not this table, are what make the routes safe to
- * leave unlinked.
- *
- * Adding a role to `UserRole` makes this table a type error until it is filled
- * in, which is the point of keying it by the union rather than filtering a flat
- * array. `CANDIDATE` was added exactly that way.
+ * `Roles` is **recruiter-only** — browsing the full requisition list is not an
+ * interviewer's job, even though the API would serve them the open ones.
+ * `Jobs` is the candidate's reading of the same endpoint. The route layouts'
+ * guards, not this table, are what make those routes safe to leave unlinked.
  */
-const NAV_SECTIONS: Record<UserRole, NavSection[]> = {
+const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
   RECRUITER: [{ label: 'Hiring', links: [PIPELINE, ROLES] }, ACCOUNT_SECTION],
   INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS] }, ACCOUNT_SECTION],
   CANDIDATE: [{ label: 'Jobs', links: [JOBS, MY_APPLICATIONS] }, ACCOUNT_SECTION],
@@ -80,12 +80,12 @@ const NAV_SECTIONS: Record<UserRole, NavSection[]> = {
  * `/roles/123` keeps `Roles` highlighted. Exact equality left a detail page
  * looking like it belonged to no section at all.
  */
-function isActive(pathname: string, href: string): boolean {
+const isActive = (pathname: string, href: string): boolean => {
   return pathname === href || pathname.startsWith(`${href}/`);
-}
+};
 
 /** Up to two initials, for the avatar. Falls back to a single letter. */
-function initialsOf(name: string): string {
+const initialsOf = (name: string): string => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
 
   if (parts.length === 0) {
@@ -93,9 +93,14 @@ function initialsOf(name: string): string {
   }
 
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+};
+
+interface AvatarProps {
+  user: User;
+  className?: string;
 }
 
-function Avatar({ user, className }: { user: User; className?: string }) {
+const Avatar: React.FC<AvatarProps> = ({ user, className }) => {
   return (
     <span
       aria-hidden="true"
@@ -107,9 +112,13 @@ function Avatar({ user, className }: { user: User; className?: string }) {
       {initialsOf(user.name)}
     </span>
   );
+};
+
+interface SidebarProps {
+  user: User;
 }
 
-function Sidebar({ user }: { user: User }) {
+const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const pathname = usePathname();
 
   return (
@@ -165,9 +174,13 @@ function Sidebar({ user }: { user: User }) {
       </nav>
     </aside>
   );
+};
+
+interface UserMenuProps {
+  user: User;
 }
 
-function UserMenu({ user }: { user: User }) {
+const UserMenu: React.FC<UserMenuProps> = ({ user }) => {
   const { logout, isLoggingOut } = useAuth();
 
   return (
@@ -202,17 +215,17 @@ function UserMenu({ user }: { user: User }) {
       </DropdownMenuContent>
     </DropdownMenu>
   );
+};
+
+interface AppChromeProps {
+  children: React.ReactNode;
 }
 
 /**
  * The authenticated shell: a role-aware sidebar, and the signed-in account at
- * the top right.
- *
- * Neither is a security boundary. The sidebar decides what a user is *offered*,
- * the account menu decides nothing at all, and the backend re-authorizes every
- * request either way.
+ * the top right. Neither is a security boundary.
  */
-function AppChrome({ children }: { children: React.ReactNode }) {
+const AppChrome: React.FC<AppChromeProps> = ({ children }) => {
   const { user } = useAuth();
 
   // `RequireAuth` renders its own loading and anonymous states, so a user is
@@ -236,7 +249,7 @@ function AppChrome({ children }: { children: React.ReactNode }) {
       </div>
     </div>
   );
-}
+};
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (

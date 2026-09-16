@@ -26,6 +26,12 @@ const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 const REOPENED_ERROR_MESSAGE =
   'This role is open again — it must be closed before it can be deleted.';
 
+interface RoleDeleteActionProps {
+  role: Role;
+  onDeleted: () => void;
+  onNotFound?: () => void;
+}
+
 /**
  * Delete role — the only irreversible action in the app.
  *
@@ -36,15 +42,11 @@ const REOPENED_ERROR_MESSAGE =
  * The confirmation names the role and says the action can't be undone. Unlike
  * the close dialog, there's no "you can undo this later" to offer.
  */
-export function RoleDeleteAction({
+export const RoleDeleteAction: React.FC<RoleDeleteActionProps> = ({
   role,
   onDeleted,
   onNotFound,
-}: {
-  role: Role;
-  onDeleted: () => void;
-  onNotFound?: () => void;
-}) {
+}) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const deleteMutation = useDeleteRole();
@@ -144,4 +146,4 @@ export function RoleDeleteAction({
       </Dialog>
     </>
   );
-}
+};

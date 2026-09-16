@@ -10,28 +10,28 @@ import { buildJobsHref } from '../search-params';
 /** Long enough that a typed word is one request, short enough to feel live. */
 const DEBOUNCE_MS = 300;
 
+interface JobsSearchProps {
+  value: string | undefined;
+}
+
 /**
  * Title search, written to the URL rather than held in state.
  *
  * The URL is the source of truth (`parseJobsSearchParams`), so reload and Back
  * both work with no cache handling. This component holds only the in-flight
  * input value until the debounce fires.
- *
- * Typing "engineer" is **one** request, not eight. Without the debounce, every
- * keystroke would be a key change and a fetch.
  */
-export function JobsSearch({ value }: { value: string | undefined }) {
+export const JobsSearch: React.FC<JobsSearchProps> = ({ value }) => {
   const router = useRouter();
   const [term, setTerm] = useState(value ?? '');
 
   // Keeps the box in step when the URL changes from outside this component — the
   // Back button, or the empty state's "Clear search".
   //
-  // Adjusted during render rather than in an effect. That is React's documented
-  // pattern for "reset state when a prop changes": React re-runs this component
-  // immediately with the new state, before touching the DOM, so there is no
-  // flash of the stale term and no cascading re-render of the tree. An effect
-  // here would paint the old value first and trip
+  // Adjusted during render rather than in an effect — React's documented
+  // "reset state when a prop changes" pattern. React re-runs this component
+  // with the new state before touching the DOM, so there is no flash of the
+  // stale term. An effect would paint the old value first and trip
   // `react-hooks/set-state-in-effect`.
   const [lastCommitted, setLastCommitted] = useState(value);
 
@@ -95,4 +95,4 @@ export function JobsSearch({ value }: { value: string | undefined }) {
       />
     </div>
   );
-}
+};

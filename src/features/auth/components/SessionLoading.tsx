@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-export function SessionLoading() {
+export const SessionLoading: React.FC = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -29,4 +29,4 @@ export function SessionLoading() {
       <span className="sr-only">Loading your session</span>
     </div>
   );
-}
+};

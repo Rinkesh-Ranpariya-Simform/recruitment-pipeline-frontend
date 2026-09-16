@@ -18,6 +18,11 @@ import type { Role } from '../types';
 
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
+interface RoleStatusActionProps {
+  role: Role;
+  onNotFound?: () => void;
+}
+
 /**
  * Close role / Reopen role. Sends `{ status }` and nothing else.
  *
@@ -25,7 +30,7 @@ const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
  * requisition out of circulation. Reopening doesn't — it's easily undone by
  * closing again.
  */
-export function RoleStatusAction({ role, onNotFound }: { role: Role; onNotFound?: () => void }) {
+export const RoleStatusAction: React.FC<RoleStatusActionProps> = ({ role, onNotFound }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const updateMutation = useUpdateRole();
@@ -134,4 +139,4 @@ export function RoleStatusAction({ role, onNotFound }: { role: Role; onNotFound?
       </Dialog>
     </>
   );
-}
+};

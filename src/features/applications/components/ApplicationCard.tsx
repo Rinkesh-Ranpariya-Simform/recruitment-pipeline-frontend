@@ -8,21 +8,24 @@ import { stageLabel } from '../labels';
 import type { Application } from '../types';
 import { ApplicationStatusBadge } from './ApplicationStatusBadge';
 
+interface ApplicationCardProps {
+  application: Application;
+}
+
 /**
  * One application, exactly as the brief's example describes it:
  *
  *   Senior Backend Engineer
  *   Applied: 15 Sep 2026 · Status: In progress · Stage: Interview
  *
- * **And nothing else.** No interviewer, no feedback, no rating, no note, no
- * override reason, no stage history — none of which are in the payload, which is
- * the point. There is deliberately no expander and no detail route to open.
+ * **And nothing else.** No interviewer, feedback, rating, note, override reason
+ * or stage history — none are in the payload, which is the point. There is no
+ * expander and no detail route to open.
  *
- * The title links to the position, which may well 404 if the requisition has
- * since closed. That is correct and honest: the application remains, the
- * position does not.
+ * The title links to the position, which may 404 if the requisition has since
+ * closed: the application remains, the position does not.
  */
-export function ApplicationCard({ application }: { application: Application }) {
+export const ApplicationCard: React.FC<ApplicationCardProps> = ({ application }) => {
   return (
     <Card>
       <CardContent className="space-y-3">
@@ -51,4 +54,4 @@ export function ApplicationCard({ application }: { application: Application }) {
       </CardContent>
     </Card>
   );
-}
+};

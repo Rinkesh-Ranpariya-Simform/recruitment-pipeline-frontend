@@ -15,9 +15,9 @@ export class ApiError extends Error {
   }
 }
 
-type RequestOptions = Omit<RequestInit, 'body'> & {
+interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
-};
+}
 
 /**
  * Paths excluded from the 401 interceptor. A 401 from login or refresh is a real
@@ -30,16 +30,16 @@ const REFRESH_EXEMPT_PATHS = ['/api/auth/login', '/api/auth/refresh'];
  * Callbacks registered by AuthProvider. They live here as plain functions so
  * this module stays free of React and router imports.
  */
-type AuthHandlers = {
+interface AuthHandlers {
   onAuthFailure: () => void;
   onForbidden: () => void;
-};
+}
 
 let authHandlers: AuthHandlers | null = null;
 
-export function registerAuthHandlers(handlers: AuthHandlers): void {
+export const registerAuthHandlers = (handlers: AuthHandlers): void => {
   authHandlers = handlers;
-}
+};
 
 /**
  * The in-flight refresh, if any. Concurrent 401s await this same promise, so ten
@@ -56,7 +56,7 @@ let refreshPromise: Promise<void> | null = null;
  * query cache and redirects to /login), then rethrows so the caller's request
  * fails rather than silently hanging.
  */
-export function refreshAccessToken(): Promise<void> {
+export const refreshAccessToken = (): Promise<void> => {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
@@ -73,9 +73,9 @@ export function refreshAccessToken(): Promise<void> {
   }
 
   return refreshPromise;
-}
+};
 
-function buildHeaders(headers: HeadersInit | undefined): HeadersInit {
+const buildHeaders = (headers: HeadersInit | undefined): HeadersInit => {
   const token = getAccessToken();
 
   return {
@@ -85,9 +85,9 @@ function buildHeaders(headers: HeadersInit | undefined): HeadersInit {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...headers,
   };
-}
+};
 
-async function parseResponse<T>(res: Response, path: string): Promise<T> {
+const parseResponse = async <T>(res: Response, path: string): Promise<T> => {
   const isJson = res.headers.get('content-type')?.includes('application/json');
   const data = isJson ? await res.json() : await res.text();
 
@@ -100,7 +100,7 @@ async function parseResponse<T>(res: Response, path: string): Promise<T> {
   }
 
   return data as T;
-}
+};
 
 /**
  * Thin fetch wrapper for talking to the Express backend.
@@ -111,10 +111,10 @@ async function parseResponse<T>(res: Response, path: string): Promise<T> {
  * travel cross-origin, and a 401 is recovered by refreshing once and replaying
  * the request once.
  */
-export async function apiFetch<T>(
+export const apiFetch = async <T>(
   path: string,
   { body, headers, ...init }: RequestOptions = {},
-): Promise<T> {
+): Promise<T> => {
   // Serialised once, before the first attempt, so a replay sends a byte-identical payload.
   const serializedBody = body !== undefined ? JSON.stringify(body) : undefined;
 
@@ -144,4 +144,4 @@ export async function apiFetch<T>(
   }
 
   return parseResponse<T>(res, path);
-}
+};

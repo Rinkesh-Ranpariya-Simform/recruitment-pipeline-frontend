@@ -10,9 +10,9 @@ import type { JobsSearchParams } from '../search-params';
  * changing either is an ordinary key change and Back works with no extra cache
  * handling.
  */
-export function jobsListKey({ q, page }: JobsSearchParams) {
+export const jobsListKey = ({ q, page }: JobsSearchParams) => {
   return ['jobs', 'list', { q, page }] as const;
-}
+};
 
 /**
  * Reads a page of open positions, using the provider's default `staleTime` of
@@ -23,10 +23,10 @@ export function jobsListKey({ q, page }: JobsSearchParams) {
  * An empty flash between pages reads as "no results", which is the one thing
  * this view must not say by accident.
  */
-export function useJobsQuery(params: JobsSearchParams) {
+export const useJobsQuery = (params: JobsSearchParams) => {
   return useQuery({
     queryKey: jobsListKey(params),
     queryFn: () => listJobs(params),
     placeholderData: (previous) => previous,
   });
-}
+};

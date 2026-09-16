@@ -6,8 +6,8 @@ import { ROLES_USER_ROLES } from '@/features/roles/permissions';
  * each page repeating the guard. An interviewer who types either URL gets the
  * app's 404.
  *
- * The backend refuses those reads with a 403 anyway — this only keeps a user
- * out of a page that could never work for them.
+ * A rendering decision, not a security control: the backend would serve an
+ * interviewer's read (open requisitions only). What it refuses is the writes.
  */
 export default function RolesLayout({ children }: LayoutProps<'/roles'>) {
   return <RequireRole allow={ROLES_USER_ROLES}>{children}</RequireRole>;

@@ -23,6 +23,10 @@ const OPTIONS: ReadonlyArray<{ value: FilterValue; label: string }> = [
   { value: 'CLOSED', label: 'Closed' },
 ];
 
+interface RolesStatusFilterProps {
+  status: RoleStatus | undefined;
+}
+
 /**
  * All · Open · Closed, stored in the URL as `?status=OPEN|CLOSED` and omitted
  * for All.
@@ -31,7 +35,7 @@ const OPTIONS: ReadonlyArray<{ value: FilterValue; label: string }> = [
  * filter. Changing the filter resets to page 1 — page 3 of "all roles" is
  * rarely page 3 of "closed roles".
  */
-export function RolesStatusFilter({ status }: { status: RoleStatus | undefined }) {
+export const RolesStatusFilter: React.FC<RolesStatusFilterProps> = ({ status }) => {
   const router = useRouter();
 
   return (
@@ -58,4 +62,4 @@ export function RolesStatusFilter({ status }: { status: RoleStatus | undefined }
       </SelectContent>
     </Select>
   );
-}
+};

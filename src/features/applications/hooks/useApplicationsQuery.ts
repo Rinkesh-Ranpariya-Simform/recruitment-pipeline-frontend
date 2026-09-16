@@ -15,9 +15,9 @@ import { listApplications } from '../api/applications.api';
  */
 export const APPLICATIONS_LIST_KEY = ['applications', 'list'] as const;
 
-export function useApplicationsQuery() {
+export const useApplicationsQuery = () => {
   return useQuery({
     queryKey: APPLICATIONS_LIST_KEY,
     queryFn: listApplications,
   });
-}
+};

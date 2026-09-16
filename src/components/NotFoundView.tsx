@@ -20,10 +20,9 @@ import { Button } from '@/components/ui/button';
  * back to the list; this one is the end of the road and offers only `/`.
  *
  * The way back is `/` and never a role-specific path, so this renders correctly
- * for an anonymous visitor as well — `/` resolves the session itself and sends a
- * signed-in user to their own landing route.
+ * for an anonymous visitor too.
  */
-export function NotFoundView() {
+export const NotFoundView: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       <FileQuestionIcon className="size-8 text-muted-foreground" aria-hidden="true" />
@@ -38,4 +37,4 @@ export function NotFoundView() {
       </Button>
     </div>
   );
-}
+};

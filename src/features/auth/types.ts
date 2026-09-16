@@ -11,11 +11,9 @@
  * means an **open requisition** elsewhere in this app
  * (`features/roles/types.ts`).
  *
- * `CANDIDATE` was added by the candidate feature. Keeping this a union, and
- * every role-keyed map a `Record<UserRole, …>`, is what made that addition a
- * **compile error** in `NAV_SECTIONS` and `ROLE_LANDING` until both were filled
- * in — rather than a role that silently renders an empty sidebar. Add the next
- * role the same way and let the compiler find the gaps.
+ * Keep this a union and every role-keyed map a `Record<UserRole, …>`: adding a
+ * role is then a **compile error** in `NAV_SECTIONS` and `ROLE_LANDING` rather
+ * than a role that silently renders an empty sidebar.
  */
 export type UserRole = 'INTERVIEWER' | 'RECRUITER' | 'CANDIDATE';
 
@@ -28,20 +26,20 @@ export type UserRole = 'INTERVIEWER' | 'RECRUITER' | 'CANDIDATE';
  * frontend/CLAUDE.md, such a payload is a backend bug to flag — not a field to
  * hide in the UI.
  */
-export type User = {
+export interface User {
   id: number;
   name: string;
   email: string;
   role: UserRole;
   createdAt: string;
-};
+}
 
 /** `POST /api/auth/login` — 200. The refresh token is not here; it is an HttpOnly cookie. */
-export type LoginResponse = {
+export interface LoginResponse {
   user: User;
   accessToken: string;
   expiresIn: number;
-};
+}
 
 /**
  * `POST /api/auth/signup` — 201.
@@ -50,36 +48,34 @@ export type LoginResponse = {
  * backend issues neither, and a type that declared one would invite a caller to
  * look for it.
  */
-export type SignupResponse = {
+export interface SignupResponse {
   user: User;
-};
+}
 
 /** `POST /api/auth/refresh` — 200. Cookie-driven; no user object is returned. */
-export type RefreshResponse = {
+export interface RefreshResponse {
   accessToken: string;
   expiresIn: number;
-};
+}
 
 /** `GET /api/auth/me` — 200. */
-export type MeResponse = {
+export interface MeResponse {
   user: User;
-};
+}
 
 /**
  * The flat error body every non-2xx response uses. Branch on `code` — it is the
  * stable contract; `message` is user-safe copy that may be rendered verbatim.
  */
-export type ApiErrorBody = {
+export interface ApiErrorBody {
   code: string;
   message: string;
   /**
    * Keyed by request-body field name, so it maps straight onto form inputs.
    *
    * **Each value is an array** — the backend accumulates every message a field
-   * failed on. This client declared a bare `string` until the roles feature,
-   * which was invisible only because the backend's accumulator was broken and
-   * always produced `{}`. Read it through `fieldMessage` in
-   * `lib/error-details.ts` rather than passing it to `setError` directly.
+   * failed on. Read it through `fieldMessage` in `lib/error-details.ts` rather
+   * than passing it to `setError` directly.
    */
-  details?: Record<string, string[]>;
-};
+  details?: Record<string, Array<string>>;
+}

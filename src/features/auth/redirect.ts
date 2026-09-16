@@ -19,10 +19,10 @@ const ROLE_LANDING: Record<UserRole, string> = {
  * bookmark to a removed route is honoured and renders the app's 404, which is
  * correct and honest.
  */
-export function resolveRedirect(next: string | null | undefined, role: UserRole): string {
+export const resolveRedirect = (next: string | null | undefined, role: UserRole): string => {
   if (next && next.startsWith('/') && !next.startsWith('//')) {
     return next;
   }
 
   return ROLE_LANDING[role];
-}
+};

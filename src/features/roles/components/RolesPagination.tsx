@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/button';
 import { buildRolesHref } from '../search-params';
 import type { Pagination, RoleStatus } from '../types';
 
+interface RolesPaginationProps {
+  pagination: Pagination;
+  status: RoleStatus | undefined;
+}
+
 /**
  * Previous / next, plus the current position.
  *
@@ -14,13 +19,7 @@ import type { Pagination, RoleStatus } from '../types';
  * and `pageSize` — duplicating that arithmetic is how a pager ends up offering
  * a page that doesn't exist.
  */
-export function RolesPagination({
-  pagination,
-  status,
-}: {
-  pagination: Pagination;
-  status: RoleStatus | undefined;
-}) {
+export const RolesPagination: React.FC<RolesPaginationProps> = ({ pagination, status }) => {
   const { page, totalPages } = pagination;
 
   const hasPrevious = page > 1;
@@ -76,4 +75,4 @@ export function RolesPagination({
       </div>
     </nav>
   );
-}
+};

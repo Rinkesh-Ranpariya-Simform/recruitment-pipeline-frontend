@@ -15,14 +15,19 @@ const ROLE_LABELS: Record<UserRole, string> = {
   RECRUITER: 'Recruiter',
 };
 
-function Row({ label, value }: { label: string; value: string }) {
+interface RowProps {
+  label: string;
+  value: string;
+}
+
+const Row: React.FC<RowProps> = ({ label, value }) => {
   return (
     <div className="flex flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-4">
       <dt className="w-32 shrink-0 text-sm text-muted-foreground">{label}</dt>
       <dd className="text-sm break-words">{value}</dd>
     </div>
   );
-}
+};
 
 /**
  * Who you are signed in as — for **every** role, not just candidates.
@@ -37,7 +42,7 @@ function Row({ label, value }: { label: string; value: string }) {
  * something that does not exist — the absence is the honest rendering, and it
  * means "a candidate cannot edit their profile" needs no check to enforce it.
  */
-export function ProfileView() {
+export const ProfileView: React.FC = () => {
   const { user } = useAuth();
 
   // `RequireAuth` guarantees a user by the time this renders; this is type
@@ -65,4 +70,4 @@ export function ProfileView() {
       </Card>
     </div>
   );
-}
+};

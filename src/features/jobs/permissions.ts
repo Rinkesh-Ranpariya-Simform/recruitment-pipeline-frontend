@@ -14,4 +14,4 @@ import type { UserRole } from '@/features/auth/types';
  * refuse them. The application endpoints, by contrast, really are candidate-only
  * server-side.
  */
-export const CANDIDATE_USER_ROLES: readonly UserRole[] = ['CANDIDATE'];
+export const CANDIDATE_USER_ROLES: ReadonlyArray<UserRole> = ['CANDIDATE'];

@@ -1,9 +1,7 @@
 /**
  * Timestamp formatting, built on `Intl` so it adds no dependency.
  *
- * Ageing is this product's currency — how long a candidate has sat at a stage,
- * how old a requisition is — and a bare ISO string is not readable at a glance.
- * A date library would be the obvious reach; `Intl.DateTimeFormat` and
+ * A date library would be the obvious reach, but `Intl.DateTimeFormat` and
  * `Intl.RelativeTimeFormat` are in every browser this app supports and cost
  * nothing to ship.
  *
@@ -30,16 +28,16 @@ const RELATIVE_UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
 /** An unparseable timestamp renders as an em dash — never `Invalid Date`. */
 const INVALID = '—';
 
-function parse(iso: string): Date | null {
+const parse = (iso: string): Date | null => {
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? null : date;
-}
+};
 
 /** An absolute local date-time, e.g. "12 Sep 2026, 14:30". */
-export function formatAbsolute(iso: string): string {
+export const formatAbsolute = (iso: string): string => {
   const date = parse(iso);
   return date ? absoluteFormat.format(date) : INVALID;
-}
+};
 
 /**
  * The relative form, e.g. "3 days ago" or "in 2 hours".
@@ -48,7 +46,7 @@ export function formatAbsolute(iso: string): string {
  * created a moment ago would otherwise read as a future event whenever the
  * client's clock sits a second ahead of the server's.
  */
-export function formatRelative(iso: string): string {
+export const formatRelative = (iso: string): string => {
   const date = parse(iso);
 
   if (!date) {
@@ -64,4 +62,4 @@ export function formatRelative(iso: string): string {
   }
 
   return 'just now';
-}
+};

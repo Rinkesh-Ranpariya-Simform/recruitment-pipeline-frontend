@@ -8,12 +8,12 @@ import type { RoleStatus } from './types';
  * disagree about the format.
  */
 
-export type RolesSearchParams = {
+export interface RolesSearchParams {
   status: RoleStatus | undefined;
   page: number;
-};
+}
 
-const ROLE_STATUSES: readonly RoleStatus[] = ['OPEN', 'CLOSED'];
+const ROLE_STATUSES: ReadonlyArray<RoleStatus> = ['OPEN', 'CLOSED'];
 
 /**
  * Whether a string is a status this client recognises.
@@ -22,9 +22,9 @@ const ROLE_STATUSES: readonly RoleStatus[] = ['OPEN', 'CLOSED'];
  * hands back a widened `string | null`, and a second copy of the list would
  * eventually disagree with this one.
  */
-export function isRoleStatus(value: string | null): value is RoleStatus {
-  return value !== null && (ROLE_STATUSES as readonly string[]).includes(value);
-}
+export const isRoleStatus = (value: string | null): value is RoleStatus => {
+  return value !== null && (ROLE_STATUSES as ReadonlyArray<string>).includes(value);
+};
 
 /**
  * Sanitises the query string before anything is requested.
@@ -33,7 +33,9 @@ export function isRoleStatus(value: string | null): value is RoleStatus {
  * integer of at least 1 becomes page 1. The server would answer either with a
  * 400, so a mistyped URL renders a working page instead of an error.
  */
-export function parseRolesSearchParams(searchParams: ReadonlyURLSearchParams): RolesSearchParams {
+export const parseRolesSearchParams = (
+  searchParams: ReadonlyURLSearchParams,
+): RolesSearchParams => {
   const rawStatus = searchParams.get('status');
   const rawPage = Number(searchParams.get('page'));
 
@@ -41,13 +43,13 @@ export function parseRolesSearchParams(searchParams: ReadonlyURLSearchParams): R
     status: isRoleStatus(rawStatus) ? rawStatus : undefined,
     page: Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1,
   };
-}
+};
 
 /**
  * Builds a `/roles` href. Both parameters are omitted at their defaults, so the
  * unfiltered first page is a bare `/roles` rather than `/roles?page=1`.
  */
-export function buildRolesHref({ status, page }: Partial<RolesSearchParams>): string {
+export const buildRolesHref = ({ status, page }: Partial<RolesSearchParams>): string => {
   const params = new URLSearchParams();
 
   if (status) {
@@ -61,4 +63,4 @@ export function buildRolesHref({ status, page }: Partial<RolesSearchParams>): st
   const query = params.toString();
 
   return query ? `/roles?${query}` : '/roles';
-}
+};

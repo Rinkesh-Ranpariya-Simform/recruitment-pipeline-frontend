@@ -8,6 +8,10 @@ import { useAuth } from '../hooks/useAuth';
 import { resolveRedirect } from '../redirect';
 import { SessionLoading } from './SessionLoading';
 
+interface RequireAnonymousProps {
+  children: React.ReactNode;
+}
+
 /**
  * The inverse of `<RequireAuth>`: gates the unauthenticated views on a resolved
  * session, so a signed-in user is never shown a form asking for credentials the
@@ -18,17 +22,14 @@ import { SessionLoading } from './SessionLoading';
  * — `POST /api/auth/refresh`, then `GET /api/auth/me` for the role that decides
  * where the user belongs. Rendering the form during that window and redirecting
  * afterwards is what produced the visible flash; holding the screen until the
- * answer is known is what removes it. Nothing here is faster than before, it
- * just refuses to paint a page it may be about to take away.
+ * answer is known is what removes it.
  *
- * **This is a UX affordance, never a security control** — the same as
- * `<RequireAuth>`. It hides nothing that is protected by being hidden, and the
- * backend re-authorizes every request regardless of which form is on screen.
+ * **A UX affordance, never a security control** — see `<RequireAuth>`.
  *
  * `router.replace`, not `push`: `/login` must not enter history, or the back
  * button would bounce a signed-in user straight back into this redirect.
  */
-export function RequireAnonymous({ children }: { children: React.ReactNode }) {
+export const RequireAnonymous: React.FC<RequireAnonymousProps> = ({ children }) => {
   const { status } = useAuthContext();
   const { role, identityError } = useAuth();
   const router = useRouter();
@@ -58,4 +59,4 @@ export function RequireAnonymous({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
+};

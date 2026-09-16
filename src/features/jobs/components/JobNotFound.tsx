@@ -12,11 +12,10 @@ import { Button } from '@/components/ui/button';
  * may open it — it's the position that is gone.
  *
  * The copy deliberately does not say whether the requisition never existed or
- * has been closed, because **the API does not distinguish the two**. Telling
- * them apart here would invent a fact the response doesn't carry, and on the
- * server it would confirm that a closed requisition exists.
+ * has been closed, because **the API does not distinguish the two** — saying so
+ * here would invent a fact the response doesn't carry.
  */
-export function JobNotFound() {
+export const JobNotFound: React.FC = () => {
   return (
     <section className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
       <FileQuestionIcon className="size-8 text-muted-foreground" aria-hidden="true" />
@@ -31,4 +30,4 @@ export function JobNotFound() {
       </Button>
     </section>
   );
-}
+};

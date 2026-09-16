@@ -39,7 +39,7 @@ So role does not merely toggle UI here — it determines which route a user land
 | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stack   | Next.js 16 App Router, React 19, TypeScript, Tailwind v4                                                                                                                         |
 | UI      | shadcn/ui primitives over base-ui in [`src/components/ui/`](../../../src/components/ui/) — `field`, `input`, `label`, `button`, `table`, `card`, `select`, `dialog`, `sonner`, … |
-| Data    | TanStack Query 5, wired by [`src/components/providers/query-provider.tsx`](../../../src/components/providers/query-provider.tsx)                                                 |
+| Data    | TanStack Query 5, wired by [`src/components/providers/QueryProvider.tsx`](../../../src/components/providers/QueryProvider.tsx)                                                   |
 | HTTP    | [`src/lib/api.ts`](../../../src/lib/api.ts) — `apiFetch<T>()` + `ApiError` (reads `data.message`)                                                                                |
 | Forms   | react-hook-form 7 + `@hookform/resolvers/zod` + zod 4; schema pattern in `src/lib/schemas/quick-note.ts` (scaffolding, since deleted)                                            |
 | Pages   | One demo page (`ApiStatusCard`, `QuickNoteForm`). Stock metadata `"Create Next App"`                                                                                             |

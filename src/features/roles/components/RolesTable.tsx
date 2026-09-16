@@ -19,7 +19,7 @@ import type { Role } from '../types';
 /** Placeholder rows shown while the list loads. */
 const SKELETON_ROWS = 5;
 
-function RolesTableHead() {
+const RolesTableHead: React.FC = () => {
   return (
     <TableHeader>
       <TableRow>
@@ -29,13 +29,13 @@ function RolesTableHead() {
       </TableRow>
     </TableHeader>
   );
-}
+};
 
 /**
  * The loading state: same header, columns and row height as the real table, so
  * nothing shifts when the data lands.
  */
-export function RolesTableSkeleton() {
+export const RolesTableSkeleton: React.FC = () => {
   return (
     <Table>
       <RolesTableHead />
@@ -56,6 +56,10 @@ export function RolesTableSkeleton() {
       </TableBody>
     </Table>
   );
+};
+
+interface RolesTableProps {
+  roles: Array<Role>;
 }
 
 /**
@@ -66,7 +70,7 @@ export function RolesTableSkeleton() {
  * what a mouse expects, and the link is what makes the destination
  * keyboard-reachable, middle-clickable and copyable.
  */
-export function RolesTable({ roles }: { roles: Role[] }) {
+export const RolesTable: React.FC<RolesTableProps> = ({ roles }) => {
   const router = useRouter();
 
   return (
@@ -111,4 +115,4 @@ export function RolesTable({ roles }: { roles: Role[] }) {
       </TableBody>
     </Table>
   );
-}
+};

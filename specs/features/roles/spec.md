@@ -65,8 +65,8 @@ same req twice, has no way to remove either — and a closed role is not out of 
 away and counted in the pager.
 
 **Why it is `CLOSED`-only in the UI too.** The server's rule is the control (backend FR-6.7); this client
-mirrors it by not rendering the button at all on an open role, which is FE-2.4 — *where a control is not
-offered, there is no trace of it* — applied to the app's only irreversible action. An open requisition is in
+mirrors it by not rendering the button at all on an open role, which is FE-2.4 — _where a control is not
+offered, there is no trace of it_ — applied to the app's only irreversible action. An open requisition is in
 circulation, and closing it is the deliberate first step that makes deleting it available.
 
 **What this revision does NOT add:** no delete from the list, no row menu, no bulk delete, no undo, no trash
@@ -88,8 +88,8 @@ server-side and omits `updatedAt`.
 
 **What changes for this feature:** very little. `<RequireRole allow={ROLES_USER_ROLES}>` on `/roles` stays
 exactly as it is, both roles routes stay recruiter-only in the UI, and every write still answers `403` to a
-non-recruiter. The one statement that stops being true is *"the API answers an interviewer's `GET /api/roles`
-with a `403`"* — it will answer `200` with the open requisitions.
+non-recruiter. The one statement that stops being true is _"the API answers an interviewer's `GET /api/roles`
+with a `403`"_ — it will answer `200` with the open requisitions.
 
 **If that spec is approved, the sections to revise here are:** the Revision block's opening claim, XBE-8, and
 any AC asserting a `403` on a roles **read**. Write-endpoint ACs are unaffected.
@@ -119,7 +119,7 @@ user roles from one unscoped endpoint and differed only in which write controls 
 | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Stack  | Next.js 16 App Router, React 19, TypeScript, Tailwind v4, dark-only (no theme provider)                                                                                                              |
 | UI     | shadcn/ui over base-ui in [`src/components/ui/`](../../../src/components/ui/) — `badge`, `button`, `card`, `dialog`, `field`, `input`, `label`, `select`, `separator`, `sonner`, `table`, `textarea` |
-| Data   | TanStack Query 5 via [`query-provider.tsx`](../../../src/components/providers/query-provider.tsx)                                                                                                    |
+| Data   | TanStack Query 5 via [`QueryProvider.tsx`](../../../src/components/providers/QueryProvider.tsx)                                                                                                      |
 | HTTP   | [`src/lib/api.ts`](../../../src/lib/api.ts) — `apiFetch<T>()`, `ApiError`, Bearer attachment, single-flight 401 refresh-and-replay, 403 → `/forbidden`                                               |
 | Auth   | Shipped: `(app)` route group behind `<RequireAuth>`, `useAuth()`, in-memory access token, chrome with name + role chip + logout                                                                      |
 | Routes | `/login`, `/pipeline`, `/my-interviews` (placeholders), `/forbidden`, `/` (role redirect)                                                                                                            |
@@ -164,7 +164,7 @@ Settled, not open:
 | Actor                           | Sees                                                                                                                                                                                |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Anonymous visitor**           | Nothing. `/roles` and `/roles/[roleId]` sit inside `(app)` and redirect to `/login?next=<path>` like every other guarded route.                                                     |
-| **Interviewer** (`INTERVIEWER`) | **Nothing.** No Roles link in the sidebar, and the app's **404** on either route typed by hand — not a 403 view, and not a read-only rendering of the list (FE-10).                  |
+| **Interviewer** (`INTERVIEWER`) | **Nothing.** No Roles link in the sidebar, and the app's **404** on either route typed by hand — not a 403 view, and not a read-only rendering of the list (FE-10).                 |
 | **Recruiter** (`RECRUITER`)     | The same views, plus create, edit, close and reopen. **Any recruiter may edit any role** — the UI shows no ownership, because neither the API nor the model has any (backend AZ-5). |
 
 There is **no hiring-manager persona in this app**, and no field anywhere that names one.
@@ -353,7 +353,7 @@ page or a spinner that never resolves.
 Two routes under `app/(app)/roles/` **plus the `layout.tsx` that guards them** (FE-10.3), a `features/roles/`
 module holding the api wrapper, hooks, components, `permissions.ts` and `types.ts`, and one schema file at
 `lib/schemas/role.ts`. Three files land outside the feature: `features/auth/components/RequireRole.tsx`,
-`components/not-found-view.tsx` and `app/not-found.tsx` (FE-10).
+`components/NotFoundView.tsx` and `app/not-found.tsx` (FE-10).
 
 Existing primitives are used and extended, never re-implemented. **One new primitive** is added:
 `skeleton`. The authentication spec recorded that it added none (its AC-F32) precisely because nothing in
@@ -385,7 +385,7 @@ deliverable, and this feature is the one that has the list.
 - **FE-3.1** The api module exports exactly five functions — `listRoles`, `getRole`, `createRole`,
   `updateRole`, `deleteRole` — and every one goes through `apiFetch`. No component assembles a path or a
   header.
-- **FE-3.2** *(Revised — this rule previously forbade `deleteRole`, because there was no endpoint.)*
+- **FE-3.2** _(Revised — this rule previously forbade `deleteRole`, because there was no endpoint.)_
   `deleteRole` exists now that `DELETE /api/roles/:roleId` does (backend FR-6.6). **The rule it stated still
   holds**: no wrapper is exported here for an endpoint that does not exist, because that is how a removed
   feature comes back by accident. `deleteRole` returns `Promise<void>` — the endpoint answers `204` and there
@@ -486,7 +486,7 @@ _Added by the revision that made roles recruiter-only._
   affordances cannot disagree and FE-2.1's "one literal, one place" rule survives (AC-F17).
 - **FE-10.5** The 404 body is **one component**, shared by the guard and by `app/not-found.tsx`, so a refused
   route and a mistyped URL are indistinguishable by construction rather than by care. It is **not**
-  `RoleNotFound` (FR-2.4), which is a *data* 404 inside the chrome for a recruiter whose role id does not
+  `RoleNotFound` (FR-2.4), which is a _data_ 404 inside the chrome for a recruiter whose role id does not
   exist — three different nothings, and the app now names all three.
 - **FE-10.6** `app/not-found.tsx` is added in the same pass: the app had **no route-404 page at all** and was
   falling through to Next's default, which renders outside the app's own shell and copy. This is the
@@ -552,15 +552,15 @@ guarantees this frontend **depends on** are recorded here — if any changes, th
 
 As consumed by this client. Canonical definitions live in the backend spec.
 
-| Call                       | When                                | Sends                                      | Expects                                                    |
-| -------------------------- | ----------------------------------- | ------------------------------------------ | ---------------------------------------------------------- |
-| `GET /api/roles`           | `/roles` renders or its URL changes | `?status=` `?page=`                        | `200 { roles, pagination }` · `400` · `401`                |
-| `GET /api/roles/:roleId`   | `/roles/[roleId]` renders           | —                                          | `200 { role }` · `400` · `401` · `404`                     |
-| `POST /api/roles`          | Create dialog submit                | `{ title, description }`                   | `201 { role }` · `400 VALIDATION_ERROR` · `403 FORBIDDEN`  |
-| `PATCH /api/roles/:roleId` | Edit dialog submit, status action   | `{ title?, description? }` or `{ status }` | `200 { role }` · `400` · `403 FORBIDDEN` · `404 NOT_FOUND` |
+| Call                        | When                                | Sends                                      | Expects                                                                 |
+| --------------------------- | ----------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------- |
+| `GET /api/roles`            | `/roles` renders or its URL changes | `?status=` `?page=`                        | `200 { roles, pagination }` · `400` · `401`                             |
+| `GET /api/roles/:roleId`    | `/roles/[roleId]` renders           | —                                          | `200 { role }` · `400` · `401` · `404`                                  |
+| `POST /api/roles`           | Create dialog submit                | `{ title, description }`                   | `201 { role }` · `400 VALIDATION_ERROR` · `403 FORBIDDEN`               |
+| `PATCH /api/roles/:roleId`  | Edit dialog submit, status action   | `{ title?, description? }` or `{ status }` | `200 { role }` · `400` · `403 FORBIDDEN` · `404 NOT_FOUND`              |
 | `DELETE /api/roles/:roleId` | Delete confirmation submit          | — (no body)                                | `204` (empty) · `401` · `403` · `404 NOT_FOUND` · `409 ROLE_NOT_CLOSED` |
 
-**This is the complete list — five calls** *(revised; there were four)*. `DELETE` sends no body and expects
+**This is the complete list — five calls** _(revised; there were four)_. `DELETE` sends no body and expects
 no body: `deleteRole` is typed `Promise<void>`, and `apiFetch` handles a `204` correctly because it carries
 no JSON content-type and is read as an empty string.
 
@@ -605,7 +605,7 @@ no JSON content-type and is read as an empty string.
 | `/roles/[roleId]` | → `/login?next=` | **404** (app's own) | ✅ read + Edit + status |
 
 **Two axes now, and the second one is new to this app.** Session decides whether a route renders at all
-(`<RequireAuth>`); `UserRole` decides whether *these* routes exist for you (`<RequireRole>`, FE-10). Inside
+(`<RequireAuth>`); `UserRole` decides whether _these_ routes exist for you (`<RequireRole>`, FE-10). Inside
 `/roles`, `canManageRoles` still decides which controls draw — a third axis that is currently always true,
 and kept for the reason FR-1.6 gives. _Revised: this matrix previously read `✅ read-only` for an
 interviewer._
@@ -658,19 +658,19 @@ export), and **mirror the backend rules** (backend § Validation) for responsive
 
 Every backend error arrives as an `ApiError` with `status`, `message` and `body: { code, message, details? }`.
 
-| Status / `code`                            | Where                | UI behaviour                                                                                           |
-| ------------------------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| `400 VALIDATION_ERROR`                     | Create / edit dialog | Map `details` onto fields with `setError`; dialog stays open; no toast                                 |
-| `400 VALIDATION_ERROR`                     | A list/detail read   | Should be unreachable — VAL-7 sanitises the parameters first. Falls back to the generic failed state   |
-| `401 UNAUTHENTICATED`                      | Any call             | Inherited: the interceptor refreshes once and replays; on failure, redirect to `/login`                |
-| `403 FORBIDDEN`                            | Any write            | Inherited: the `/forbidden` view. This feature adds no handling of its own (FE-6.2)                    |
-| `404 NOT_FOUND`                            | Detail read          | The designed `RoleNotFound` state inside the chrome (FR-2.4)                                           |
-| `404 NOT_FOUND`                            | Edit / status write  | Close the dialog and switch the detail view to the not-found state — the role went away underneath     |
-| `404 NOT_FOUND`                            | Delete               | Someone else already deleted it. **Not surfaced as a failure** — close the dialog, resolve to the not-found state (FR-7.7) |
+| Status / `code`                            | Where                | UI behaviour                                                                                                                                  |
+| ------------------------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `400 VALIDATION_ERROR`                     | Create / edit dialog | Map `details` onto fields with `setError`; dialog stays open; no toast                                                                        |
+| `400 VALIDATION_ERROR`                     | A list/detail read   | Should be unreachable — VAL-7 sanitises the parameters first. Falls back to the generic failed state                                          |
+| `401 UNAUTHENTICATED`                      | Any call             | Inherited: the interceptor refreshes once and replays; on failure, redirect to `/login`                                                       |
+| `403 FORBIDDEN`                            | Any write            | Inherited: the `/forbidden` view. This feature adds no handling of its own (FE-6.2)                                                           |
+| `404 NOT_FOUND`                            | Detail read          | The designed `RoleNotFound` state inside the chrome (FR-2.4)                                                                                  |
+| `404 NOT_FOUND`                            | Edit / status write  | Close the dialog and switch the detail view to the not-found state — the role went away underneath                                            |
+| `404 NOT_FOUND`                            | Delete               | Someone else already deleted it. **Not surfaced as a failure** — close the dialog, resolve to the not-found state (FR-7.7)                    |
 | `409 ROLE_NOT_CLOSED`                      | Delete               | The role was reopened elsewhere. The dialog **stays open** with a message naming that remedy — never the generic "try again" (FR-7.6, FE-6.4) |
-| `500 INTERNAL_ERROR`                       | Any read             | "Couldn't load…" with a **Try again** control                                                          |
-| `500 INTERNAL_ERROR`                       | Any write            | Form-level _"Something went wrong. Please try again."_; values retained                                |
-| Network failure (`TypeError` from `fetch`) | Any call             | Identical to the `500` behaviour for that surface — never a raw error string, never an endless spinner |
+| `500 INTERNAL_ERROR`                       | Any read             | "Couldn't load…" with a **Try again** control                                                                                                 |
+| `500 INTERNAL_ERROR`                       | Any write            | Form-level _"Something went wrong. Please try again."_; values retained                                                                       |
+| Network failure (`TypeError` from `fetch`) | Any call             | Identical to the `500` behaviour for that surface — never a raw error string, never an endless spinner                                        |
 
 ### Rules
 
@@ -687,30 +687,30 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 
 ## Edge Cases
 
-| #     | Case                                                       | Required behaviour                                                                                                                                                      |
-| ----- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EC-01 | Interviewer opens `/roles` or `/roles/1` by typing the URL | The app's **404**, inside the chrome, identical to a mistyped URL. **Not** the `/forbidden` view, not a redirect, and **no request is made** (FE-10.2, FE-10.5).         |
-| EC-02 | User filters to Closed, then presses Back                  | The list returns to the previous filter. Filter state lives in the URL, so history works without bespoke handling (FR-1.5).                                             |
-| EC-03 | `/roles?status=BANANA&page=-2` typed by hand               | Renders the unfiltered first page. The bad parameters are sanitised client-side and never sent (VAL-7).                                                                 |
-| EC-04 | `/roles/9999` — no such role                               | `RoleNotFound` inside the app chrome, with a link to `/roles`. **Not** Next's 404 page: the route exists, the data does not.                                            |
-| EC-05 | `/roles/abc` — not an id at all                            | The same not-found state, rendered **without making a request** — the client knows the shape is wrong.                                                                  |
-| EC-06 | Recruiter creates a role while the filter is Closed        | Navigates to the new role's detail view, so the new `OPEN` role is never "lost" behind a filter that excludes it (FR-3.3).                                              |
-| EC-07 | Recruiter opens Edit and submits without changing anything | The dialog closes and **no request is sent** (FR-4.2).                                                                                                                  |
-| EC-08 | `?page=5` with only one page of roles                      | The filtered-empty state plus **Back to first page**. The server returns a truthful empty page, not an error (backend FR-2.6).                                          |
-| EC-09 | Two recruiters edit the same role at once                  | Last write wins server-side. The second recruiter's next render shows the merged truth, because the view re-renders from the response, not from a local merge (FE-5.2). |
-| EC-10 | Role is closed in another tab, then edited in this one     | The edit succeeds; the response carries `status: "CLOSED"` and the detail view updates to it. The client never assumes its cached status is current.                    |
-| EC-11 | Role is deleted from the database while its page is open   | The next read or write returns `404`; the view switches to `RoleNotFound`. (No endpoint deletes a role — this covers direct `psql`.)                                    |
-| EC-12 | Access token expires mid-dialog                            | Inherited: one silent refresh and one replay. **The dialog's contents are not lost**, because the replay reuses the captured body.                                      |
-| EC-13 | Interviewer replays a `POST /api/roles` from DevTools      | `403` → the `/forbidden` view. The client handles a status its own UI gives no route to (AZ-4). A hand-issued `GET /api/roles` behaves the same way.                    |
+| #     | Case                                                         | Required behaviour                                                                                                                                                                                                    |
+| ----- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EC-01 | Interviewer opens `/roles` or `/roles/1` by typing the URL   | The app's **404**, inside the chrome, identical to a mistyped URL. **Not** the `/forbidden` view, not a redirect, and **no request is made** (FE-10.2, FE-10.5).                                                      |
+| EC-02 | User filters to Closed, then presses Back                    | The list returns to the previous filter. Filter state lives in the URL, so history works without bespoke handling (FR-1.5).                                                                                           |
+| EC-03 | `/roles?status=BANANA&page=-2` typed by hand                 | Renders the unfiltered first page. The bad parameters are sanitised client-side and never sent (VAL-7).                                                                                                               |
+| EC-04 | `/roles/9999` — no such role                                 | `RoleNotFound` inside the app chrome, with a link to `/roles`. **Not** Next's 404 page: the route exists, the data does not.                                                                                          |
+| EC-05 | `/roles/abc` — not an id at all                              | The same not-found state, rendered **without making a request** — the client knows the shape is wrong.                                                                                                                |
+| EC-06 | Recruiter creates a role while the filter is Closed          | Navigates to the new role's detail view, so the new `OPEN` role is never "lost" behind a filter that excludes it (FR-3.3).                                                                                            |
+| EC-07 | Recruiter opens Edit and submits without changing anything   | The dialog closes and **no request is sent** (FR-4.2).                                                                                                                                                                |
+| EC-08 | `?page=5` with only one page of roles                        | The filtered-empty state plus **Back to first page**. The server returns a truthful empty page, not an error (backend FR-2.6).                                                                                        |
+| EC-09 | Two recruiters edit the same role at once                    | Last write wins server-side. The second recruiter's next render shows the merged truth, because the view re-renders from the response, not from a local merge (FE-5.2).                                               |
+| EC-10 | Role is closed in another tab, then edited in this one       | The edit succeeds; the response carries `status: "CLOSED"` and the detail view updates to it. The client never assumes its cached status is current.                                                                  |
+| EC-11 | Role is deleted from the database while its page is open     | The next read or write returns `404`; the view switches to `RoleNotFound`. (No endpoint deletes a role — this covers direct `psql`.)                                                                                  |
+| EC-12 | Access token expires mid-dialog                              | Inherited: one silent refresh and one replay. **The dialog's contents are not lost**, because the replay reuses the captured body.                                                                                    |
+| EC-13 | Interviewer replays a `POST /api/roles` from DevTools        | `403` → the `/forbidden` view. The client handles a status its own UI gives no route to (AZ-4). A hand-issued `GET /api/roles` behaves the same way.                                                                  |
 | EC-18 | Interviewer's session is on `/roles` when their role changes | Not reachable in this POC — no endpoint changes a user's role, and identity is fetched once per page load. Recorded so the next feature that can change a role knows it must invalidate identity, not just re-render. |
-| EC-14 | 5,000-character description pasted in                      | Accepted; the counter shows the limit (FE-4.4). 5,001 fails client-side before a request.                                                                               |
-| EC-15 | A very long title in the table                             | Truncated with an ellipsis and a `title` attribute; wraps in full on the detail view. **The table never scrolls horizontally** (FE-7.2).                                |
-| EC-16 | Backend unreachable when `/roles` opens                    | "Couldn't load roles." with **Try again** — not an endless skeleton (FE-6.1).                                                                                           |
-| EC-17 | User closes the create dialog with text typed in           | A confirmation before discarding (FE-4.6). Nothing is written to browser storage either way (DM-2).                                                                     |
-| EC-19 | Role is reopened in another tab, then deleted in this one  | `409 ROLE_NOT_CLOSED`. The dialog **stays open** and says the role is open again and must be closed first — not "something went wrong" (FR-7.6, FE-6.4).                |
-| EC-20 | Role is deleted in another tab, then deleted in this one   | `404`. **Not treated as a failure** — the dialog closes and the view resolves to `RoleNotFound`. The user asked for it to be gone and it is (FR-7.7).                   |
-| EC-21 | User presses Back after deleting a role                    | They land on whatever preceded the detail view, **not** on the deleted role's URL — the navigation is `router.replace` (FR-7.4).                                        |
-| EC-22 | A recruiter is on the detail view of an **open** role      | **No Delete control is rendered at all** — not disabled, no tooltip, no explanation (FR-7.1, FE-2.4). Closing the role is what makes it appear.                          |
+| EC-14 | 5,000-character description pasted in                        | Accepted; the counter shows the limit (FE-4.4). 5,001 fails client-side before a request.                                                                                                                             |
+| EC-15 | A very long title in the table                               | Truncated with an ellipsis and a `title` attribute; wraps in full on the detail view. **The table never scrolls horizontally** (FE-7.2).                                                                              |
+| EC-16 | Backend unreachable when `/roles` opens                      | "Couldn't load roles." with **Try again** — not an endless skeleton (FE-6.1).                                                                                                                                         |
+| EC-17 | User closes the create dialog with text typed in             | A confirmation before discarding (FE-4.6). Nothing is written to browser storage either way (DM-2).                                                                                                                   |
+| EC-19 | Role is reopened in another tab, then deleted in this one    | `409 ROLE_NOT_CLOSED`. The dialog **stays open** and says the role is open again and must be closed first — not "something went wrong" (FR-7.6, FE-6.4).                                                              |
+| EC-20 | Role is deleted in another tab, then deleted in this one     | `404`. **Not treated as a failure** — the dialog closes and the view resolves to `RoleNotFound`. The user asked for it to be gone and it is (FR-7.7).                                                                 |
+| EC-21 | User presses Back after deleting a role                      | They land on whatever preceded the detail view, **not** on the deleted role's URL — the navigation is `router.replace` (FR-7.4).                                                                                      |
+| EC-22 | A recruiter is on the detail view of an **open** role        | **No Delete control is rendered at all** — not disabled, no tooltip, no explanation (FR-7.1, FE-2.4). Closing the role is what makes it appear.                                                                       |
 
 ---
 
@@ -944,26 +944,26 @@ Both a recruiter and an interviewer session are needed, and the backend must be 
 
 Explicitly excluded. Each is a deliberate decision, not an omission.
 
-| Excluded                                              | Note                                                                                                                                                                                                                                                                            |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Hiring manager — column, field, picker and type**   | The backend model has no such field (backend FR-7.2 and its Out of Scope), so there is nothing to display and nothing to set. The app shows **no placeholder and no disabled control** in its place. It arrives with the `HIRING_MANAGER` user role and the views that need it. |
-| **Showing who created or last changed a role**        | Not in the API response — attribution lives in the server log, not the model (backend SEC-4). Surfacing it needs a backend change first.                                                                                                                                        |
+| Excluded                                              | Note                                                                                                                                                                                                                                                                                      |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hiring manager — column, field, picker and type**   | The backend model has no such field (backend FR-7.2 and its Out of Scope), so there is nothing to display and nothing to set. The app shows **no placeholder and no disabled control** in its place. It arrives with the `HIRING_MANAGER` user role and the views that need it.           |
+| **Showing who created or last changed a role**        | Not in the API response — attribution lives in the server log, not the model (backend SEC-4). Surfacing it needs a backend change first.                                                                                                                                                  |
 | ~~**Deleting a role**~~                               | **No longer excluded** — added in [Revision 2](#revision-2--delete-role-on-a-closed-role). A **`CLOSED`** role can be deleted from its detail view, behind a confirmation dialog (FR-7). An open role still cannot: the control is not rendered, and the API refuses it (backend FR-6.7). |
-| **Deleting from the list, and bulk delete**           | Deleting is one role at a time, from the page showing that role (FR-7.9). No row menu, no multi-select, no swipe — a destructive action reached from a list of truncated titles is a mis-click waiting to happen.                                                                |
-| **Undo, a trash view, or restoring a deleted role**   | The delete is permanent: the backend removes the row and keeps no `deletedAt` (backend Revision 2). There is nothing to restore from, and the confirmation dialog says so rather than implying otherwise (FR-7.3).                                                               |
-| **Search and sort**                                   | No search box, no sortable columns — the API offers neither. Newest-first with a status filter is the whole of the list's controls.                                                                                                                                             |
-| **Configurable page size**                            | Fixed at the API default of 20.                                                                                                                                                                                                                                                 |
-| **Candidates, stages, rounds or feedback on a role**  | The detail view shows the requisition only. Its candidate list and stage counts arrive with the features that own them.                                                                                                                                                         |
-| **Pipeline counts or ageing on the roles list**       | The brief's pipeline view (§3.5) is its own feature and its own aggregate endpoint.                                                                                                                                                                                             |
-| **Optimistic updates**                                | Both mutations return the complete role; the server's copy renders (FE-5.2).                                                                                                                                                                                                    |
-| **Draft persistence for an unsent form**              | Nothing user-entered is written to browser storage (DM-2).                                                                                                                                                                                                                      |
-| **Bulk actions**                                      | No multi-select, no bulk close, no bulk delete.                                                                                                                                                                                                                                                 |
-| ~~**`<RequireRole>`**~~                               | **No longer excluded** — this feature builds it, because `/roles` is the app's first role-gated route (AZ-3, FE-10).                                                                                                                                                            |
-| **A role gate on `/pipeline`**                        | The guard exists now, but `/pipeline` is a placeholder the pipeline feature owns. It gates its own route when it has something to gate (FR-7.1c).                                                                                                                               |
-| **Real content for `/pipeline` and `/my-interviews`** | Untouched placeholders. This feature adds a nav link and nothing else to them.                                                                                                                                                                                                  |
-| **Changing the post-login landing route**             | Unchanged (FR-7.2). Where a recruiter lands is the pipeline feature's decision.                                                                                                                                                                                                 |
-| **Automated tests of any kind**                       | Every criterion above is verified manually. A test runner and suite remain a deliberate later decision — no test dependency, config or file is added.                                                                                                                           |
-| **i18n / theming work**                               | English copy only; the dark-only theme and existing tokens are untouched.                                                                                                                                                                                                       |
+| **Deleting from the list, and bulk delete**           | Deleting is one role at a time, from the page showing that role (FR-7.9). No row menu, no multi-select, no swipe — a destructive action reached from a list of truncated titles is a mis-click waiting to happen.                                                                         |
+| **Undo, a trash view, or restoring a deleted role**   | The delete is permanent: the backend removes the row and keeps no `deletedAt` (backend Revision 2). There is nothing to restore from, and the confirmation dialog says so rather than implying otherwise (FR-7.3).                                                                        |
+| **Search and sort**                                   | No search box, no sortable columns — the API offers neither. Newest-first with a status filter is the whole of the list's controls.                                                                                                                                                       |
+| **Configurable page size**                            | Fixed at the API default of 20.                                                                                                                                                                                                                                                           |
+| **Candidates, stages, rounds or feedback on a role**  | The detail view shows the requisition only. Its candidate list and stage counts arrive with the features that own them.                                                                                                                                                                   |
+| **Pipeline counts or ageing on the roles list**       | The brief's pipeline view (§3.5) is its own feature and its own aggregate endpoint.                                                                                                                                                                                                       |
+| **Optimistic updates**                                | Both mutations return the complete role; the server's copy renders (FE-5.2).                                                                                                                                                                                                              |
+| **Draft persistence for an unsent form**              | Nothing user-entered is written to browser storage (DM-2).                                                                                                                                                                                                                                |
+| **Bulk actions**                                      | No multi-select, no bulk close, no bulk delete.                                                                                                                                                                                                                                           |
+| ~~**`<RequireRole>`**~~                               | **No longer excluded** — this feature builds it, because `/roles` is the app's first role-gated route (AZ-3, FE-10).                                                                                                                                                                      |
+| **A role gate on `/pipeline`**                        | The guard exists now, but `/pipeline` is a placeholder the pipeline feature owns. It gates its own route when it has something to gate (FR-7.1c).                                                                                                                                         |
+| **Real content for `/pipeline` and `/my-interviews`** | Untouched placeholders. This feature adds a nav link and nothing else to them.                                                                                                                                                                                                            |
+| **Changing the post-login landing route**             | Unchanged (FR-7.2). Where a recruiter lands is the pipeline feature's decision.                                                                                                                                                                                                           |
+| **Automated tests of any kind**                       | Every criterion above is verified manually. A test runner and suite remain a deliberate later decision — no test dependency, config or file is added.                                                                                                                                     |
+| **i18n / theming work**                               | English copy only; the dark-only theme and existing tokens are untouched.                                                                                                                                                                                                                 |
 
 ---
 

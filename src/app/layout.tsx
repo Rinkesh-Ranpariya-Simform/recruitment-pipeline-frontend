@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { QueryProvider } from '@/components/providers/query-provider';
+import { QueryProvider } from '@/components/providers/QueryProvider';
 import { AuthProvider } from '@/features/auth/AuthProvider';
 import { Toaster } from '@/components/ui/sonner';
 

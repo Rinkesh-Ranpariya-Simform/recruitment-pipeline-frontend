@@ -17,14 +17,11 @@ import { APPLICATIONS_LIST_KEY } from './useApplicationsQuery';
  * unaffected by an application, so invalidating them would be two wasted
  * requests.
  *
- * Invalidation runs on **settle**, not on success. A failed apply is usually
- * nothing to refetch for — but a `409 ALREADY_APPLIED` means this client's list
- * is behind the server's, and that is precisely the case where refetching is
- * what corrects the view (the job page then swaps its Apply button for the
- * already-applied panel). One extra request on an error path is a cheap price
- * for never leaving the UI contradicting the server.
+ * Invalidation runs on **settle**, not on success: a `409 ALREADY_APPLIED`
+ * means this client's list is behind the server's, which is precisely the case
+ * where refetching corrects the view.
  */
-export function useApplyMutation() {
+export const useApplyMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -33,4 +30,4 @@ export function useApplyMutation() {
       await queryClient.invalidateQueries({ queryKey: APPLICATIONS_LIST_KEY });
     },
   });
-}
+};

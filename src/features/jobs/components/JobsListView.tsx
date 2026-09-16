@@ -12,7 +12,7 @@ import { JobCard } from './JobCard';
 import { JobsPagination } from './JobsPagination';
 import { JobsSearch } from './JobsSearch';
 
-function JobsSkeleton() {
+const JobsSkeleton: React.FC = () => {
   return (
     <div className="space-y-3" aria-hidden="true">
       {Array.from({ length: 6 }, (_, index) => (
@@ -20,7 +20,7 @@ function JobsSkeleton() {
       ))}
     </div>
   );
-}
+};
 
 /**
  * The candidate's job board.
@@ -30,7 +30,7 @@ function JobsSkeleton() {
  * closed one ever appears here, that is a backend bug to report**, not a row to
  * filter client-side.
  */
-export function JobsListView() {
+export const JobsListView: React.FC = () => {
   const searchParams = useSearchParams();
   const params = parseJobsSearchParams(searchParams);
   const { data, isPending, isError, isPlaceholderData, refetch } = useJobsQuery(params);
@@ -92,4 +92,4 @@ export function JobsListView() {
       )}
     </div>
   );
-}
+};

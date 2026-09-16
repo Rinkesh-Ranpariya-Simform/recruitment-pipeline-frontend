@@ -16,6 +16,10 @@ const VARIANTS: Record<ApplicationStatus, 'default' | 'secondary' | 'outline'> =
   REJECTED: 'secondary',
 };
 
-export function ApplicationStatusBadge({ status }: { status: ApplicationStatus }) {
-  return <Badge variant={VARIANTS[status] ?? 'outline'}>{statusLabel(status)}</Badge>;
+interface ApplicationStatusBadgeProps {
+  status: ApplicationStatus;
 }
+
+export const ApplicationStatusBadge: React.FC<ApplicationStatusBadgeProps> = ({ status }) => {
+  return <Badge variant={VARIANTS[status] ?? 'outline'}>{statusLabel(status)}</Badge>;
+};

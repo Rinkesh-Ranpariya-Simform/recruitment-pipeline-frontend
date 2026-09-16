@@ -12,17 +12,20 @@ import { stageLabel } from '@/features/applications/labels';
 import { ApiError } from '@/lib/api';
 import { formatAbsolute } from '@/lib/format-date';
 
+interface ApplyActionProps {
+  jobId: number;
+  onGone: () => void;
+}
+
 /**
  * The Apply button — or, once this candidate has applied to this position, the
  * panel that replaces it.
  *
- * **One application per position.** That rule is the backend's
- * `(candidateUserId, roleId)` unique index, not a client convention: a repeat
- * apply answers `409 ALREADY_APPLIED` whatever the UI does. What this component
- * does is stop a candidate reaching that error by clicking a button that was
- * never going to work — the button is not rendered at all once an application
- * exists, rather than rendered disabled, because a disabled control with no
- * explanation reads as a bug.
+ * **One application per position** is the backend's rule, not a client
+ * convention. This component only stops a candidate reaching that 409 by
+ * clicking a button that was never going to work — once an application exists
+ * the button is not rendered at all, rather than rendered disabled, because a
+ * disabled control with no explanation reads as a bug.
  *
  * Applying to a DIFFERENT position is untouched: the check is `role.id === jobId`,
  * so an unrelated application never hides this button.
@@ -33,7 +36,7 @@ import { formatAbsolute } from '@/lib/format-date';
  * cannot tell whether an application exists is the only way to hit the 409 from
  * a fresh page load.
  */
-export function ApplyAction({ jobId, onGone }: { jobId: number; onGone: () => void }) {
+export const ApplyAction: React.FC<ApplyActionProps> = ({ jobId, onGone }) => {
   const { data, isPending: applicationsPending } = useApplicationsQuery();
   const apply = useApplyMutation();
 
@@ -57,10 +60,8 @@ export function ApplyAction({ jobId, onGone }: { jobId: number; onGone: () => vo
 
         if (error instanceof ApiError && error.status === 409) {
           // Two tabs, a stale list, or a double submit that outran the
-          // in-flight guard. The server is right and this client was behind, so
-          // refetching the list is what fixes the view — `useApplyMutation`
-          // invalidates on settle for exactly this case, which swaps the button
-          // for the panel below.
+          // in-flight guard. `useApplyMutation` invalidates on settle for
+          // exactly this case, which swaps the button for the panel below.
           toast.info('You have already applied to this position.');
           return;
         }
@@ -105,4 +106,4 @@ export function ApplyAction({ jobId, onGone }: { jobId: number; onGone: () => vo
       {apply.isPending ? 'Applying…' : 'Apply'}
     </Button>
   );
-}
+};

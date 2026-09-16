@@ -24,7 +24,7 @@ const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
  * respond without a round trip, and is never treated as a substitute for them.
  * Failures branch on the error `code`, never on message copy.
  */
-export function LoginForm() {
+export const LoginForm: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -63,11 +63,10 @@ export function LoginForm() {
     }
   }, [formError, isSubmitting, setFocus]);
 
-  // There is deliberately no "already signed in" check here. `<RequireAnonymous>`
-  // in the (auth) layout owns that, and owns it *before* this form renders —
-  // redirecting from inside the form meant painting it first and taking it away
-  // a round trip later. The `?next=` handling below is this form's own: it is
-  // where a user who just authenticated is sent.
+  // No "already signed in" check here — `<RequireAnonymous>` in the (auth)
+  // layout owns that, and owns it *before* this form renders. The `?next=`
+  // handling below is this form's own: it is where a user who just
+  // authenticated is sent.
 
   const onSubmit = async (values: LoginValues) => {
     setFormError(null);
@@ -80,11 +79,9 @@ export function LoginForm() {
       const body = errorBodyOf(error);
 
       if (body?.code === 'VALIDATION_ERROR' && body.details) {
-        // `details` is keyed by request-body field name, so it maps straight
-        // onto the inputs — a rule the client missed still lands on the right
-        // field rather than in a generic banner. Each value is an **array**, so
-        // it is read through `fieldMessage` rather than passed to `setError` as
-        // it arrives.
+        // `details` is keyed by request-body field name, so a rule the client
+        // missed still lands on the right input. Each value is an array, hence
+        // `fieldMessage` rather than passing it to `setError` as it arrives.
         for (const field of Object.keys(body.details)) {
           if (field === 'email' || field === 'password') {
             setError(field, { type: 'server', message: fieldMessage(body.details, field) });
@@ -185,4 +182,4 @@ export function LoginForm() {
       </FieldGroup>
     </form>
   );
-}
+};

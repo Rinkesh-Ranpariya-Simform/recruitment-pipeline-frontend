@@ -10,6 +10,10 @@ import { useJobQuery } from '../hooks/useJobQuery';
 import { ApplyAction } from './ApplyAction';
 import { JobNotFound } from './JobNotFound';
 
+interface JobDetailViewProps {
+  jobId: string;
+}
+
 /**
  * One open position, in full.
  *
@@ -18,16 +22,15 @@ import { JobNotFound } from './JobNotFound';
  * the one that renders the answer if it isn't. `/jobs/abc` therefore shows the
  * not-found panel without issuing a request.
  */
-export function JobDetailView({ jobId }: { jobId: string }) {
+export const JobDetailView: React.FC<JobDetailViewProps> = ({ jobId }) => {
   // `Number('')` is 0 and `Number('1.5')` is not an integer, so both fail the
   // guard in `useJobQuery` and no request goes out.
   const parsed = Number(jobId);
   const { data, isPending, isError, error } = useJobQuery(parsed);
 
   // Set when an apply comes back 404 — the requisition was closed while this
-  // page was open. Local rather than a refetch, because the cached job is still
-  // what the user was looking at and re-requesting it would only confirm what
-  // the mutation already told us.
+  // page was open. Local rather than a refetch: re-requesting would only
+  // confirm what the mutation already told us.
   const [gone, setGone] = useState(false);
 
   const invalidId = !Number.isInteger(parsed) || parsed <= 0;
@@ -83,4 +86,4 @@ export function JobDetailView({ jobId }: { jobId: string }) {
       <ApplyAction jobId={job.id} onGone={() => setGone(true)} />
     </article>
   );
-}
+};

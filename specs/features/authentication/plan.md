@@ -96,7 +96,7 @@ All paths relative to `frontend/`. Every entry is **NEW** unless marked MODIFIED
 
 - **Responsibility:** `{ user, role, isLoading, isAuthenticated, login, logout }`.
 - **Required modification:** `useQuery({ queryKey: ['auth','me'], queryFn: getMe, retry: false })` — **`retry: false`** so a genuine 401 doesn't delay the redirect (FE-5.3). Also `staleTime: Infinity` + `refetchOnWindowFocus: false`, **added during implementation**: the QueryProvider's 30s default would let a page remount refetch `/me` on navigation, breaking AC-F21 and PERF-4 (see spec EC-18). `login`/`logout` are `useMutation`s that set/clear the token and seed or clear the cache. `/api/auth/me` stays the authority; the login response only seeds (FE-5.1).
-- **Reuses:** TanStack Query via the existing [`src/components/providers/query-provider.tsx`](../../../src/components/providers/query-provider.tsx).
+- **Reuses:** TanStack Query via the existing [`src/components/providers/QueryProvider.tsx`](../../../src/components/providers/QueryProvider.tsx).
 
 ### Guards
 
@@ -202,7 +202,7 @@ This is a frontend plan. The backend work is planned in [../../../../backend/spe
 | `POST /api/auth/logout` → 204 always                                 | § API Changes                                                                                                                                        |
 | CORS `credentials: true`, explicit origin                            | § Backend Changes → `app.ts`                                                                                                                         |
 | Cookie named `refresh_token`, `Path=/api/auth`                       | § Backend Changes → `lib/cookies.ts`                                                                                                                 |
-| `GET /` unchanged                                                    | Preserved as a health check (originally so `ApiStatusCard` kept working; that component is since deleted, the route is not)                           |
+| `GET /` unchanged                                                    | Preserved as a health check (originally so `ApiStatusCard` kept working; that component is since deleted, the route is not)                          |
 | **A seeded database**                                                | § Backend Changes → `prisma/seed.ts`. Not merely convenient: with no signup UI, seeded (or Postman-created) accounts are the **only** way to log in. |
 
 **`POST /api/users` does not exist on either side.** `GET /api/users` exists on the backend but is **not consumed here** — it is an operator tool.

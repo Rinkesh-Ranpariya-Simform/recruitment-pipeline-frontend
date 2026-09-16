@@ -34,21 +34,21 @@ export type PipelineStage = 'APPLIED' | 'SCREEN' | 'INTERVIEW' | 'OFFER';
  * `description` and no `status`, so this list can't become a second view of the
  * requisition table.
  */
-export type Application = {
+export interface Application {
   id: number;
   status: ApplicationStatus;
   currentStage: PipelineStage;
   /** When the candidate applied — the "Applied:" date. */
   createdAt: string;
   role: { id: number; title: string };
-};
+}
 
 /** `GET /api/applications` — 200. Empty is `[]`, never a 404. */
-export type ApplicationsListResponse = {
-  applications: Application[];
-};
+export interface ApplicationsListResponse {
+  applications: Array<Application>;
+}
 
 /** `POST /api/applications` — 201. */
-export type ApplicationResponse = {
+export interface ApplicationResponse {
   application: Application;
-};
+}

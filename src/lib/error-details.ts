@@ -4,10 +4,9 @@ import type { ApiErrorBody } from '@/features/auth/types';
 /**
  * Reading the backend's flat error body, in one place.
  *
- * `errorBodyOf` lived inside `LoginForm` until a second form needed it. It is
- * here rather than in `lib/api.ts` because `apiFetch` deliberately knows nothing
- * about the body's shape — it normalises status codes, and the shape is an
- * agreement between the two repos that only the UI layer reads.
+ * Here rather than in `lib/api.ts` because `apiFetch` deliberately knows
+ * nothing about the body's shape — it normalises status codes, and the shape is
+ * an agreement between the two repos that only the UI layer reads.
  */
 
 /**
@@ -17,7 +16,7 @@ import type { ApiErrorBody } from '@/features/auth/types';
  * network `TypeError`, a thrown string, a 500 whose body is HTML. Callers branch
  * on `body?.code`, never on `message` copy.
  */
-export function errorBodyOf(error: unknown): ApiErrorBody | null {
+export const errorBodyOf = (error: unknown): ApiErrorBody | null => {
   if (!(error instanceof ApiError)) {
     return null;
   }
@@ -29,7 +28,7 @@ export function errorBodyOf(error: unknown): ApiErrorBody | null {
   }
 
   return null;
-}
+};
 
 /**
  * The **first** message the backend recorded for a field, or `undefined`.
@@ -39,9 +38,9 @@ export function errorBodyOf(error: unknown): ApiErrorBody | null {
  * passing the array itself to react-hook-form's `setError` would render
  * `["Title is required"]`, brackets and all.
  */
-export function fieldMessage(
-  details: Record<string, string[]> | undefined,
+export const fieldMessage = (
+  details: Record<string, Array<string>> | undefined,
   field: string,
-): string | undefined {
+): string | undefined => {
   return details?.[field]?.[0];
-}
+};

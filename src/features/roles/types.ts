@@ -13,30 +13,30 @@ export type RoleStatus = 'OPEN' | 'CLOSED';
  * Every field the API returns. A role references no person — no hiring manager,
  * creator or assignee — so there is nothing to display or set.
  */
-export type Role = {
+export interface Role {
   id: number;
   title: string;
   description: string;
   status: RoleStatus;
   createdAt: string;
   updatedAt: string;
-};
+}
 
 /** The list envelope. The pager renders the server's `totalPages` as given. */
-export type Pagination = {
+export interface Pagination {
   page: number;
   pageSize: number;
   total: number;
   totalPages: number;
-};
+}
 
 /** `GET /api/roles` — 200. */
-export type RolesListResponse = {
-  roles: Role[];
+export interface RolesListResponse {
+  roles: Array<Role>;
   pagination: Pagination;
-};
+}
 
 /** `GET /api/roles/:roleId` — 200, and the body of both writes. */
-export type RoleResponse = {
+export interface RoleResponse {
   role: Role;
-};
+}

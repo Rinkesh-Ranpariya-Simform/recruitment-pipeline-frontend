@@ -24,9 +24,9 @@ const FIELDS = ['name', 'email', 'password'] as const;
 
 type FieldName = (typeof FIELDS)[number];
 
-function isFieldName(value: string): value is FieldName {
-  return (FIELDS as readonly string[]).includes(value);
-}
+const isFieldName = (value: string): value is FieldName => {
+  return (FIELDS as ReadonlyArray<string>).includes(value);
+};
 
 /**
  * The app's only account-creation surface, and it creates **candidates only**.
@@ -40,7 +40,7 @@ function isFieldName(value: string): value is FieldName {
  * `/login` with a toast — an auto-login would paper over that guarantee with a
  * second request the user never asked for.
  */
-export function SignupForm() {
+export const SignupForm: React.FC = () => {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -218,4 +218,4 @@ export function SignupForm() {
       </FieldGroup>
     </form>
   );
-}
+};

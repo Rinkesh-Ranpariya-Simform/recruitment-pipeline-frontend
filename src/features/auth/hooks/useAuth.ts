@@ -13,7 +13,7 @@ import type { User, UserRole } from '../types';
 /** The one query key this feature introduces. */
 export const ME_QUERY_KEY = ['auth', 'me'] as const;
 
-type UseAuthResult = {
+interface UseAuthResult {
   user: User | null;
   role: UserRole | null;
   isLoading: boolean;
@@ -29,7 +29,7 @@ type UseAuthResult = {
   identityError: unknown;
   /** Retries `GET /api/auth/me` after `identityError`. */
   retryIdentity: () => void;
-};
+}
 
 /**
  * The app's view of the current session.
@@ -38,7 +38,7 @@ type UseAuthResult = {
  * from it and never from a URL, a form field, browser storage, or a decoded
  * token. The access token is opaque to this client.
  */
-export function useAuth(): UseAuthResult {
+export const useAuth = (): UseAuthResult => {
   const { status, setStatus, signOut } = useAuthContext();
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -49,13 +49,10 @@ export function useAuth(): UseAuthResult {
     // A genuine 401 here is not worth retrying — it only delays the redirect.
     retry: false,
     enabled: status === 'authenticated',
-    // Identity is fetched once per page load and reused everywhere. Without
-    // this, the provider's 30s default would let a page remount refetch /me on
-    // navigation, and moving between two authenticated routes must cost zero
-    // extra calls. Staleness is harmless: no endpoint changes a user's role,
-    // and role gates nothing in this client — it selects a landing route and
-    // fills a chip. Login, logout and a failed refresh all reset the cache, and
-    // `retryIdentity` still forces a fetch when one is actually wanted.
+    // Identity is fetched once per page load and reused everywhere, so moving
+    // between two authenticated routes costs zero extra calls. Staleness is
+    // harmless: no endpoint changes a user's role. Login, logout and a failed
+    // refresh all reset the cache, and `retryIdentity` forces a fetch.
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
@@ -117,4 +114,4 @@ export function useAuth(): UseAuthResult {
     identityError: status === 'authenticated' ? meQuery.error : null,
     retryIdentity,
   };
-}
+};

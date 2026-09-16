@@ -13,15 +13,20 @@ import { RolesStatusFilter } from './RolesStatusFilter';
 import { RolesTable, RolesTableSkeleton } from './RolesTable';
 import type { RoleStatus } from '../types';
 
+interface EmptyStateProps {
+  message: string;
+  children?: React.ReactNode;
+}
+
 /** The shared frame for every empty and error state below. */
-function EmptyState({ message, children }: { message: string; children?: React.ReactNode }) {
+const EmptyState: React.FC<EmptyStateProps> = ({ message, children }) => {
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
       <p className="text-sm text-muted-foreground">{message}</p>
       {children}
     </div>
   );
-}
+};
 
 const FILTERED_EMPTY_MESSAGE: Record<RoleStatus, string> = {
   OPEN: 'No open roles.',
@@ -39,7 +44,7 @@ const FILTERED_EMPTY_MESSAGE: Record<RoleStatus, string> = {
  * true today; it stays so the control asks its own question rather than relying
  * on a guard in another file.
  */
-export function RolesListView() {
+export const RolesListView: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -118,4 +123,4 @@ export function RolesListView() {
       )}
     </section>
   );
-}
+};

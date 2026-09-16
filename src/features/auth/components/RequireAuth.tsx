@@ -11,6 +11,10 @@ import { SessionLoading } from './SessionLoading';
 /** Mirrors the spec's Error Handling table for a 500 or an unreachable backend. */
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
+interface RequireAuthProps {
+  children: React.ReactNode;
+}
+
 /**
  * Gates the authenticated shell on a resolved session.
  *
@@ -22,7 +26,7 @@ const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
  * Until bootstrap resolves it renders a full-page loading state — never the app
  * chrome with empty data, and never a flash of the login page.
  */
-export function RequireAuth({ children }: { children: React.ReactNode }) {
+export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const { status, signedOut } = useAuthContext();
   const { user, identityError, retryIdentity } = useAuth();
   const router = useRouter();
@@ -60,4 +64,4 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
+};

@@ -15,7 +15,7 @@ import { refresh } from './api/auth.api';
  */
 export type SessionStatus = 'bootstrapping' | 'authenticated' | 'anonymous';
 
-type AuthContextValue = {
+interface AuthContextValue {
   status: SessionStatus;
   setStatus: (status: SessionStatus) => void;
   /**
@@ -26,11 +26,11 @@ type AuthContextValue = {
   signedOut: boolean;
   /** Ends the session deliberately. */
   signOut: () => void;
-};
+}
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function useAuthContext(): AuthContextValue {
+export const useAuthContext = (): AuthContextValue => {
   const value = useContext(AuthContext);
 
   if (!value) {
@@ -38,7 +38,7 @@ export function useAuthContext(): AuthContextValue {
   }
 
   return value;
-}
+};
 
 /**
  * Guarantees the bootstrap refresh runs **once per page load** rather than once
@@ -48,13 +48,17 @@ export function useAuthContext(): AuthContextValue {
  */
 let bootstrapPromise: Promise<boolean> | null = null;
 
-function bootstrapOnce(): Promise<boolean> {
+const bootstrapOnce = (): Promise<boolean> => {
   bootstrapPromise ??= refresh().then(
     () => true,
     () => false,
   );
 
   return bootstrapPromise;
+};
+
+interface AuthProviderProps {
+  children: React.ReactNode;
 }
 
 /**
@@ -65,7 +69,7 @@ function bootstrapOnce(): Promise<boolean> {
  * automatically; identity itself is then resolved by the ['auth','me'] query in
  * `useAuth`, which is the single source of truth for the user and their role.
  */
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<{ status: SessionStatus; signedOut: boolean }>({
     status: 'bootstrapping',
     signedOut: false,
@@ -132,4 +136,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <AuthContext value={value}>{children}</AuthContext>;
-}
+};

@@ -7,7 +7,7 @@ import { RequireAuth } from '@/features/auth/components/RequireAuth';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { resolveRedirect } from '@/features/auth/redirect';
 
-function RoleRedirect() {
+const RoleRedirect: React.FC = () => {
   const { role } = useAuth();
   const router = useRouter();
 
@@ -18,7 +18,7 @@ function RoleRedirect() {
   }, [role, router]);
 
   return null;
-}
+};
 
 /**
  * The root route only decides where a signed-in user belongs.

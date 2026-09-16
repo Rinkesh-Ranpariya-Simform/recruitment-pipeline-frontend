@@ -11,10 +11,10 @@ import type { ReadonlyURLSearchParams } from 'next/navigation';
  * would offer a choice with one option.
  */
 
-export type JobsSearchParams = {
+export interface JobsSearchParams {
   q: string | undefined;
   page: number;
-};
+}
 
 /** Matches the backend's cap on `q`, which is itself the cap on `Role.title`. */
 const MAX_QUERY_LENGTH = 120;
@@ -28,7 +28,7 @@ const MAX_QUERY_LENGTH = 120;
  * rather than sent, because the server would answer 400 and the user would have
  * no way to see why. A `page` that isn't an integer of at least 1 becomes 1.
  */
-export function parseJobsSearchParams(searchParams: ReadonlyURLSearchParams): JobsSearchParams {
+export const parseJobsSearchParams = (searchParams: ReadonlyURLSearchParams): JobsSearchParams => {
   const rawQuery = searchParams.get('q')?.trim() ?? '';
   const rawPage = Number(searchParams.get('page'));
 
@@ -36,13 +36,13 @@ export function parseJobsSearchParams(searchParams: ReadonlyURLSearchParams): Jo
     q: rawQuery === '' ? undefined : rawQuery.slice(0, MAX_QUERY_LENGTH),
     page: Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1,
   };
-}
+};
 
 /**
  * Builds a `/jobs` href. Both parameters are omitted at their defaults, so the
  * unsearched first page is a bare `/jobs` rather than `/jobs?page=1`.
  */
-export function buildJobsHref({ q, page }: Partial<JobsSearchParams>): string {
+export const buildJobsHref = ({ q, page }: Partial<JobsSearchParams>): string => {
   const params = new URLSearchParams();
 
   if (q) {
@@ -56,4 +56,4 @@ export function buildJobsHref({ q, page }: Partial<JobsSearchParams>): string {
   const query = params.toString();
 
   return query ? `/jobs?${query}` : '/jobs';
-}
+};
