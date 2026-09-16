@@ -77,6 +77,25 @@ FE-6.4, the API table, the error table, EC-18…EC-21, AC-F33, AC-F35, AC-F41…
 
 ---
 
+## Pending Revision 3 — the API's roles reads are no longer recruiter-only
+
+**Status: proposed, not yet approved.** Nothing below this heading has changed in the implementation. This
+note exists so this spec does not silently contradict a drafted one.
+
+The [candidate spec](../candidate/spec.md) widens the **API's** two roles reads to any authenticated user, so
+a candidate can browse open positions from `/jobs`. A non-recruiter's response is forced to `OPEN` rows
+server-side and omits `updatedAt`.
+
+**What changes for this feature:** very little. `<RequireRole allow={ROLES_USER_ROLES}>` on `/roles` stays
+exactly as it is, both roles routes stay recruiter-only in the UI, and every write still answers `403` to a
+non-recruiter. The one statement that stops being true is *"the API answers an interviewer's `GET /api/roles`
+with a `403`"* — it will answer `200` with the open requisitions.
+
+**If that spec is approved, the sections to revise here are:** the Revision block's opening claim, XBE-8, and
+any AC asserting a `403` on a roles **read**. Write-endpoint ACs are unaffected.
+
+---
+
 ## Background / Context
 
 The brief's first sentence is about a recruiter's head being the only place a requisition exists. The backend

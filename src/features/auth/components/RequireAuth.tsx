@@ -1,47 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { useAuthContext } from '../AuthProvider';
 import { useAuth } from '../hooks/useAuth';
+import { SessionLoading } from './SessionLoading';
 
 /** Mirrors the spec's Error Handling table for a 500 or an unreachable backend. */
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
-
-/**
- * A spinner that only appears once the wait is long enough to be worth
- * acknowledging — a flash of loading UI reads worse than a brief blank.
- */
-function BootstrapLoading() {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 150);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <div
-      className="flex min-h-svh items-center justify-center"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      {visible && (
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <div
-            className="size-6 animate-spin rounded-full border-2 border-current border-t-transparent"
-            aria-hidden="true"
-          />
-          <p className="text-sm">Signing you in…</p>
-        </div>
-      )}
-      <span className="sr-only">Loading your session</span>
-    </div>
-  );
-}
 
 /**
  * Gates the authenticated shell on a resolved session.
@@ -88,7 +56,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   // 'anonymous' also lands here: the redirect above is in flight, and showing
   // the shell in the meantime would be the flash this exists to prevent.
   if (status !== 'authenticated' || !user) {
-    return <BootstrapLoading />;
+    return <SessionLoading />;
   }
 
   return <>{children}</>;

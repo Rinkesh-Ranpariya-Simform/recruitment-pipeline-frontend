@@ -19,7 +19,8 @@ a backend bug to flag, not something to conditionally hide here.
 
 | Role                     | Sees                                                                                      |
 | ------------------------ | ----------------------------------------------------------------------------------------- |
-| Interviewer              | Only candidates/rounds they're assigned to; never contact details, and **no roles at all** |
+| Candidate                | Open positions only, their own applications, their own profile. Never feedback, interviewers, or recruiter internals |
+| Interviewer              | Only candidates/rounds they're assigned to; never contact details. May read open requisitions, but is not offered a link to them |
 | Recruiter                | Full pipeline, all candidates, contact details, can assign interviewers + override stages |
 | Hiring manager (stretch) | Pipeline/ageing for their own open roles                                                  |
 
@@ -29,6 +30,21 @@ conditionally renders contact fields based on a client-side role check.
 ## Stack & conventions
 
 - Next.js 16 App Router, React 19, TypeScript
+- Components: declare props as an `interface` named `<ComponentName>Props` (not a type alias, not
+  inline), and write the component as an arrow function typed `React.FC<…Props>` with the props
+  destructured in the signature:
+
+  ```tsx
+  interface JobCardProps {
+    job: Job;
+  }
+
+  export const JobCard: React.FC<JobCardProps> = ({ job }) => {
+  ```
+
+- Arrow functions everywhere they work — components, hooks, handlers, helpers, callbacks. Use a
+  `function` declaration only where an arrow genuinely can't go (Next.js `page.tsx` /
+  `layout.tsx` default exports, generics that need a `this`, hoisting that's actually required)
 - Styling: Tailwind v4 + shadcn/ui primitives in `src/components/ui/` (base-ui under the hood) —
   use/extend these rather than hand-rolling new primitives
 - Theme: the palette, radii and fonts in `src/app/globals.css` track the `sdd` project. `dark` is
@@ -82,6 +98,11 @@ the spec is wrong, update the spec and get it re-approved rather than letting co
 | ------------------------------------------------------- | ----------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                   |
 | [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off |
+| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**            |
+
+The **candidate** feature added `/signup`, a `CANDIDATE` role, and the Jobs / My Applications / Profile
+views. It **deliberately reversed two rules that used to be stated below**; both paragraphs are now rewritten
+to match the code. No `plan.md` was written — it was implemented straight from the spec.
 
 The roles plan renames the exported `Role` type to `UserRole`, so `Role` can mean _open requisition_. No
 request or response field moves — `/api/auth/me` still returns `role`. It also corrects
@@ -90,26 +111,52 @@ has always sent; the mismatch is masked only by a backend defect that the roles 
 
 **The app chrome is a sidebar with role-based sections** (spec FR-7, revised during implementation).
 `(app)/layout.tsx` holds `NAV_SECTIONS`, a `Record<UserRole, NavSection[]>` — a **lookup table, not a
-comparison**, so a user role is named in exactly one place (`features/roles/permissions.ts`). A recruiter is
-offered **Pipeline** and **Roles**; an interviewer is offered **My interviews** and nothing else. **The
-sidebar gates no route** — `/pipeline` still renders for an interviewer who types the URL. `/roles` does not,
-but that is `<RequireRole>`'s doing, not the sidebar's. The signed-in user lives in a header account menu
+comparison**, so a user role is named in exactly one place (`features/roles/permissions.ts`,
+`features/jobs/permissions.ts`). A recruiter is offered **Pipeline** and **Roles**; an interviewer **My
+interviews**; a candidate **Jobs** and **My applications**. **Profile is offered to all three**, since
+`/profile` renders for every role. **The sidebar still gates no route** — every guard is a `<RequireRole>` in
+that route's own `layout.tsx`, and `/pipeline` and `/my-interviews` gained one with the candidate feature
+(they were previously reachable by any authenticated user). The signed-in user lives in a header account menu
 (name, email, Sign out); the old inline role chip is gone.
 
-**Roles are recruiter-only, end to end** (roles spec § Revision, both repos). The API answers an
-interviewer's `GET /api/roles` with a `403`, and `(app)/roles/layout.tsx` wraps both roles routes in
+Adding a role to `UserRole` is a **compile error** in `NAV_SECTIONS` and in `ROLE_LANDING`
+(`features/auth/redirect.ts`) until both are filled in. That is the point of keying them by the union; add the
+next role the same way and let the compiler find the gaps.
+
+**Roles WRITES are recruiter-only, end to end** (roles spec § Revision, both repos; reads revised again by
+the candidate feature — see below). `(app)/roles/layout.tsx` wraps both roles routes in
 `<RequireRole allow={ROLES_USER_ROLES}>` so an interviewer gets **the app's 404**, not `/forbidden`: a route
 you may not open should look like a route that isn't there. **Three different "nothing here" renderings, and
 they are not interchangeable** — `components/not-found-view.tsx` (route 404: unmatched URL *or* refused
-route), `features/roles/components/RoleNotFound.tsx` (data 404: a recruiter's `/roles/9999`), and
+route), `features/roles/components/RoleNotFound.tsx` and `features/jobs/components/JobNotFound.tsx` (data 404: a
+recruiter's `/roles/9999`, a candidate's closed position), and
 `app/forbidden/page.tsx` (a **server** `403` on a route the user may open — still wired to `apiFetch`, still
 reachable). None of the three is a security control; the backend re-authorizes every request.
+
+**Revised by the candidate feature (API side only).** The API's two roles **reads** now take any
+authenticated user, so `features/jobs/` reads `/api/roles` for the candidate's job board — the wire keys stay
+`roles`/`role`, only the concept is renamed. The three writes are still recruiter-only, and `<RequireRole>` on
+`/roles` is **unchanged**. The one sentence above that is no longer true: an interviewer's `GET /api/roles` is
+a `200` (open requisitions only), not a `403`. They are still not offered the link.
 
 **The app has no account-creation surface.** No signup, no interviewer provisioning, no `/team` page,
 no role selector, and no call to `/api/users`. Accounts are provisioned by an operator against the
 backend API, so **a seeded database is required to log in at all.** The client calls **eight** endpoints —
 login, refresh, me, logout, and the four roles routes. There is no `DELETE /api/roles/:roleId` and no `deleteRole` wrapper, because the
 endpoint does not exist: `CLOSED` is a requisition's end state.
+
+**Revised by the candidate feature — the signup half only.** There is now a public `/signup`, which creates
+a `CANDIDATE` and nothing else; the backend removed `role` from that endpoint's contract, which is what made a
+browser form safe. **The rest of the rule stands**: no interviewer provisioning, no `/team`, **no role
+selector — do not add one**, and no `/api/users` wrapper. Interviewers and recruiters still come only from the
+backend's seed, so a seeded database is still required to sign in as one. The client now calls **eleven**
+endpoints: login, refresh, me, logout, signup, the four roles routes, and the two application routes.
+
+**Candidate views never filter restricted data client-side.** `/jobs` shows only open positions because the
+API's query for a non-recruiter cannot return a closed one, and an application row carries no feedback,
+rating, interviewer or override reason because those columns are never selected. The `Job` and `Application`
+types declare exactly the promised fields, so a widened payload fails type-checking as well as review — if one
+ever appears, **report it as a backend bug rather than hiding the field here**.
 
 **There is no `middleware.ts` / `proxy.ts`, and that is deliberate** (spec FE-6, revised during
 implementation). The backend scopes the refresh cookie `Path=/api/auth`, so a frontend route request

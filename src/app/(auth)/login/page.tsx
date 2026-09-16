@@ -1,17 +1,18 @@
 import { Suspense } from 'react';
+import Link from 'next/link';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 
 /**
- * The only unauthenticated view in the app.
+ * One of the app's two unauthenticated views; `/signup` is the other.
  *
- * There is deliberately no signup link, no forgot-password link, and no
- * "request an account" affordance: this client creates no accounts and has no
- * password-reset flow. Accounts are provisioned by an operator against the API,
- * so the absence is the design, not a gap to fill in later. The `sdd` sign-in
- * page this layout follows ends with a "Sign up" link for that reason — it is
- * omitted here on purpose, not overlooked.
+ * There is now a signup link: the candidate feature added `/signup`, which
+ * creates **candidates only**. There is still deliberately no forgot-password
+ * link and no password-reset flow, and signup remains the app's only
+ * account-creation surface — interviewers and recruiters are provisioned by an
+ * operator running the backend's seed, so the absence of any affordance for
+ * them is the design, not a gap to fill in later.
  *
  * `LoginForm` reads `?next=`, so it sits behind a Suspense boundary.
  */
@@ -32,6 +33,12 @@ export default function LoginPage() {
             </Suspense>
           </CardContent>
         </Card>
+        <p className="text-center text-sm text-gray-400">
+          New here?{' '}
+          <Link href="/signup" className="text-white font-medium hover:underline">
+            Create an account
+          </Link>
+        </p>
       </div>
     </main>
   );

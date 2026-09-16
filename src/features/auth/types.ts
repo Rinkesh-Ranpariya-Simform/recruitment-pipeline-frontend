@@ -9,11 +9,15 @@
 /**
  * What a *user* is allowed to be. Named `UserRole`, not `Role`, because `Role`
  * means an **open requisition** elsewhere in this app
- * (`features/roles/types.ts`). The wire values are unchanged — `/api/auth/me`
- * still returns `role: "RECRUITER" | "INTERVIEWER"` — so this rename moves no
- * request or response field.
+ * (`features/roles/types.ts`).
+ *
+ * `CANDIDATE` was added by the candidate feature. Keeping this a union, and
+ * every role-keyed map a `Record<UserRole, …>`, is what made that addition a
+ * **compile error** in `NAV_SECTIONS` and `ROLE_LANDING` until both were filled
+ * in — rather than a role that silently renders an empty sidebar. Add the next
+ * role the same way and let the compiler find the gaps.
  */
-export type UserRole = 'INTERVIEWER' | 'RECRUITER';
+export type UserRole = 'INTERVIEWER' | 'RECRUITER' | 'CANDIDATE';
 
 /**
  * The backend's "safe user representation" (backend FR-6.1), and the only user
@@ -37,6 +41,17 @@ export type LoginResponse = {
   user: User;
   accessToken: string;
   expiresIn: number;
+};
+
+/**
+ * `POST /api/auth/signup` — 201.
+ *
+ * There is deliberately **no `accessToken` and no session** in this shape. The
+ * backend issues neither, and a type that declared one would invite a caller to
+ * look for it.
+ */
+export type SignupResponse = {
+  user: User;
 };
 
 /** `POST /api/auth/refresh` — 200. Cookie-driven; no user object is returned. */

@@ -4,6 +4,7 @@ import type { UserRole } from './types';
 const ROLE_LANDING: Record<UserRole, string> = {
   RECRUITER: '/pipeline',
   INTERVIEWER: '/my-interviews',
+  CANDIDATE: '/jobs',
 };
 
 /**

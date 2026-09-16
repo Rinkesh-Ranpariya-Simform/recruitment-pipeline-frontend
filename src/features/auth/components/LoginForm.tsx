@@ -11,7 +11,6 @@ import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field
 import { Input } from '@/components/ui/input';
 import { errorBodyOf, fieldMessage } from '@/lib/error-details';
 import { loginSchema, type LoginValues } from '@/lib/schemas/auth';
-import { useAuthContext } from '../AuthProvider';
 import { useAuth } from '../hooks/useAuth';
 import { resolveRedirect } from '../redirect';
 
@@ -28,8 +27,7 @@ const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { status } = useAuthContext();
-  const { login, role } = useAuth();
+  const { login } = useAuth();
   const [formError, setFormError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -65,14 +63,11 @@ export function LoginForm() {
     }
   }, [formError, isSubmitting, setFocus]);
 
-  // Someone who is already signed in has no business on the login form. The
-  // backend is unaffected either way; this is purely so the app doesn't ask for
-  // credentials it already has.
-  useEffect(() => {
-    if (status === 'authenticated' && role) {
-      router.replace(resolveRedirect(next, role));
-    }
-  }, [status, role, next, router]);
+  // There is deliberately no "already signed in" check here. `<RequireAnonymous>`
+  // in the (auth) layout owns that, and owns it *before* this form renders —
+  // redirecting from inside the form meant painting it first and taking it away
+  // a round trip later. The `?next=` handling below is this form's own: it is
+  // where a user who just authenticated is sent.
 
   const onSubmit = async (values: LoginValues) => {
     setFormError(null);

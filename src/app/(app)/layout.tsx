@@ -5,8 +5,10 @@ import { usePathname } from 'next/navigation';
 import {
   BriefcaseIcon,
   ClipboardListIcon,
+  FileTextIcon,
   GitBranchIcon,
   LogOutIcon,
+  UserIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -32,6 +34,19 @@ const MY_INTERVIEWS: NavLink = {
   label: 'My interviews',
   icon: ClipboardListIcon,
 };
+// Deliberately the same icon as ROLES: a candidate's "job" and a recruiter's
+// "requisition" are the same object seen from opposite sides, and they are
+// served by the same endpoint.
+const JOBS: NavLink = { href: '/jobs', label: 'Jobs', icon: BriefcaseIcon };
+const MY_APPLICATIONS: NavLink = {
+  href: '/applications',
+  label: 'My applications',
+  icon: FileTextIcon,
+};
+const PROFILE: NavLink = { href: '/profile', label: 'Profile', icon: UserIcon };
+
+/** Offered to every role — `/profile` renders for all three. */
+const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
 
 /**
  * What each role is *offered* in the sidebar.
@@ -42,18 +57,22 @@ const MY_INTERVIEWS: NavLink = {
  * re-authorizes every request it serves regardless. What this changes is what a
  * user is invited to.
  *
- * `Roles` is **recruiter-only**, matching an API that refuses an interviewer's
- * `GET /api/roles` outright. Offering the link to an interviewer would be
- * offering a door into the 404 that `(app)/roles/layout.tsx` renders for them;
- * that guard, not this table, is what makes the route safe to leave unlinked.
+ * `Roles` is **recruiter-only** — the API now serves an interviewer's
+ * `GET /api/roles` (open requisitions only), but creating and editing one is
+ * still refused, and browsing the full requisition list is not an interviewer's
+ * job. `Jobs` is the candidate's reading of the same endpoint. Offering either
+ * link to the wrong role would be offering a door into the 404 those routes'
+ * layouts render; those guards, not this table, are what make the routes safe to
+ * leave unlinked.
  *
  * Adding a role to `UserRole` makes this table a type error until it is filled
  * in, which is the point of keying it by the union rather than filtering a flat
- * array.
+ * array. `CANDIDATE` was added exactly that way.
  */
 const NAV_SECTIONS: Record<UserRole, NavSection[]> = {
-  RECRUITER: [{ label: 'Hiring', links: [PIPELINE, ROLES] }],
-  INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS] }],
+  RECRUITER: [{ label: 'Hiring', links: [PIPELINE, ROLES] }, ACCOUNT_SECTION],
+  INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS] }, ACCOUNT_SECTION],
+  CANDIDATE: [{ label: 'Jobs', links: [JOBS, MY_APPLICATIONS] }, ACCOUNT_SECTION],
 };
 
 /**
@@ -219,12 +238,6 @@ function AppChrome({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * The guard lives here so no page repeats it.
- *
- * `<RequireAuth>` is a UX affordance — the backend re-authorizes every request
- * regardless of what this layout decides to render.
- */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <RequireAuth>
