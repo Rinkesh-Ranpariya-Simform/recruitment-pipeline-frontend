@@ -52,9 +52,16 @@ let refreshPromise: Promise<void> | null = null;
 /**
  * Refreshes the access token at most once per expiry event.
  *
- * On failure it clears the token and notifies the auth layer (which clears the
- * query cache and redirects to /login), then rethrows so the caller's request
- * fails rather than silently hanging.
+ * A `401` means the refresh token itself is gone — expired, revoked, or its
+ * family killed by reuse detection — so the session is over: the token is
+ * cleared and the auth layer is notified (it clears the query cache and
+ * redirects to /login). Anything else — a 500, or a `TypeError` from an
+ * unreachable backend — says nothing about whether the session is still valid,
+ * so it is rethrown untouched. Ending a session on a dropped connection would
+ * log out a user whose refresh token is perfectly good.
+ *
+ * Either way it rethrows, so the caller's request fails rather than silently
+ * hanging.
  */
 export const refreshAccessToken = (): Promise<void> => {
   if (!refreshPromise) {
@@ -63,8 +70,9 @@ export const refreshAccessToken = (): Promise<void> => {
         const data = await apiFetch<RefreshResponse>('/api/auth/refresh', { method: 'POST' });
         setAccessToken(data.accessToken);
       } catch (error) {
-        clearAccessToken();
-        authHandlers?.onAuthFailure();
+        if (error instanceof ApiError && error.status === 401) {
+          endSession();
+        }
         throw error;
       }
     })().finally(() => {
@@ -73,6 +81,18 @@ export const refreshAccessToken = (): Promise<void> => {
   }
 
   return refreshPromise;
+};
+
+/**
+ * Tears down the client side of a session the server has finished with.
+ *
+ * Both callers reach it from a `401` that no further refresh can fix, and both
+ * must do the same two things — drop the token and tell the auth layer — or the
+ * app keeps rendering as signed in against a session that no longer exists.
+ */
+const endSession = (): void => {
+  clearAccessToken();
+  authHandlers?.onAuthFailure();
 };
 
 const buildHeaders = (headers: HeadersInit | undefined): HeadersInit => {
@@ -132,9 +152,20 @@ export const apiFetch = async <T>(
     // Throws if the refresh itself fails, which is the unrecoverable case.
     await refreshAccessToken();
 
-    // Exactly one replay. A 401 here is surfaced to the caller — the retry is
-    // never itself retried, or a genuinely revoked session would loop.
+    // Exactly one replay. It is never itself retried, or a genuinely revoked
+    // session would loop.
     res = await attempt();
+
+    if (res.status === 401) {
+      // The refresh succeeded and the server still refuses the token it just
+      // issued, so the session is over even though the refresh was fine — a
+      // deleted user row, or a token revoked between the two calls. Surfacing
+      // this to the caller and stopping there (as this did) left the app signed
+      // in on a session that can never recover: `<RequireAuth>` rendered its
+      // retryable error, and every retry took this same path. Not retried, but
+      // it must end the session.
+      endSession();
+    }
   }
 
   if (res.status === 403) {

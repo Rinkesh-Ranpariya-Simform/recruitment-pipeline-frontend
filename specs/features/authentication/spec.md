@@ -126,7 +126,8 @@ The app has exactly three session states, and every route resolves to one of the
 - **FR-3.1** The access token lives **only** in a module-scoped JavaScript variable. It is never written to `localStorage`, `sessionStorage`, IndexedDB, or a cookie.
 - **FR-3.2** A page reload therefore starts with no access token. The app recovers one by calling `POST /api/auth/refresh` at bootstrap, relying on the `HttpOnly` cookie the browser sends automatically.
 - **FR-3.3** When any API call returns `401`, the app refreshes once and replays the request once, so the user experiences no interruption at the 15-minute boundary.
-- **FR-3.4** When refresh fails, the app clears all auth state and query cache and navigates to `/login?next=<current path>`.
+- **FR-3.4** When refresh fails with a `401`, the app clears all auth state and query cache and navigates to `/login?next=<current path>`.
+- **FR-3.5** **Session expiry is discovered reactively, and only reactively.** The server cannot push a logout, so the app learns its session is over by being refused: the next request `401`s, the refresh `401`s, and FR-3.4 runs. A user sitting idle on an already-rendered page is therefore *not* returned to `/login` until they next do something — accepted, and safe, because the shell is a UX affordance and every request is re-authorized server-side (EC-20). **Do not add a timer that refreshes on its own:** the backend slides the refresh TTL on every rotation, so a self-refreshing client would hold an open tab signed in forever and the 1-day expiry would never arrive.
 
 ### FR-4 — Logout
 
@@ -210,6 +211,7 @@ POST /api/auth/refresh   (credentials: 'include')
 
 - **FE-3.1** While this is in flight the layout renders a **full-page loading state** — never the app shell with empty data, never a flash of `/login`.
 - **FE-3.2** The bootstrap refresh runs **once per page load**, not per component.
+- **FE-3.3** Bootstrap resolves the session status itself, for **both** outcomes — `authenticated` on success, `anonymous` on any failure. It does not rely on the interceptor's failure handler to move it off `bootstrapping`, which since FE-4.8 fires only on a `401`; a bootstrap that failed because the backend was unreachable would otherwise leave the loading state on screen forever (EC-14).
 
 ### FE-4 — `apiFetch` refresh interceptor
 
@@ -217,10 +219,11 @@ POST /api/auth/refresh   (credentials: 'include')
 
 - **FE-4.1** Attach `Authorization: Bearer <token>` when a token is in memory.
 - **FE-4.2** Send `credentials: 'include'` so the refresh cookie travels cross-origin (`localhost:3001` → `localhost:3000`).
-- **FE-4.3** On a `401` response, call `/api/auth/refresh` **once**, then **replay the original request exactly once**. A `401` on the replay is surfaced to the caller — the retry is never itself retried.
+- **FE-4.3** On a `401` response, call `/api/auth/refresh` **once**, then **replay the original request exactly once**. A `401` on the replay is surfaced to the caller — the retry is never itself retried — **and it also ends the session** (FE-4.6). A server that refuses the token it has just issued is refusing the session, not the token: surfacing that error alone left the app signed in on a session that could never recover.
 - **FE-4.4** **Single-flight:** concurrent `401`s share one in-flight refresh promise. Ten parallel queries expiring together must produce **exactly one** `POST /api/auth/refresh`, not ten. Every waiter resumes with the same new token.
 - **FE-4.5** `/api/auth/login` and `/api/auth/refresh` are excluded from the interceptor — a `401` from those is a real failure, not a trigger.
-- **FE-4.6** When refresh fails: clear the in-memory token, cancel and clear the TanStack Query cache, and redirect to `/login?next=<current path>`.
+- **FE-4.6** When refresh fails **with a `401`**: clear the in-memory token, cancel and clear the TanStack Query cache, and redirect to `/login?next=<current path>`.
+- **FE-4.8** **Only a `401` ends a session.** A refresh that fails for any other reason — a `500`, or a `TypeError` from an unreachable backend — is rethrown untouched, with the token left in place. Those failures say nothing about whether the refresh token is still valid, and treating them as expiry logged users out on a dropped connection.
 - **FE-4.7** A request body is captured before the first attempt so the replay sends an identical payload.
 
 ### FE-5 — `useAuth` (`features/auth/hooks/useAuth.ts`)
@@ -448,7 +451,7 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 | EC-01 | Access token expires mid-session               | The failing request `401`s; the interceptor refreshes and replays. **The user sees no interruption and loses no form input.**                                                                                                                                                                                        |
 | EC-02 | Ten queries `401` at once                      | **Exactly one** `POST /api/auth/refresh`; all ten replay with the new token (FE-4.4).                                                                                                                                                                                                                                |
 | EC-03 | Refresh itself returns `401`                   | Clear token, clear cache, redirect `/login?next=<current>`.                                                                                                                                                                                                                                                          |
-| EC-04 | Replay after a successful refresh also `401`s  | Surface the error to the caller. **No second refresh** (FE-4.3).                                                                                                                                                                                                                                                     |
+| EC-04 | Replay after a successful refresh also `401`s  | Surface the error to the caller **and end the session** (FE-4.3). **No second refresh.**                                                                                                                                                                                                                             |
 | EC-05 | Hard reload on a guarded route, cookie present | Middleware allows render; layout shows the loading state during bootstrap; content appears after `/me`. **No login flash.**                                                                                                                                                                                          |
 | EC-06 | Hard reload on a guarded route, no cookie      | Middleware redirects to `/login?next=<path>` before any app JS runs.                                                                                                                                                                                                                                                 |
 | EC-07 | Logged-in user opens `/login`                  | Redirected away (FE-6.3).                                                                                                                                                                                                                                                                                            |
@@ -464,6 +467,8 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 | EC-17 | A user asks how to add a colleague to the app  | There is no UI answer. The app shows no "contact an admin" prompt either — it simply has no such surface (FR-6.4). Onboarding is an out-of-band operator task.                                                                                                                                                       |
 | EC-18 | User's role changes server-side mid-session    | Stale until the next page load, logout, or an explicit retry — `['auth','me']` is cached indefinitely so navigating between authenticated routes costs zero extra `/me` calls (PERF-4, AC-F21). Harmless for the same reason as before: no role-change endpoint exists, and role gates nothing in the client (AZ-4). |
 | EC-19 | JS disabled or bundle fails to load            | The app does not function; no server-rendered fallback is provided. **Accepted for a POC.**                                                                                                                                                                                                                          |
+| EC-20 | Refresh token expires while the user sits idle | Nothing happens until they act. The stale shell keeps rendering from cache; their next request `401`s, its refresh `401`s, and they land on `/login` (FR-3.5). **Accepted** — nothing is protected by the shell, and the alternative (a self-refreshing timer) would stop the session ever expiring at all. |
+| EC-21 | Refresh fails with a `500` or a dropped connection | **Not** treated as expiry. The token is kept and the error is surfaced; the user's next action retries. Only a `401` ends a session (FE-4.8).                                                                                                                                                     |
 | EC-20 | Deep link to `/team` while anonymous           | `/login?next=/team`, then post-login navigation to `/team`, which 404s (EC-10). No crash, no redirect loop, and no 403 — the route does not exist rather than being forbidden.                                                                                                                                       |
 
 ---

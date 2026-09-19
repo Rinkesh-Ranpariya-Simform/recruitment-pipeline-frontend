@@ -118,11 +118,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return;
       }
 
-      // A failed bootstrap has already run onAuthFailure, which sets the status
-      // and redirects; only the success path needs to move it forward here.
-      if (recovered) {
-        setStatus('authenticated');
-      }
+      // Resolved here for *both* outcomes rather than leaning on onAuthFailure
+      // to set it. That handler now fires only on a real 401, so a bootstrap
+      // that failed because the backend was unreachable would otherwise leave
+      // the status on 'bootstrapping' — a loading screen that never ends.
+      // Either way there is no access token, which is what 'anonymous' means.
+      setStatus(recovered ? 'authenticated' : 'anonymous');
     });
 
     return () => {
