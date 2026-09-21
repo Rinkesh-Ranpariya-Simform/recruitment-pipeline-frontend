@@ -1,8 +1,18 @@
 import type { UserRole } from './types';
 
-/** Where each role lands when no explicit `?next=` target applies. */
+/**
+ * Where each role lands when no explicit `?next=` target applies.
+ *
+ * A recruiter lands on `/dashboard` rather than `/pipeline` as of the pipeline
+ * feature (FR-1.3, D-1): the board is a destination, and logging in should open
+ * on the four numbers that say where hiring stands rather than on the detail.
+ *
+ * **Changing this changes where someone is sent, not what they may reach**
+ * (AZ-6). Every route keeps its own `<RequireRole>` guard, and every endpoint
+ * behind them re-authorizes independently.
+ */
 const ROLE_LANDING: Record<UserRole, string> = {
-  RECRUITER: '/pipeline',
+  RECRUITER: '/dashboard',
   INTERVIEWER: '/my-interviews',
   CANDIDATE: '/jobs',
 };

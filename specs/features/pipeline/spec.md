@@ -1,11 +1,13 @@
 # Pipeline — Dashboard, Board, Stage Moves and Overrides (Frontend)
 
-> **Status:** Draft — awaiting approval. `plan.md` is a later artifact and does not exist yet.
+> **Status:** ✅ Approved and implemented. `plan.md` was skipped — built straight from this spec,
+> as `candidate` and `audit` were. See `## Revisions` at the foot for what implementation changed.
 > **Feature slug:** `pipeline`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
 > **Counterpart:** [../../../../backend/specs/features/pipeline/spec.md](../../../../backend/specs/features/pipeline/spec.md)
 > **Depends on:** [../authentication/spec.md](../authentication/spec.md) · [../roles/spec.md](../roles/spec.md) — both implemented
-> **Blocked by:** the backend counterpart. **Nothing here can be verified until that ships.**
+> **Backend:** shipped and verified. **Partially blocked by** `candidate-access` — the drill-down
+> list (FR-4) and therefore the Move menu's only mount point wait on `GET /api/candidates`.
 > **Parent brief:** [../../../../recruitment-pipeline.md](../../../../recruitment-pipeline.md) §3.1, §3.3, §3.5
 
 ---
@@ -819,3 +821,49 @@ are globally generated and are the types the new files use.
 **Cross-repo:** a change to the five endpoints, the three `409` codes, the densified board shape, or
 the summary's field list must be made in **both** specs — see
 [../../../../backend/specs/features/pipeline/spec.md](../../../../backend/specs/features/pipeline/spec.md).
+
+---
+
+## Revisions
+
+Recorded during implementation, per this repo's rule that a spec proven wrong is corrected rather
+than left to drift from the code.
+
+### R-1 — FR-5 and FR-6 ship built but unreachable
+
+The Move menu, the override dialog and the outcome dialog are **implemented in full** —
+`StageMoveMenu.tsx`, `StageOverrideDialog.tsx`, `OutcomeDialog.tsx`, wired to all three write
+endpoints with the three `409` messages, the reason counter and the field-level `400` handling.
+
+**They have no mount point.** Their only surface is a drill-down row, and the drill-down calls
+`GET /api/candidates`, which belongs to the candidate-access feature and does not exist yet
+(FR-4.2). The board shows counts, not people, so there is no other row in this feature to hang a
+Move control on.
+
+The spec already conceded this ("the one place where this feature is knowingly incomplete") but
+listed FR-5 and FR-6 as in scope anyway. Both readings are now true and the consequence is stated:
+**AC-F20 through AC-F29, and AC-M03 through AC-M05 via the UI, cannot be walked until
+candidate-access ships.** What candidate-access has to do is render rows and pass each one's
+`application` plus `role.stages.map(cell => cell.stage)` into `<StageMoveMenu />`, and flip
+`DRILL_DOWN_AVAILABLE` in `PipelineView.tsx` from `false` to `true`. The console-driven halves of
+AC-M03–M05 are verifiable today against the backend, and were.
+
+### R-2 — AC-F31 and AC-F33 have benign grep hits
+
+Both criteria are greps, and both now return lines. Neither is the thing they were written to catch,
+so they are recorded rather than "fixed" by contorting the code around a regex.
+
+- **AC-F31** (`APPLIED.*SCREEN|allowedTransitions|STAGE_GRAPH`) hits two lines: a prose sentence in
+  `PipelineRoleSection.tsx` explaining why the board never re-sorts, and
+  `const STAGES: ReadonlyArray<PipelineStage> = ['APPLIED', 'SCREEN', 'INTERVIEW', 'OFFER']` in
+  `search-params.ts`. **That array is display order, not a transition graph**: it exists so the
+  stage filter has options and so `?stage=BANANA` can be rejected before a request, exactly as
+  `AUDIT_ACTIONS` does in the audit feature. What the criterion was actually written to forbid — a
+  map saying which move is legal from where — **does not exist**, and legality is read only from
+  `details.allowed` in `StageMoveMenu.tsx`.
+- **AC-F33** (`email|phone`) hits two prose comments: "phone scrolls vertically" in a layout note,
+  and "no email or phone anywhere in this feature's types" in `types.ts`. **No type, no component
+  and no request in `features/pipeline/` names either field**, which is the property the criterion
+  is for.
+
+Both criteria should be re-worded against what they mean rather than loosened.

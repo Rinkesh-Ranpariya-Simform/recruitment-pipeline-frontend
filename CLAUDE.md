@@ -102,9 +102,17 @@ conditionally renders contact fields based on a client-side role check.
 
 ## Views this POC needs
 
-- **Pipeline view** (recruiter/hiring manager): candidate counts per stage per role, plus ageing
-  (time at current stage) — driven by a backend aggregate endpoint, not computed by fetching every
-  candidate client-side.
+- **Pipeline view** (recruiter): **shipped by the
+  [pipeline feature](specs/features/pipeline/spec.md)** as `/dashboard` + `/pipeline`. Counts per
+  stage per role and ageing come from `GET /api/pipeline`, a backend aggregate — nothing in
+  `features/pipeline/` fetches candidates to compute a count or an age, and there is no stage
+  **list** in any response it reads. The board renders the API's densified `stages` array in the
+  order given and never sorts it.
+  **The client owns no copy of the stage-transition graph**: `Advance` reads the next stage off
+  the API's own array, and legality is only ever the API's answer — a `409
+INVALID_STAGE_TRANSITION` carries `details.allowed`, and the Move menu rebuilds from it. A
+  transitions map in `features/pipeline/` would be a second opinion about the process, and the two
+  would disagree the first time the graph changed.
 - **Candidate detail**: stage history, assigned interviewers/rounds, feedback. Contact details
   render only when the API response actually includes them (recruiter-scoped call).
 - **Feedback submission** (interviewer): rating + notes tied to a specific round; only reachable
@@ -131,12 +139,13 @@ Feature specs live in `specs/features/<feature>/`, each holding `spec.md` (what 
 `plan.md` (how). Phases run in that order and each is approved before the next begins; if implementation reveals
 the spec is wrong, update the spec and get it re-approved rather than letting code and spec drift.
 
-| Feature                                                 | spec        | plan                                                | code                                                                                                                                                            |
-| ------------------------------------------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                                                           |
-| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off                                         |
-| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**                                                   |
-| [audit](specs/features/audit/spec.md)                   | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean and the URL-sanitising helpers exercised directly; **the in-browser AC pass (AC-F01…AC-M05) is not yet signed off** |
+| Feature                                                 | spec        | plan                                                | code                                                                                                                                                                                               |
+| ------------------------------------------------------- | ----------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                                                                                              |
+| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off                                                                            |
+| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**                                                                                      |
+| [audit](specs/features/audit/spec.md)                   | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean and the URL-sanitising helpers exercised directly; **the in-browser AC pass (AC-F01…AC-M05) is not yet signed off**                                    |
+| [pipeline](specs/features/pipeline/spec.md)             | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean, structural ACs (F30–F33) checked; **the in-browser AC pass (AC-F01…AC-M07) is not yet signed off**, and the drill-down list waits on candidate-access |
 
 The **candidate** feature added `/signup`, a `CANDIDATE` role, and the Jobs / My Applications / Profile
 views. It **deliberately reversed two rules that used to be stated below**; both paragraphs are now rewritten
@@ -150,11 +159,15 @@ has always sent; the mismatch is masked only by a backend defect that the roles 
 **The app chrome is a sidebar with role-based sections** (spec FR-7, revised during implementation).
 `(app)/layout.tsx` holds `NAV_SECTIONS`, a `Record<UserRole, NavSection[]>` — a **lookup table, not a
 comparison**, so a user role is named in exactly one place (`features/roles/permissions.ts`,
-`features/jobs/permissions.ts`). A recruiter is offered **Pipeline** and **Roles**; an interviewer **My
+`features/jobs/permissions.ts`). A recruiter is offered **Dashboard**, **Pipeline** and
+**Roles** under Hiring, plus **Audit** under Records; an interviewer **My
 interviews**; a candidate **Jobs** and **My applications**. **Profile is offered to all three**, since
 `/profile` renders for every role. **The sidebar still gates no route** — every guard is a `<RequireRole>` in
 that route's own `layout.tsx`, and `/pipeline` and `/my-interviews` gained one with the candidate feature
-(they were previously reachable by any authenticated user). The signed-in user lives in a header account menu
+(they were previously reachable by any authenticated user), and `/dashboard` arrived with its own.
+**A recruiter now lands on `/dashboard`, not `/pipeline`** — the pipeline feature moved
+`ROLE_LANDING.RECRUITER`, which changes where someone is sent and not what they may reach.
+The signed-in user lives in a header account menu
 (name, email, Sign out); the old inline role chip is gone.
 
 Adding a role to `UserRole` is a **compile error** in `NAV_SECTIONS` and in `ROLE_LANDING`

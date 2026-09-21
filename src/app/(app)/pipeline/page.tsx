@@ -1,20 +1,25 @@
-'use client';
+import { Suspense } from 'react';
 
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { PipelineBoardSkeleton } from '@/features/pipeline/components/PipelineRoleSection';
+import { PipelineView } from '@/features/pipeline/components/PipelineView';
 
 /**
- * Placeholder landing route for recruiters. It renders the authenticated user
- * only — candidate counts per stage and ageing belong to the pipeline feature.
+ * `PipelineView` uses `useSearchParams()`, which requires a Suspense boundary —
+ * **without one `next build` fails**, though `next dev` does not (FE-1).
+ * `(app)/audit/page.tsx` and `(app)/roles/page.tsx` wrap their views for the
+ * same reason.
+ *
+ * The fallback is the board's own skeleton rather than a spinner, so the first
+ * paint is already the right shape.
+ *
+ * This **replaces** the placeholder that rendered the signed-in user's name and
+ * was the recruiter's landing route; that landing is now `/dashboard`
+ * (FR-1.2, FR-1.3).
  */
 export default function PipelinePage() {
-  const { user } = useAuth();
-
   return (
-    <section className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold">Pipeline</h1>
-      <p className="text-sm text-muted-foreground">
-        Signed in as {user?.name} ({user?.role}).
-      </p>
-    </section>
+    <Suspense fallback={<PipelineBoardSkeleton />}>
+      <PipelineView />
+    </Suspense>
   );
 }

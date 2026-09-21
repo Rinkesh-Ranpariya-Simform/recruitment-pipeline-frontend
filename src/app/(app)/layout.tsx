@@ -6,6 +6,7 @@ import {
   BriefcaseIcon,
   ClipboardListIcon,
   FileTextIcon,
+  GaugeIcon,
   GitBranchIcon,
   LogOutIcon,
   ScrollTextIcon,
@@ -35,6 +36,9 @@ interface NavSection {
   links: Array<NavLink>;
 }
 
+// The recruiter's landing route as of the pipeline feature, and the first
+// entry in Hiring (FR-1.3, FR-1.4).
+const DASHBOARD: NavLink = { href: '/dashboard', label: 'Dashboard', icon: GaugeIcon };
 const PIPELINE: NavLink = { href: '/pipeline', label: 'Pipeline', icon: GitBranchIcon };
 const ROLES: NavLink = { href: '/roles', label: 'Roles', icon: BriefcaseIcon };
 const MY_INTERVIEWS: NavLink = {
@@ -76,7 +80,9 @@ const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
  */
 const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
   RECRUITER: [
-    { label: 'Hiring', links: [PIPELINE, ROLES] },
+    // Dashboard, Pipeline, Roles — in that order (FR-1.4). Later features
+    // insert Candidates and Interviews after Roles.
+    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES] },
     { label: 'Records', links: [AUDIT] },
     ACCOUNT_SECTION,
   ],

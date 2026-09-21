@@ -17,8 +17,8 @@ before the next begins.
 | [authentication](features/authentication/spec.md)     | ✅ approved | [✅ drafted](features/authentication/plan.md)   | ✅ implemented |
 | [roles](features/roles/spec.md)                       | ✅ approved | [✅ drafted](features/roles/plan.md)            | ✅ implemented |
 | [candidate](features/candidate/spec.md)               | ✅ approved | ⬜ skipped (implemented straight from the spec) | ✅ implemented |
-| [audit](features/audit/spec.md)                       | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
-| [pipeline](features/pipeline/spec.md)                 | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
+| [audit](features/audit/spec.md)                       | ✅ approved | ⬜ skipped                                      | ✅ implemented |
+| [pipeline](features/pipeline/spec.md)                 | ✅ approved | ⬜ skipped                                      | ✅ implemented |
 | [interviews](features/interviews/spec.md)             | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
 | [feedback](features/feedback/spec.md)                 | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
 | [candidate-access](features/candidate-access/spec.md) | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
