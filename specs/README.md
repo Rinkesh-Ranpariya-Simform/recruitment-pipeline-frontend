@@ -21,7 +21,7 @@ before the next begins.
 | [pipeline](features/pipeline/spec.md)         | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
 | [interviews](features/interviews/spec.md)     | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
 | [feedback](features/feedback/spec.md)         | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
-| [candidates](features/candidates/spec.md)     | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
+| [candidate-access](features/candidate-access/spec.md) | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
 
 ---
 
@@ -31,7 +31,7 @@ The same order as the backend, and for the same reasons — each frontend spec i
 backend counterpart, which is blocked by the one before it:
 
 ```
-audit ──► pipeline ──► interviews ──► feedback ──► candidates
+audit ──► pipeline ──► interviews ──► feedback ──► candidate-access
 ```
 
 **Nothing in these five specs can be verified until its backend counterpart ships.** Every one of
@@ -39,7 +39,7 @@ them is a client for an API that does not exist yet; the acceptance criteria are
 driven through the browser against a running, seeded backend.
 
 See [../../backend/specs/README.md](../../backend/specs/README.md) for why the order is what it is.
-`candidates` is the feature the brief names first and the one built last, because its interviewer
+`candidate-access` is the feature the brief names first and the one built last, because its interviewer
 scoping depends on a table three features away.
 
 ---
@@ -52,7 +52,7 @@ scoping depends on a table three features away.
 | `pipeline` | `/dashboard` **NEW** · `/pipeline` **fills the existing stub** | Recruiter → Dashboard; recruiter landing moves to `/dashboard` |
 | `interviews` | `/interviews` **NEW** · `/interviews/[interviewId]` **NEW** · `/my-interviews` **fills the existing stub** | Recruiter → Interviews; interviewer unchanged |
 | `feedback` | none — components on `/interviews/[interviewId]` and `/candidates/[candidateId]` | none |
-| `candidates` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD** | Recruiter → Candidates; interviewer → Candidates |
+| `candidate-access` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD** | Recruiter → Candidates; interviewer → Candidates |
 
 Two of these fill routes that already exist. [`(app)/pipeline/page.tsx`](<../src/app/(app)/pipeline/page.tsx>)
 and [`(app)/my-interviews/page.tsx`](<../src/app/(app)/my-interviews/page.tsx>) are placeholder pages
@@ -90,7 +90,7 @@ renders; it is **UX, never security**. Every route matrix in these specs opens b
 ## Reading order for a reviewer
 
 1. This file.
-2. [features/candidates/spec.md](features/candidates/spec.md) § *Frontend Requirements* — the two
+2. [features/candidate-access/spec.md](features/candidate-access/spec.md) § *Frontend Requirements* — the two
    candidate views, and why they are two components rather than one with a role check.
 3. [features/pipeline/spec.md](features/pipeline/spec.md) § *Functional Requirements* — the board,
    the move, and the override dialog that will not submit without a reason.

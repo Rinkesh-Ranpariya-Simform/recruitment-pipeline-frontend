@@ -101,7 +101,7 @@ revision), XBE-9 (inverted), AC-F06 and AC-F07. The backend counterpart is revis
 |---|---|---|
 | D-1 | One detail route or two? | **One route, `/interviews/[interviewId]`, two views.** The API returns two shapes by role; the route renders `<RecruiterInterviewDetail>` or `<InterviewerInterviewDetail>` by role. **Not one component with conditional fields** |
 | D-2 | Two types or one with optionals? | **Two interfaces.** `InterviewerInterview` has no `email`, no `assignments`. A type with `assignments?` is a component away from rendering a panel to someone who was not sent one |
-| D-3 | Where does a recruiter schedule a round? | On the **candidate detail page** (candidates feature) and on the recruiter's `/interviews` list. Both call the same dialog |
+| D-3 | Where does a recruiter schedule a round? | On the **candidate detail page** (candidate-access feature) and on the recruiter's `/interviews` list. Both call the same dialog |
 | D-4 | Date input? | **`Input type="datetime-local"`.** No calendar primitive is vendored and adding a date library for one field is not worth it |
 | D-5 | Past dates? | **Allowed**, matching the API. Backfilling a round that already happened is normal (XBE-9) |
 | D-6 | Where does the interviewer picker get its list? | **`GET /api/users`**, which returns interviewers only. Already-assigned people are disabled in it — UX, with the `409` as the control |
@@ -854,7 +854,7 @@ and a seeded database.
 
 **Blocks:** [../feedback/spec.md](../feedback/spec.md) — its form and list mount on
 `/interviews/[interviewId]`, the route this feature creates.
-[../candidates/spec.md](../candidates/spec.md) — its candidate detail opens this feature's schedule
+[../candidate-access/spec.md](../candidate-access/spec.md) — its candidate detail opens this feature's schedule
 dialog (D-3).
 
 **Revises:** [../pipeline/spec.md](../pipeline/spec.md) FR-2.2, FR-2.3, XBE-9, AC-F06, AC-F07 — see

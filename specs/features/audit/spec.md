@@ -140,7 +140,7 @@ walkthrough gives candidates Jobs and My Applications only.
   | `CANDIDATE_CONTACT_UPDATED` | Contact details updated | `outline` |
 
 - **FR-2.5** **Entity** renders `<label> #<id>` — e.g. `Application #12` — from
-  `ENTITY_LABELS: Record<AuditEntityType, string>`. Once the candidates feature ships, `CANDIDATE`
+  `ENTITY_LABELS: Record<AuditEntityType, string>`. Once the candidate-access feature ships, `CANDIDATE`
   entities link to `/candidates/{entityId}` (D-6); until then every entity renders as text.
 - **FR-2.6** **Actor** renders `entry.actor.name` with the role as a muted suffix. It is never
   blank: the API guarantees `actor` is always present (XBE-5).
@@ -616,7 +616,7 @@ live feed.
 | Live updates / websockets / polling | D-5. Nothing on this screen changes while a recruiter reads it, and polling an append-only table is wasted requests |
 | An actor picker for the `actorId` filter | Needs a user-search endpoint that does not exist. The parameter is honoured from the URL instead (FR-4.4) |
 | Date-range filtering | The API offers no date parameters, and a client-side range over a paginated feed would be wrong |
-| Grouping entries into a per-entity timeline | The candidates feature renders a candidate's timeline from `stageHistory`, which is the right source for it |
+| Grouping entries into a per-entity timeline | The candidate-access feature renders a candidate's timeline from `stageHistory`, which is the right source for it |
 | Deleting or editing entries | The API has no such route (XBE-11) |
 | Virtualising the table | The page size is fixed at 20 by the server default (PERF-5) |
 

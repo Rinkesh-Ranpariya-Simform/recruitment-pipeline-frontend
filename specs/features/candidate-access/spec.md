@@ -1,9 +1,9 @@
-# Candidates — Two Views of One Person (Frontend)
+# Candidate Access — Two Views of One Person (Frontend)
 
 > **Status:** Draft — awaiting approval. `plan.md` is a later artifact and does not exist yet.
-> **Feature slug:** `candidates`
+> **Feature slug:** `candidate-access`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
-> **Counterpart:** [../../../../backend/specs/features/candidates/spec.md](../../../../backend/specs/features/candidates/spec.md)
+> **Counterpart:** [../../../../backend/specs/features/candidate-access/spec.md](../../../../backend/specs/features/candidate-access/spec.md)
 > **Depends on:** [../pipeline/spec.md](../pipeline/spec.md) · [../interviews/spec.md](../interviews/spec.md) · [../feedback/spec.md](../feedback/spec.md) — all must ship first
 > **Revises:** [../pipeline/spec.md](../pipeline/spec.md) FR-4.2 — the drill-down becomes real
 > **Blocked by:** the backend counterpart. **Nothing here can be verified until that ships.**
@@ -381,7 +381,7 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
 
 - **FE-1** `CandidatesListView`, `RoleApplicants` and `PipelineDrillDown` read `useSearchParams()`;
   each page wraps them in `<Suspense>` — **without which `next build` fails**.
-- **FE-2** All calls go through `features/candidates/api/candidates.api.ts`. **Three** exported
+- **FE-2** All calls go through `features/candidate-access/api/candidates.api.ts`. **Three** exported
   functions. **There is no `createCandidate` wrapper**, because there is no such endpoint (D-3,
   FR-11.4).
 - **FE-3** **`types.ts` declares four interfaces, and no shared "Candidate" type with optional
@@ -454,7 +454,7 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
 ## Backend Requirements
 
 The guarantees this client depends on. If any changes, this spec breaks. Source:
-[../../../../backend/specs/features/candidates/spec.md](../../../../backend/specs/features/candidates/spec.md).
+[../../../../backend/specs/features/candidate-access/spec.md](../../../../backend/specs/features/candidate-access/spec.md).
 
 - **XBE-1** `GET /api/candidates` and `GET /api/candidates/:id` serve **both** privileged roles and
   return **two different shapes**, chosen by the caller's role. This is why FE-3 declares four
@@ -498,7 +498,7 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 ### Client-side rules
 
 - **API-1** Every call goes through `apiFetch`.
-- **API-2** Every call is wrapped in `features/candidates/api/candidates.api.ts`; no component
+- **API-2** Every call is wrapped in `features/candidate-access/api/candidates.api.ts`; no component
   assembles a path. The pipeline feature's drill-down imports **this** module rather than declaring
   its own (pipeline API-6).
 - **API-3** Query strings use `URLSearchParams`, parameters omitted at their defaults.
@@ -652,7 +652,7 @@ every request behind it.
   never selects the columns, and the client never declares a field that could hold them. Neither
   half relies on the other, and neither relies on someone remembering a rule.
 - **SEC-2** **There is no conditional render of a contact field anywhere in
-  `features/candidates/`.** No `candidate.email &&`, no `role === 'RECRUITER' ? … : …` around a
+  `features/candidate-access/`.** No `candidate.email &&`, no `role === 'RECRUITER' ? … : …` around a
   contact row. The role picks the component; the components differ in type. Verified by grep
   (AC-F31, AC-F32).
 - **SEC-3** **No copy distinguishes "not assigned" from "not found"** (ERR-2, FR-7.5). The API
@@ -799,24 +799,24 @@ and a seeded database.
 
 ### Structure — the grep checks a reviewer can run
 
-- **AC-F31** — **Given** the repository, **when** `features/candidates/types.ts` is read, **then**
+- **AC-F31** — **Given** the repository, **when** `features/candidate-access/types.ts` is read, **then**
   `InterviewerCandidate` declares **exactly `id` and `name`**, and **no** `email`, `phone`,
   `applications`, `stageHistory` or `feedback` — **optional or otherwise** (FE-3, FR-11.1, SEC-1).
 - **AC-F32** — **Given** the repository, **when**
-  `grep -rnE "candidate\.(email|phone)|role === ['\"]RECRUITER['\"]" src/features/candidates/` is
+  `grep -rnE "candidate\.(email|phone)|role === ['\"]RECRUITER['\"]" src/features/candidate-access/` is
   run, **then** **no match is a conditional around a contact field** — the only role comparisons are
   the two component dispatches (FE-4, SEC-2, FR-11.2).
 - **AC-F33** — **Given** the repository, **when** `[candidateId]/page.tsx` and
   `CandidatesListView.tsx` are read, **then** each dispatches on role to two components, and
   **neither component accepts the other's props type** (FE-4).
 - **AC-F34** — **Given** the repository, **when**
-  `grep -rniE "not assigned|no access|permission" src/features/candidates/` is run, **then** no
+  `grep -rniE "not assigned|no access|permission" src/features/candidate-access/` is run, **then** no
   user-facing copy matches (ERR-2, SEC-3).
-- **AC-F35** — **Given** the repository, **when** `features/candidates/api/candidates.api.ts` is
+- **AC-F35** — **Given** the repository, **when** `features/candidate-access/api/candidates.api.ts` is
   read, **then** it exports **three** functions and **no `createCandidate`** (FE-2, SEC-7,
   FR-11.4).
 - **AC-F36** — **Given** the repository, **when**
-  `grep -rn "dangerouslySetInnerHTML" src/features/candidates/` is run, **then** it returns nothing
+  `grep -rn "dangerouslySetInnerHTML" src/features/candidate-access/` is run, **then** it returns nothing
   (SEC-5).
 
 ### The job → applicants path, and the drill-down revision
@@ -895,14 +895,14 @@ and a seeded database.
 ## Dependencies
 
 **Blocked by:**
-[../../../../backend/specs/features/candidates/spec.md](../../../../backend/specs/features/candidates/spec.md).
+[../../../../backend/specs/features/candidate-access/spec.md](../../../../backend/specs/features/candidate-access/spec.md).
 **Nothing here can be verified until that ships.**
 [../interviews/spec.md](../interviews/spec.md) — the schedule dialog and the round links.
 [../feedback/spec.md](../feedback/spec.md) — `<FeedbackList>` renders on the detail (FE-7).
 [../pipeline/spec.md](../pipeline/spec.md) — the Move menu and the override dialog (FE-6), and this
 spec revises its drill-down.
 
-**Blocks:** nothing. This is the last feature in the sequence; see [../README.md](../README.md).
+**Blocks:** nothing. This is the last feature in the sequence; see [../README.md](../../README.md).
 
 **Revises:** [../pipeline/spec.md](../pipeline/spec.md) FR-3.7, FR-4.2, FR-4.3, FR-4.4, its
 *Drill-down unavailable* state row — see the Revision section. Pipeline AC-F13 is unchanged and
@@ -934,4 +934,4 @@ are globally generated and are the types the new files use.
 
 **Cross-repo:** a change to the three endpoints, the two projections, the `?q=` role restriction,
 the `PATCH` field list, or the `404`-not-`403` rule must be made in **both** specs — see
-[../../../../backend/specs/features/candidates/spec.md](../../../../backend/specs/features/candidates/spec.md).
+[../../../../backend/specs/features/candidate-access/spec.md](../../../../backend/specs/features/candidate-access/spec.md).

@@ -705,7 +705,7 @@ and a seeded database.
 [../interviews/spec.md](../interviews/spec.md) — this feature mounts into the slots that spec left
 on `/interviews/[interviewId]` and adds no route of its own (FR-1.3).
 
-**Blocks:** [../candidates/spec.md](../candidates/spec.md) — its recruiter candidate detail renders
+**Blocks:** [../candidate-access/spec.md](../candidate-access/spec.md) — its recruiter candidate detail renders
 `<FeedbackList>` from the candidate payload (FR-1.2).
 
 **New npm dependencies:** **none.** `Card`, `Button`, `Textarea`, `Badge`, `Field`, `Label`,

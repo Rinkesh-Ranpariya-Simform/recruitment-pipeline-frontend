@@ -57,7 +57,7 @@ Offers: 5
 (backend FR-7.9). That is deliberate on the backend's part: the board's payload is bounded by roles
 rather than by people, which is what keeps it usable at 20 000 candidates. So this client renders
 the board as **counts with ageing**, and the names live one click away on
-`/candidates?roleId=…&stage=…`, which is paginated and owned by the candidates feature. The board
+`/candidates?roleId=…&stage=…`, which is paginated and owned by the candidate-access feature. The board
 answers *where is this role stuck*; the drill-down answers *who*.
 
 ### Translation from the request
@@ -191,7 +191,7 @@ and a partial board would imply a scope they do not have. There is no hiring-man
 
 - **FR-4.1** With `roleId` **and** `stage` both set, `/pipeline` renders — below the board — a list
   of the candidates in that cell, from `GET /api/candidates?roleId=…&stage=…&status=ACTIVE`.
-- **FR-4.2** **That endpoint belongs to the candidates feature** and does not exist until it ships.
+- **FR-4.2** **That endpoint belongs to the candidate-access feature** and does not exist until it ships.
   Until then, the drill-down renders **"Candidate detail is not available yet."** and the stage
   cards do not link. This is the one place where this feature is knowingly incomplete, and it is
   stated rather than left to be discovered (Out of Scope).
@@ -336,7 +336,7 @@ Primitives reused: `Card`, `Badge`, `Button`, `Dialog`, `DropdownMenu`, `Select`
 | Empty, filtered | `roles: []`, a filter set | **"No candidates match these filters."** plus **Clear filters** |
 | Filtered to one role | `?roleId=3` | Only that section; the filter select shows the role title |
 | Drill-down open | `?roleId=3&stage=SCREEN` | The board, then a candidate list below it, with the cell highlighted |
-| Drill-down unavailable | candidates feature not shipped | **"Candidate detail is not available yet."** and the stage cards do not link (FR-4.2) |
+| Drill-down unavailable | candidate-access feature not shipped | **"Candidate detail is not available yet."** and the stage cards do not link (FR-4.2) |
 | Error | non-2xx other than 401/403 | Inline error card: **"Could not load the pipeline."** with **Try again** |
 
 ### State matrix — the Move menu
@@ -442,7 +442,7 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 | `PATCH /api/applications/:id/stage` | **Advance** clicked | `{ toStage }` | `200 { application }` · `409 INVALID_STAGE_TRANSITION` · `409 STAGE_CONFLICT` · `409 APPLICATION_NOT_ACTIVE` |
 | `POST /api/applications/:id/stage-override` | Override dialog submitted | `{ toStage, reason }` | `201 { application, override }` · `400` · `409` |
 | `PATCH /api/applications/:id/outcome` | **Mark hired** / **Mark rejected** | `{ status, reason? }` | `200 { application }` · `409 INVALID_STAGE_TRANSITION` · `409` |
-| `GET /api/candidates` | drill-down opens *(candidates feature)* | `roleId`, `stage`, `status=ACTIVE`, `page` | `200 { candidates, pagination }` |
+| `GET /api/candidates` | drill-down opens *(candidate-access feature)* | `roleId`, `stage`, `status=ACTIVE`, `page` | `200 { candidates, pagination }` |
 
 ### Client-side rules
 
@@ -572,7 +572,7 @@ every request behind it.
 | **EC-10** | `?stage=BANANA&roleId=-1` from a stale bookmark | The unfiltered board renders; neither parameter is sent (VAL-4) |
 | **EC-11** | A `CLOSED` role with live applications | It appears on the board with its counts and a `CLOSED` status badge. Hiding it is how people get forgotten (backend AZ-6) |
 | **EC-12** | The interviews feature has not shipped | No Interviews tile renders. The summary's six keys are all that are read (FR-2.3, XBE-9) |
-| **EC-13** | The candidates feature has not shipped | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2) |
+| **EC-13** | The candidate-access feature has not shipped | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2) |
 | **EC-14** | A recruiter's session expires mid-move | One `401`, one refresh, one replay. On a second `401`, redirect to `/login?next=/pipeline` |
 | **EC-15** | 200 roles on the board | All render; the response is bounded by roles, not candidates, and the grid scrolls vertically (XBE-8, FR-3.9) |
 | **EC-16** | A move succeeds while the dashboard is in another tab | That tab is stale until it refetches on focus. Accepted — the two tabs do not share a query client |
@@ -765,7 +765,7 @@ and a seeded database.
 | Excluded | Why |
 |---|---|
 | Candidate names on the board | The API sends none, deliberately — the board's payload is bounded by roles, not people (XBE-8, D-3). Names are one click away on `/candidates` |
-| **The drill-down candidate list itself** | It calls `GET /api/candidates`, owned by the candidates feature. Until that ships, FR-4.2's placeholder renders. Stated here rather than discovered later |
+| **The drill-down candidate list itself** | It calls `GET /api/candidates`, owned by the candidate-access feature. Until that ships, FR-4.2's placeholder renders. Stated here rather than discovered later |
 | Drag-and-drop between columns | D-4. No DnD library is vendored, and a drag that can fail three ways is a worse interaction than a menu |
 | Bulk moves | Multiplies the conflict surface for a convenience nobody asked for |
 | An Interviews dashboard tile | The API does not send the field yet; the interviews feature adds it (FR-2.3) |
@@ -783,12 +783,12 @@ and a seeded database.
 [../../../../backend/specs/features/pipeline/spec.md](../../../../backend/specs/features/pipeline/spec.md).
 **Nothing here can be verified until that ships.**
 
-**Partially blocked by:** [../candidates/spec.md](../candidates/spec.md) — the drill-down list
+**Partially blocked by:** [../candidate-access/spec.md](../candidate-access/spec.md) — the drill-down list
 (FR-4) calls `GET /api/candidates`. The board, the dashboard, moves and overrides all work without
 it; only the "who is in this cell" list waits.
 
 **Blocks:** [../interviews/spec.md](../interviews/spec.md) — which revises FR-2.3 to add the
-Interviews tile. [../candidates/spec.md](../candidates/spec.md) — which links back into
+Interviews tile. [../candidate-access/spec.md](../candidate-access/spec.md) — which links back into
 `/pipeline?roleId=`.
 
 **New npm dependencies:** **none.** `Card`, `Badge`, `Button`, `Dialog`, `DropdownMenu`, `Select`,
