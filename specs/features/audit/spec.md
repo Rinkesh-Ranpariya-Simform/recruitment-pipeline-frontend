@@ -1,18 +1,18 @@
 # Audit — Recruiter Trace Feed (Frontend)
 
-> **Status:** Draft — awaiting approval. `plan.md` is a later artifact and does not exist yet.
+> **Status:** ✅ Approved. `plan.md` deliberately skipped — implemented straight from the spec.
 > **Feature slug:** `audit`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
 > **Counterpart:** [../../../../backend/specs/features/audit/spec.md](../../../../backend/specs/features/audit/spec.md)
 > **Depends on:** [../authentication/spec.md](../authentication/spec.md) — implemented · [../roles/spec.md](../roles/spec.md) — implemented
-> **Blocked by:** the backend counterpart. **Nothing in this spec can be verified until that ships.**
+> **Blocked by:** the backend counterpart — **shipped**, so this spec is now verifiable.
 > **Parent brief:** [../../../../recruitment-pipeline.md](../../../../recruitment-pipeline.md) §6
 
 ---
 
 ## Goal
 
-1. Give a recruiter one screen that answers *"what happened, to what, by whom, and when"* — the
+1. Give a recruiter one screen that answers _"what happened, to what, by whom, and when"_ — the
    question the brief says a hiring manager asks when a candidate disputes an assessment.
 2. Make the feed **filterable by entity, action and actor**, with the filters in the URL so a
    recruiter can paste a link to exactly the trace they are reading.
@@ -38,49 +38,49 @@ The backend writes that trace; this feature is the only way to read it without a
 
 ### Translation from the request
 
-| Described | Built as |
-|---|---|
+| Described                       | Built as                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | "Audit" in the recruiter navbar | A `/audit` route in the `(app)` group, guarded by `<RequireRole allow={AUDIT_USER_ROLES}>` in a route `layout.tsx`, matching `/roles` |
-| A list of audit events | A `<Table>` from the vendored shadcn primitives — the same component `RolesTable` uses |
-| Filters | URL search params parsed by a `search-params.ts` helper, exactly as `/roles` and `/jobs` do |
-| `metadata` blobs | A per-action formatter with a raw key/value fallback |
+| A list of audit events          | A `<Table>` from the vendored shadcn primitives — the same component `RolesTable` uses                                                |
+| Filters                         | URL search params parsed by a `search-params.ts` helper, exactly as `/roles` and `/jobs` do                                           |
+| `metadata` blobs                | A per-action formatter with a raw key/value fallback                                                                                  |
 
 ### Current state of `frontend/`
 
-|                | Today |
-| -------------- | ------ |
-| Stack | Next.js 16 App Router, React 19, TanStack Query, Tailwind v4, shadcn/ui, `sonner` |
-| Data layer | `apiFetch` in [`src/lib/api.ts`](../../../src/lib/api.ts) — single-flight refresh on `401`, `/forbidden` redirect on `403` |
-| Error reading | `errorBodyOf` / `fieldMessage` in [`src/lib/error-details.ts`](../../../src/lib/error-details.ts) |
-| Query keys | `[feature, 'list', params]` / `[feature, 'detail', id]`, factories colocated with the hook |
-| Guards | `<RequireAuth>` in `(app)/layout.tsx`, `<RequireRole allow={…}>` per route group; a disallowed role gets `<NotFoundView />`, not `/forbidden` |
-| Nav | Inline in [`(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) as `NAV_SECTIONS: Record<UserRole, Array<NavSection>>` |
-| Pagination | `RolesPagination` in `features/roles/components/` — the only pager in the app |
-| Primitives | badge, button, card, dialog, dropdown-menu, field, input, label, select, separator, skeleton, sonner, table, textarea. **No tabs, popover, tooltip, command, sheet, drawer, calendar or avatar** |
-| Audit | **nothing.** No route, no nav entry, no feature folder |
+|               | Today                                                                                                                                                                                            |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Stack         | Next.js 16 App Router, React 19, TanStack Query, Tailwind v4, shadcn/ui, `sonner`                                                                                                                |
+| Data layer    | `apiFetch` in [`src/lib/api.ts`](../../../src/lib/api.ts) — single-flight refresh on `401`, `/forbidden` redirect on `403`                                                                       |
+| Error reading | `errorBodyOf` / `fieldMessage` in [`src/lib/error-details.ts`](../../../src/lib/error-details.ts)                                                                                                |
+| Query keys    | `[feature, 'list', params]` / `[feature, 'detail', id]`, factories colocated with the hook                                                                                                       |
+| Guards        | `<RequireAuth>` in `(app)/layout.tsx`, `<RequireRole allow={…}>` per route group; a disallowed role gets `<NotFoundView />`, not `/forbidden`                                                    |
+| Nav           | Inline in [`(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) as `NAV_SECTIONS: Record<UserRole, Array<NavSection>>`                                                                       |
+| Pagination    | `RolesPagination` in `features/roles/components/` — the only pager in the app                                                                                                                    |
+| Primitives    | badge, button, card, dialog, dropdown-menu, field, input, label, select, separator, skeleton, sonner, table, textarea. **No tabs, popover, tooltip, command, sheet, drawer, calendar or avatar** |
+| Audit         | **nothing.** No route, no nav entry, no feature folder                                                                                                                                           |
 
 ### Decisions carried from the interview
 
-| # | Question | Decision |
-|---|---|---|
-| D-1 | Where does the feed live? | A top-level `/audit` route, recruiter-only, plus deep links from other features' detail pages |
-| D-2 | Table or timeline? | **Table.** A trace is scanned and filtered, not read as prose, and `Table` is already vendored |
-| D-3 | Where do filters live? | **The URL.** A trace nobody can link to is a trace people screenshot |
-| D-4 | How is `metadata` rendered? | A formatter per known `action`, with a raw key/value fallback. **Never `JSON.stringify` as the primary render**, and never a crash on an unknown key |
-| D-5 | Is the feed live/polled? | **No.** A manual Refresh action, no interval. Polling an append-only table nobody is watching in real time is wasted requests |
+| #   | Question                                       | Decision                                                                                                                                                        |
+| --- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-1 | Where does the feed live?                      | A top-level `/audit` route, recruiter-only, plus deep links from other features' detail pages                                                                   |
+| D-2 | Table or timeline?                             | **Table.** A trace is scanned and filtered, not read as prose, and `Table` is already vendored                                                                  |
+| D-3 | Where do filters live?                         | **The URL.** A trace nobody can link to is a trace people screenshot                                                                                            |
+| D-4 | How is `metadata` rendered?                    | A formatter per known `action`, with a raw key/value fallback. **Never `JSON.stringify` as the primary render**, and never a crash on an unknown key            |
+| D-5 | Is the feed live/polled?                       | **No.** A manual Refresh action, no interval. Polling an append-only table nobody is watching in real time is wasted requests                                   |
 | D-6 | Does the client link `entityId` to its record? | **Yes, where the entity type has a route** — `APPLICATION` and `CANDIDATE` link into `/candidates/…` once that feature ships. Until then the id renders as text |
-| D-7 | New dependency? | **None.** Table, Select, Button, Badge, Card and `lucide-react` cover it |
+| D-7 | New dependency?                                | **None.** Table, Select, Button, Badge, Card and `lucide-react` cover it                                                                                        |
 
 ---
 
 ## Users / Actors
 
-| Actor | Sees |
-|---|---|
-| Anonymous | `/login` — `<RequireAuth>` redirects with `?next=/audit` |
-| Candidate | The app's 404. No nav entry, no route |
-| Interviewer | The app's 404. No nav entry, no route |
-| Recruiter | The full feed with all filters |
+| Actor       | Sees                                                     |
+| ----------- | -------------------------------------------------------- |
+| Anonymous   | `/login` — `<RequireAuth>` redirects with `?next=/audit` |
+| Candidate   | The app's 404. No nav entry, no route                    |
+| Interviewer | The app's 404. No nav entry, no route                    |
+| Recruiter   | The full feed with all filters                           |
 
 **Deliberate trade-off:** a candidate cannot see their own trace, matching the backend. The
 walkthrough gives candidates Jobs and My Applications only.
@@ -89,14 +89,14 @@ walkthrough gives candidates Jobs and My Applications only.
 
 ## User Stories
 
-| ID | Story |
-|---|---|
-| **US-01** | As a recruiter, I want one screen listing every recorded action, so that I do not need database access to answer a question about a candidate. |
-| **US-02** | As a recruiter, I want to filter to one application, so that a dispute about one person is one page rather than a search. |
-| **US-03** | As a recruiter, I want to filter to every stage override, so that I can review exceptions without reading everything else. |
+| ID        | Story                                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **US-01** | As a recruiter, I want one screen listing every recorded action, so that I do not need database access to answer a question about a candidate.    |
+| **US-02** | As a recruiter, I want to filter to one application, so that a dispute about one person is one page rather than a search.                         |
+| **US-03** | As a recruiter, I want to filter to every stage override, so that I can review exceptions without reading everything else.                        |
 | **US-04** | As a recruiter, I want an override's reason and the name of whoever performed it visible in the row, so that the answer is where the question is. |
-| **US-05** | As a recruiter, I want to paste a link to the trace I am reading, so that a colleague sees the same thing. |
-| **US-06** | As a recruiter, I want the page to say clearly when there is nothing to show, so that an empty feed is not indistinguishable from a broken one. |
+| **US-05** | As a recruiter, I want to paste a link to the trace I am reading, so that a colleague sees the same thing.                                        |
+| **US-06** | As a recruiter, I want the page to say clearly when there is nothing to show, so that an empty feed is not indistinguishable from a broken one.   |
 
 ---
 
@@ -127,17 +127,17 @@ walkthrough gives candidates Jobs and My Applications only.
   error**, not a blank cell. Badge variant is chosen by a second total map, so overrides read as
   exceptional.
 
-  | `action` | Label | Variant |
-  |---|---|---|
-  | `CANDIDATE_STAGE_CHANGED` | Stage changed | `secondary` |
-  | `STAGE_OVERRIDE_CREATED` | **Stage override** | `destructive` |
-  | `APPLICATION_OUTCOME_SET` | Outcome set | `default` |
-  | `INTERVIEW_CREATED` | Interview scheduled | `secondary` |
-  | `INTERVIEWER_ASSIGNED` | Interviewer assigned | `outline` |
-  | `INTERVIEWER_UNASSIGNED` | Interviewer removed | `outline` |
-  | `FEEDBACK_SUBMITTED` | Feedback submitted | `secondary` |
-  | `FEEDBACK_UPDATED` | Feedback edited | `outline` |
-  | `CANDIDATE_CONTACT_UPDATED` | Contact details updated | `outline` |
+  | `action`                    | Label                   | Variant       |
+  | --------------------------- | ----------------------- | ------------- |
+  | `CANDIDATE_STAGE_CHANGED`   | Stage changed           | `secondary`   |
+  | `STAGE_OVERRIDE_CREATED`    | **Stage override**      | `destructive` |
+  | `APPLICATION_OUTCOME_SET`   | Outcome set             | `default`     |
+  | `INTERVIEW_CREATED`         | Interview scheduled     | `secondary`   |
+  | `INTERVIEWER_ASSIGNED`      | Interviewer assigned    | `outline`     |
+  | `INTERVIEWER_UNASSIGNED`    | Interviewer removed     | `outline`     |
+  | `FEEDBACK_SUBMITTED`        | Feedback submitted      | `secondary`   |
+  | `FEEDBACK_UPDATED`          | Feedback edited         | `outline`     |
+  | `CANDIDATE_CONTACT_UPDATED` | Contact details updated | `outline`     |
 
 - **FR-2.5** **Entity** renders `<label> #<id>` — e.g. `Application #12` — from
   `ENTITY_LABELS: Record<AuditEntityType, string>`. Once the candidate-access feature ships, `CANDIDATE`
@@ -151,16 +151,16 @@ walkthrough gives candidates Jobs and My Applications only.
 
 - **FR-3.1** A formatter maps a known `action` to a short readable line:
 
-  | `action` | Rendered as |
-  |---|---|
-  | `CANDIDATE_STAGE_CHANGED` | `Applied → Screen` (stage labels, an arrow) |
-  | `STAGE_OVERRIDE_CREATED` | `Screen → Offer · skipped 1 stage` on one line, then the reason in quotes on a second, in `text-muted-foreground` |
-  | `APPLICATION_OUTCOME_SET` | `Active → Hired · at Offer` |
-  | `INTERVIEW_CREATED` | `Technical · for Interview · 24 Sep 2026` |
-  | `INTERVIEWER_ASSIGNED` / `_UNASSIGNED` | `Interviewer #5` |
-  | `FEEDBACK_SUBMITTED` | `Rated 4/5 · round #7` |
-  | `FEEDBACK_UPDATED` | `Rating 4 → 5 · round #7` |
-  | `CANDIDATE_CONTACT_UPDATED` | `Changed: phone, location` — **field names, which is all the API sends** |
+  | `action`                               | Rendered as                                                                                                       |
+  | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+  | `CANDIDATE_STAGE_CHANGED`              | `Applied → Screen` (stage labels, an arrow)                                                                       |
+  | `STAGE_OVERRIDE_CREATED`               | `Screen → Offer · skipped 1 stage` on one line, then the reason in quotes on a second, in `text-muted-foreground` |
+  | `APPLICATION_OUTCOME_SET`              | `Active → Hired · at Offer`                                                                                       |
+  | `INTERVIEW_CREATED`                    | `Technical · for Interview · 24 Sep 2026`                                                                         |
+  | `INTERVIEWER_ASSIGNED` / `_UNASSIGNED` | `Interviewer #5`                                                                                                  |
+  | `FEEDBACK_SUBMITTED`                   | `Rated 4/5 · round #7`                                                                                            |
+  | `FEEDBACK_UPDATED`                     | `Rating 4 → 5 · round #7`                                                                                         |
+  | `CANDIDATE_CONTACT_UPDATED`            | `Changed: phone, location` — **field names, which is all the API sends**                                          |
 
 - **FR-3.2** **An unknown key is rendered, not dropped**: any `metadata` key the formatter does not
   handle appears in a fallback `key: value` list below the formatted line. A trace that hides part
@@ -248,26 +248,26 @@ Primitives reused from `components/ui/`: `Table`, `Select`, `Input`, `Button`, `
 
 ### State matrix — `/audit`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | A `Skeleton` table of 8 rows; filters render and are usable |
-| Loaded | `200` with entries | The table + pager. Row count and total in a muted line above |
-| Empty, no filters | `200`, `total: 0` | **"No recorded activity yet."** with the sub-line **"Stage changes, overrides, assignments and feedback appear here as they happen."** |
-| Empty, filtered | `200`, `total: 0`, a filter active | **"No activity matches these filters."** plus a **Clear filters** button |
-| Refetching | Refresh pressed | Existing rows stay; the Refresh button shows a spinner and is disabled |
-| Query error | non-2xx other than 401/403 | An inline error card: **"Could not load the audit trail."** with a **Try again** button |
-| `403` | non-recruiter reaching it by URL despite the guard | `apiFetch` redirects to `/forbidden`. Should be unreachable; handled anyway |
-| Page past the end | `?page=999` | The empty-filtered state plus a **Back to first page** link |
+| State             | Trigger                                            | Renders                                                                                                                                |
+| ----------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Loading           | first fetch                                        | A `Skeleton` table of 8 rows; filters render and are usable                                                                            |
+| Loaded            | `200` with entries                                 | The table + pager. Row count and total in a muted line above                                                                           |
+| Empty, no filters | `200`, `total: 0`                                  | **"No recorded activity yet."** with the sub-line **"Stage changes, overrides, assignments and feedback appear here as they happen."** |
+| Empty, filtered   | `200`, `total: 0`, a filter active                 | **"No activity matches these filters."** plus a **Clear filters** button                                                               |
+| Refetching        | Refresh pressed                                    | Existing rows stay; the Refresh button shows a spinner and is disabled                                                                 |
+| Query error       | non-2xx other than 401/403                         | An inline error card: **"Could not load the audit trail."** with a **Try again** button                                                |
+| `403`             | non-recruiter reaching it by URL despite the guard | `apiFetch` redirects to `/forbidden`. Should be unreachable; handled anyway                                                            |
+| Page past the end | `?page=999`                                        | The empty-filtered state plus a **Back to first page** link                                                                            |
 
 ### State matrix — the filter bar
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Idle, no filters | bare `/audit` | Both Selects on "All"; the id input **disabled** with placeholder **"Select a type first"**; no Clear button |
-| Entity type chosen | `?entityType=APPLICATION` | The id input becomes enabled, placeholder **"Entity ID"**; Clear appears |
-| Entity type cleared | "All" chosen | The id input empties **and is disabled**, and `entityId` leaves the URL in the same navigation (FR-4.3) |
-| Id typed | debounced 400 ms | URL updates, `page` resets to 1 |
-| Any filter active | — | **Clear filters** button, navigating to `/audit` |
+| State               | Trigger                   | Renders                                                                                                      |
+| ------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Idle, no filters    | bare `/audit`             | Both Selects on "All"; the id input **disabled** with placeholder **"Select a type first"**; no Clear button |
+| Entity type chosen  | `?entityType=APPLICATION` | The id input becomes enabled, placeholder **"Entity ID"**; Clear appears                                     |
+| Entity type cleared | "All" chosen              | The id input empties **and is disabled**, and `entityId` leaves the URL in the same navigation (FR-4.3)      |
+| Id typed            | debounced 400 ms          | URL updates, `page` resets to 1                                                                              |
+| Any filter active   | —                         | **Clear filters** button, navigating to `/audit`                                                             |
 
 ### Other frontend rules
 
@@ -332,8 +332,8 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 ## API Contract
 
-| Call | When | Sends | Expects |
-|---|---|---|---|
+| Call             | When                                                         | Sends                                                                                   | Expects                                               |
+| ---------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------------- | ----------------------------------------------------- |
 | `GET /api/audit` | `/audit` mounts; any filter or page changes; Refresh pressed | `entityType`, `entityId`, `action`, `actorId`, `page` — **each omitted at its default** | `200 { entries, pagination }` · `400` · `401` · `403` |
 
 ### Client-side rules
@@ -355,11 +355,11 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 Client state only. No server state is mirrored, and nothing here is persisted.
 
-| State | Where it lives | Lifetime | Persisted? |
-|---|---|---|---|
-| Filters + page | The URL (`useSearchParams`) | Until navigation | **In the URL only** — shareable by design (D-3) |
-| Audit entries | TanStack Query cache, key `['audit','list',params]` | Until invalidated or the tab closes | **Never** — memory only |
-| Debounced `entityId` input | `useState` in `AuditFilters` | Until the component unmounts | **Never** |
+| State                      | Where it lives                                      | Lifetime                            | Persisted?                                      |
+| -------------------------- | --------------------------------------------------- | ----------------------------------- | ----------------------------------------------- |
+| Filters + page             | The URL (`useSearchParams`)                         | Until navigation                    | **In the URL only** — shareable by design (D-3) |
+| Audit entries              | TanStack Query cache, key `['audit','list',params]` | Until invalidated or the tab closes | **Never** — memory only                         |
+| Debounced `entityId` input | `useState` in `AuditFilters`                        | Until the component unmounts        | **Never**                                       |
 
 - **DM-1** No token, name, email or role is written to `localStorage`, `sessionStorage` or a cookie.
   The access token stays in memory, as the authentication feature established.
@@ -374,9 +374,9 @@ Client state only. No server state is mirrored, and nothing here is persisted.
 **This matrix is UX, not a control.** Every row describes what renders; the backend re-authorizes
 every request behind it.
 
-| Route | Anonymous | Candidate | Interviewer | Recruiter |
-|---|---|---|---|---|
-| `/audit` | → `/login?next=/audit` | app 404 | app 404 | ✅ |
+| Route    | Anonymous              | Candidate | Interviewer | Recruiter |
+| -------- | ---------------------- | --------- | ----------- | --------- |
+| `/audit` | → `/login?next=/audit` | app 404   | app 404     | ✅        |
 
 - **AZ-1** **None of the above is a security control.** `<RequireAuth>` and `<RequireRole>` decide
   what renders. `GET /api/audit` answers `403` to a non-recruiter whether or not this client ever
@@ -395,14 +395,14 @@ every request behind it.
 
 There is no form in this feature. What validation exists is URL sanitisation.
 
-| Field | Rule | Message |
-|---|---|---|
-| `entityType` (URL) | Must be one of the four enum values, else dropped | — (silent) |
-| `action` (URL) | Must be one of the nine enum values, else dropped | — (silent) |
-| `entityId` (URL) | Positive integer, else dropped. **Also dropped if `entityType` is absent** | — (silent) |
-| `actorId` (URL) | Positive integer, else dropped | — (silent) |
-| `page` (URL) | Integer ≥ 1, else 1 | — (silent) |
-| `entityId` (input) | Digits only; non-numeric keystrokes are not committed to the URL | — |
+| Field              | Rule                                                                       | Message    |
+| ------------------ | -------------------------------------------------------------------------- | ---------- |
+| `entityType` (URL) | Must be one of the four enum values, else dropped                          | — (silent) |
+| `action` (URL)     | Must be one of the nine enum values, else dropped                          | — (silent) |
+| `entityId` (URL)   | Positive integer, else dropped. **Also dropped if `entityType` is absent** | — (silent) |
+| `actorId` (URL)    | Positive integer, else dropped                                             | — (silent) |
+| `page` (URL)       | Integer ≥ 1, else 1                                                        | — (silent) |
+| `entityId` (input) | Digits only; non-numeric keystrokes are not committed to the URL           | —          |
 
 - **VAL-1** Invalid URL values are **sanitised, never forwarded** (FR-4.6). The client does not send
   a request it can predict will `400`, and does not show an error for a URL a recruiter may have
@@ -417,12 +417,12 @@ There is no form in this feature. What validation exists is URL sanitisation.
 
 ## Error Handling
 
-| Status / `code` | Where | UI behaviour |
-|---|---|---|
-| `401` | any call | `apiFetch` refreshes once and replays; a second `401` ends the session and redirects to `/login?next=/audit` |
-| `403` | any call | `apiFetch` redirects to `/forbidden`. Unreachable through the UI (AZ-1) but handled |
-| `400 VALIDATION_ERROR` | list | Inline error card: **"That filter combination isn't valid."** plus **Clear filters**. Should be unreachable given VAL-1 |
-| `500` / network | list | Inline error card: **"Could not load the audit trail."** plus **Try again** |
+| Status / `code`             | Where           | UI behaviour                                                                                                            |
+| --------------------------- | --------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `401`                       | any call        | `apiFetch` refreshes once and replays; a second `401` ends the session and redirects to `/login?next=/audit`            |
+| `403`                       | any call        | `apiFetch` redirects to `/forbidden`. Unreachable through the UI (AZ-1) but handled                                     |
+| `400 VALIDATION_ERROR`      | list            | Inline error card: **"That filter combination isn't valid."** plus **Clear filters**. Should be unreachable given VAL-1 |
+| `500` / network             | list            | Inline error card: **"Could not load the audit trail."** plus **Try again**                                             |
 | unknown `action` in a `200` | `AuditMetadata` | The raw action string in a neutral badge and the fallback key/value list. **Never a throw, never a blank row** (FR-3.3) |
 
 - **ERR-1** A **query** failure renders an inline error state with a retry. There are no mutations in
@@ -436,22 +436,22 @@ There is no form in this feature. What validation exists is URL sanitisation.
 
 ## Edge Cases
 
-| ID | Case | Behaviour |
-|---|---|---|
-| **EC-01** | The backend ships a tenth `AuditAction` before this client does | The row renders with the raw action string and the fallback metadata list. No crash, no blank row (FR-3.3) |
-| **EC-02** | `metadata` carries a key the formatter does not know | It appears in the fallback list below the formatted line. Nothing is hidden (FR-3.2) |
-| **EC-03** | `metadata` is `{}` | The Details cell renders `—` |
-| **EC-04** | An override reason is 900 characters | Rendered in full, wrapped. Not truncated, not behind a "show more" (FR-3.5) |
-| **EC-05** | A recruiter types an `entityId` with no `entityType` | Impossible through the UI — the input is disabled (FR-4.3). Via a hand-edited URL, the parameter is dropped (VAL-1) |
-| **EC-06** | A recruiter clears `entityType` while an id is set | Both leave the URL in one navigation (FR-4.3) |
-| **EC-07** | `?page=999` on a two-page result | The empty-filtered state plus **Back to first page** |
-| **EC-08** | `?action=BANANA` from a stale bookmark | Dropped during parse; the unfiltered feed renders (FR-4.6) |
-| **EC-09** | A filter changes while on page 7 | `page` resets to 1 in the same navigation (FR-4.5) |
-| **EC-10** | Zero entries on a fresh database | The unfiltered empty state, which explains what will appear here — not the filtered one |
-| **EC-11** | Two entries share a `createdAt` to the millisecond | They render in the API's order; the client does not re-sort and has no tiebreak of its own (FR-2.1) |
-| **EC-12** | A recruiter's session expires while the page is open | The next call `401`s, `apiFetch` refreshes once, and the page continues. A second `401` redirects to `/login?next=/audit` |
-| **EC-13** | The Refresh button is pressed twice quickly | TanStack Query dedupes; the rows do not flash (FR-5.2) |
-| **EC-14** | An interviewer navigates to `/audit` by typing the URL | `<NotFoundView />`. No request is issued (AZ-3) |
+| ID        | Case                                                            | Behaviour                                                                                                                 |
+| --------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | The backend ships a tenth `AuditAction` before this client does | The row renders with the raw action string and the fallback metadata list. No crash, no blank row (FR-3.3)                |
+| **EC-02** | `metadata` carries a key the formatter does not know            | It appears in the fallback list below the formatted line. Nothing is hidden (FR-3.2)                                      |
+| **EC-03** | `metadata` is `{}`                                              | The Details cell renders `—`                                                                                              |
+| **EC-04** | An override reason is 900 characters                            | Rendered in full, wrapped. Not truncated, not behind a "show more" (FR-3.5)                                               |
+| **EC-05** | A recruiter types an `entityId` with no `entityType`            | Impossible through the UI — the input is disabled (FR-4.3). Via a hand-edited URL, the parameter is dropped (VAL-1)       |
+| **EC-06** | A recruiter clears `entityType` while an id is set              | Both leave the URL in one navigation (FR-4.3)                                                                             |
+| **EC-07** | `?page=999` on a two-page result                                | The empty-filtered state plus **Back to first page**                                                                      |
+| **EC-08** | `?action=BANANA` from a stale bookmark                          | Dropped during parse; the unfiltered feed renders (FR-4.6)                                                                |
+| **EC-09** | A filter changes while on page 7                                | `page` resets to 1 in the same navigation (FR-4.5)                                                                        |
+| **EC-10** | Zero entries on a fresh database                                | The unfiltered empty state, which explains what will appear here — not the filtered one                                   |
+| **EC-11** | Two entries share a `createdAt` to the millisecond              | They render in the API's order; the client does not re-sort and has no tiebreak of its own (FR-2.1)                       |
+| **EC-12** | A recruiter's session expires while the page is open            | The next call `401`s, `apiFetch` refreshes once, and the page continues. A second `401` redirects to `/login?next=/audit` |
+| **EC-13** | The Refresh button is pressed twice quickly                     | TanStack Query dedupes; the rows do not flash (FR-5.2)                                                                    |
+| **EC-14** | An interviewer navigates to `/audit` by typing the URL          | `<NotFoundView />`. No request is issued (AZ-3)                                                                           |
 
 ---
 
@@ -588,15 +588,15 @@ live feed.
 
 - **AC-M01** — **Given** a full session as R across every filter combination, **when** every
   `/api/audit` response body in the Network tab is searched, **then** the strings `"email"`,
-  `"phone"` and `"notes"` appear **zero** times. *Verified in the payload, not the DOM* (XBE-6,
+  `"phone"` and `"notes"` appear **zero** times. _Verified in the payload, not the DOM_ (XBE-6,
   SEC-3).
 - **AC-M02** — **Given** the same session, **when** `localStorage`, `sessionStorage` and
   `document.cookie` are read in the console at the end, **then** **none** contains a token, a name,
   an email, or any audit entry (DM-1, DM-2, SEC-2).
 - **AC-M03** — **Given** an **interviewer** session, **when**
   `fetch('<API>/api/audit', { headers: { Authorization: 'Bearer ' + token } })` is issued **by hand
-  from the DevTools console**, **then** the response is **`403`**. *This is the criterion that
-  proves neither the hidden nav link nor the route guard is what is protecting the endpoint*
+  from the DevTools console**, **then** the response is **`403`**. _This is the criterion that
+  proves neither the hidden nav link nor the route guard is what is protecting the endpoint_
   (AZ-1, SEC-1, XBE-1).
 - **AC-M04** — **Given** R, **when** `/audit?entityId=12` is opened **without** an `entityType`,
   **then** the request carries neither parameter and the response is `200` — the client never
@@ -609,16 +609,16 @@ live feed.
 
 ## Out of Scope
 
-| Excluded | Why |
-|---|---|
-| A candidate- or interviewer-facing trace | The backend answers `403`; disclosure to either is a product decision this POC does not make |
-| Exporting the feed to CSV | The brief asks for a trace, not a reporting tool |
-| Live updates / websockets / polling | D-5. Nothing on this screen changes while a recruiter reads it, and polling an append-only table is wasted requests |
-| An actor picker for the `actorId` filter | Needs a user-search endpoint that does not exist. The parameter is honoured from the URL instead (FR-4.4) |
-| Date-range filtering | The API offers no date parameters, and a client-side range over a paginated feed would be wrong |
-| Grouping entries into a per-entity timeline | The candidate-access feature renders a candidate's timeline from `stageHistory`, which is the right source for it |
-| Deleting or editing entries | The API has no such route (XBE-11) |
-| Virtualising the table | The page size is fixed at 20 by the server default (PERF-5) |
+| Excluded                                    | Why                                                                                                                 |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| A candidate- or interviewer-facing trace    | The backend answers `403`; disclosure to either is a product decision this POC does not make                        |
+| Exporting the feed to CSV                   | The brief asks for a trace, not a reporting tool                                                                    |
+| Live updates / websockets / polling         | D-5. Nothing on this screen changes while a recruiter reads it, and polling an append-only table is wasted requests |
+| An actor picker for the `actorId` filter    | Needs a user-search endpoint that does not exist. The parameter is honoured from the URL instead (FR-4.4)           |
+| Date-range filtering                        | The API offers no date parameters, and a client-side range over a paginated feed would be wrong                     |
+| Grouping entries into a per-entity timeline | The candidate-access feature renders a candidate's timeline from `stageHistory`, which is the right source for it   |
+| Deleting or editing entries                 | The API has no such route (XBE-11)                                                                                  |
+| Virtualising the table                      | The page size is fixed at 20 by the server default (PERF-5)                                                         |
 
 ---
 
@@ -639,10 +639,10 @@ time uses `Intl.RelativeTimeFormat` (FE-8).
 
 **Modified existing files**
 
-| Path | Change |
-|---|---|
+| Path                                                              | Change                                                                   |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) | `NAV_SECTIONS.RECRUITER` gains a **Records** section with the Audit link |
-| [`CLAUDE.md`](../../../CLAUDE.md) | Feature table row |
+| [`CLAUDE.md`](../../../CLAUDE.md)                                 | Feature table row                                                        |
 
 **Framework note.** **This is Next.js 16; its APIs differ from older versions.**
 `AuditView` reads `useSearchParams()`, so `page.tsx` **must** wrap it in `<Suspense>` or

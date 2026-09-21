@@ -55,24 +55,24 @@ field invites a component to render it; a type that has no such field cannot.
 
 ### Translation from the request
 
-| Described | Built as |
-|---|---|
-| Interviewer navbar: "My Interviews" | The existing `/my-interviews` stub, filled |
-| Recruiter navbar: "Interviews" | A new `/interviews` route — the same API endpoint, the recruiter's projection |
+| Described                                         | Built as                                                                                                                     |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Interviewer navbar: "My Interviews"               | The existing `/my-interviews` stub, filled                                                                                   |
+| Recruiter navbar: "Interviews"                    | A new `/interviews` route — the same API endpoint, the recruiter's projection                                                |
 | "Interview Details" with a Submit Feedback button | `/interviews/[interviewId]`, shared by both roles with two different views. The feedback form itself is the feedback feature |
-| "Assign interviewer" | A `<Dialog>` on the recruiter's round detail, sourcing its picker from the shipped `GET /api/users` |
+| "Assign interviewer"                              | A `<Dialog>` on the recruiter's round detail, sourcing its picker from the shipped `GET /api/users`                          |
 
 ## Revision to the pipeline spec — the dashboard gains an Interviews tile
 
 **What changes:** [../pipeline/spec.md](../pipeline/spec.md) FR-2.3 states there is no Interviews
 tile because the API does not send the field. It sends it now. `/dashboard` renders a **seventh
-tile**, *Interviews*, from `summary.interviews` — the count of scheduled rounds — linking to
+tile**, _Interviews_, from `summary.interviews` — the count of scheduled rounds — linking to
 `/interviews`.
 
 **What this reverses:** pipeline FR-2.3, pipeline XBE-9, and pipeline AC-F07, which asserted the
 tile's absence.
 
-**Why it is being overridden:** the walkthrough's dashboard has four headline tiles and *Interviews*
+**Why it is being overridden:** the walkthrough's dashboard has four headline tiles and _Interviews_
 is one of them. It was deferred purely on build order.
 
 **What makes it safe:** one additional key on a response the page already fetches. No new request,
@@ -86,38 +86,38 @@ revision), XBE-9 (inverted), AC-F06 and AC-F07. The backend counterpart is revis
 
 ### Current state of `frontend/`
 
-|                | Today |
-| -------------- | ------ |
+|                  | Today                                                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/my-interviews` | A **placeholder page** rendering the signed-in user's name — and it is the interviewer's `ROLE_LANDING`, so an interviewer logging in lands on it |
-| Guards | `<RequireRole allow={['INTERVIEWER']}>` already wraps `/my-interviews` in its `layout.tsx` |
-| Nav | Interviewer sees **My interviews** + Profile. Recruiter sees Dashboard, Pipeline, Roles (after the pipeline feature) |
-| `GET /api/users` | Shipped, recruiter-gated, returns **interviewers only**. **It has had no frontend caller** — this feature is its first |
-| Primitives | **No calendar or date-picker component is vendored.** `Input type="datetime-local"` is the option available |
-| Dialog pattern | `RoleFormDialog.tsx` — `react-hook-form` + `zodResolver`, schema in `src/lib/schemas/` |
+| Guards           | `<RequireRole allow={['INTERVIEWER']}>` already wraps `/my-interviews` in its `layout.tsx`                                                        |
+| Nav              | Interviewer sees **My interviews** + Profile. Recruiter sees Dashboard, Pipeline, Roles (after the pipeline feature)                              |
+| `GET /api/users` | Shipped, recruiter-gated, returns **interviewers only**. **It has had no frontend caller** — this feature is its first                            |
+| Primitives       | **No calendar or date-picker component is vendored.** `Input type="datetime-local"` is the option available                                       |
+| Dialog pattern   | `RoleFormDialog.tsx` — `react-hook-form` + `zodResolver`, schema in `src/lib/schemas/`                                                            |
 
 ### Decisions carried from the interview
 
-| # | Question | Decision |
-|---|---|---|
-| D-1 | One detail route or two? | **One route, `/interviews/[interviewId]`, two views.** The API returns two shapes by role; the route renders `<RecruiterInterviewDetail>` or `<InterviewerInterviewDetail>` by role. **Not one component with conditional fields** |
-| D-2 | Two types or one with optionals? | **Two interfaces.** `InterviewerInterview` has no `email`, no `assignments`. A type with `assignments?` is a component away from rendering a panel to someone who was not sent one |
-| D-3 | Where does a recruiter schedule a round? | On the **candidate detail page** (candidate-access feature) and on the recruiter's `/interviews` list. Both call the same dialog |
-| D-4 | Date input? | **`Input type="datetime-local"`.** No calendar primitive is vendored and adding a date library for one field is not worth it |
-| D-5 | Past dates? | **Allowed**, matching the API. Backfilling a round that already happened is normal (XBE-9) |
-| D-6 | Where does the interviewer picker get its list? | **`GET /api/users`**, which returns interviewers only. Already-assigned people are disabled in it — UX, with the `409` as the control |
-| D-7 | Does the interviewer see their panel colleagues? | **No.** Their payload carries no `assignments` (XBE-3). They learn who else wrote what from the **feedback** list, which is the feedback feature |
-| D-8 | New dependency? | **None** |
+| #   | Question                                         | Decision                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-1 | One detail route or two?                         | **One route, `/interviews/[interviewId]`, two views.** The API returns two shapes by role; the route renders `<RecruiterInterviewDetail>` or `<InterviewerInterviewDetail>` by role. **Not one component with conditional fields** |
+| D-2 | Two types or one with optionals?                 | **Two interfaces.** `InterviewerInterview` has no `email`, no `assignments`. A type with `assignments?` is a component away from rendering a panel to someone who was not sent one                                                 |
+| D-3 | Where does a recruiter schedule a round?         | On the **candidate detail page** (candidate-access feature) and on the recruiter's `/interviews` list. Both call the same dialog                                                                                                   |
+| D-4 | Date input?                                      | **`Input type="datetime-local"`.** No calendar primitive is vendored and adding a date library for one field is not worth it                                                                                                       |
+| D-5 | Past dates?                                      | **Allowed**, matching the API. Backfilling a round that already happened is normal (XBE-9)                                                                                                                                         |
+| D-6 | Where does the interviewer picker get its list?  | **`GET /api/users`**, which returns interviewers only. Already-assigned people are disabled in it — UX, with the `409` as the control                                                                                              |
+| D-7 | Does the interviewer see their panel colleagues? | **No.** Their payload carries no `assignments` (XBE-3). They learn who else wrote what from the **feedback** list, which is the feedback feature                                                                                   |
+| D-8 | New dependency?                                  | **None**                                                                                                                                                                                                                           |
 
 ---
 
 ## Users / Actors
 
-| Actor | Sees |
-|---|---|
-| Anonymous | `/login` with `?next=` |
-| Candidate | The app's 404 on every route here |
+| Actor       | Sees                                                                                                                 |
+| ----------- | -------------------------------------------------------------------------------------------------------------------- |
+| Anonymous   | `/login` with `?next=`                                                                                               |
+| Candidate   | The app's 404 on every route here                                                                                    |
 | Interviewer | `/my-interviews` and `/interviews/[id]` **for assigned rounds only** — name, role title, round, no panel, no contact |
-| Recruiter | `/interviews`, any round's detail with its panel, scheduling and assignment |
+| Recruiter   | `/interviews`, any round's detail with its panel, scheduling and assignment                                          |
 
 **Deliberate trade-offs:** an interviewer sees neither their panel colleagues (D-7) nor the
 candidate's other rounds. A candidate has no interview surface at all — the walkthrough gives them
@@ -127,15 +127,15 @@ Jobs and My Applications.
 
 ## User Stories
 
-| ID | Story |
-|---|---|
-| **US-01** | As an interviewer, I want my own list of rounds on login, so that I know what I am doing this week. |
-| **US-02** | As an interviewer, I want the round's detail to tell me who and for what, so that I can prepare. |
-| **US-03** | As an interviewer, I want no way to reach a round I am not on, so that the boundary is the system's. |
-| **US-04** | As a recruiter, I want to schedule a typed round against an application. |
-| **US-05** | As a recruiter, I want to put two interviewers on one round, so that a panel is representable. |
-| **US-06** | As a recruiter, I want a duplicate assignment refused clearly, so that a double-click is not a mystery. |
-| **US-07** | As a recruiter, I want to remove an interviewer, so that a reassignment is possible. |
+| ID        | Story                                                                                                        |
+| --------- | ------------------------------------------------------------------------------------------------------------ |
+| **US-01** | As an interviewer, I want my own list of rounds on login, so that I know what I am doing this week.          |
+| **US-02** | As an interviewer, I want the round's detail to tell me who and for what, so that I can prepare.             |
+| **US-03** | As an interviewer, I want no way to reach a round I am not on, so that the boundary is the system's.         |
+| **US-04** | As a recruiter, I want to schedule a typed round against an application.                                     |
+| **US-05** | As a recruiter, I want to put two interviewers on one round, so that a panel is representable.               |
+| **US-06** | As a recruiter, I want a duplicate assignment refused clearly, so that a double-click is not a mystery.      |
+| **US-07** | As a recruiter, I want to remove an interviewer, so that a reassignment is possible.                         |
 | **US-08** | As a recruiter, I want an Interviews count on my dashboard, so that the tile the walkthrough shows is there. |
 
 ---
@@ -165,7 +165,7 @@ Jobs and My Applications.
   carries (XBE-3). There is no email column, no phone column, and **no conditional that could add
   one**.
 - **FR-2.4** **Round** renders a type label from `INTERVIEW_TYPE_LABELS: Record<InterviewType,
-  string>` — a total map, so a new backend type is a compile error.
+string>` — a total map, so a new backend type is a compile error.
 - **FR-2.5** **When** renders an absolute date and time, with a relative hint. Past rounds are
   normal (D-5) and are not styled as errors.
 - **FR-2.6** **Status** renders a `<Badge>`: `SCHEDULED` neutral, `COMPLETED` secondary,
@@ -328,66 +328,66 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
 
 ### State matrix — `/my-interviews`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | A 6-row skeleton table |
-| Loaded | `200` with rows | The table; each row links to the detail |
-| Empty | `200`, `total: 0` | **"You have no interviews assigned."** + **"A recruiter will assign you to interview rounds. They will appear here."** |
-| Empty, filtered | `?status=COMPLETED`, none | **"No interviews match this filter."** + **Clear filter** |
-| Cancelled row present | `status: CANCELLED` | A destructive badge on that row; the row is still listed and still clickable (XBE-6) |
-| Error | non-2xx other than 401/403 | Inline error card **"Could not load your interviews."** + **Try again** |
+| State                 | Trigger                    | Renders                                                                                                                |
+| --------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Loading               | first fetch                | A 6-row skeleton table                                                                                                 |
+| Loaded                | `200` with rows            | The table; each row links to the detail                                                                                |
+| Empty                 | `200`, `total: 0`          | **"You have no interviews assigned."** + **"A recruiter will assign you to interview rounds. They will appear here."** |
+| Empty, filtered       | `?status=COMPLETED`, none  | **"No interviews match this filter."** + **Clear filter**                                                              |
+| Cancelled row present | `status: CANCELLED`        | A destructive badge on that row; the row is still listed and still clickable (XBE-6)                                   |
+| Error                 | non-2xx other than 401/403 | Inline error card **"Could not load your interviews."** + **Try again**                                                |
 
 ### State matrix — `/interviews/[interviewId]`, interviewer
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | A detail skeleton |
-| Loaded, assigned | `200` | Candidate **name**, role title, round type, stage, time, status. **No panel, no contact fields** (FR-3.3) |
-| Cancelled | `status: CANCELLED` | A banner **"This interview was cancelled."** above the detail |
-| `404` | not found **or** not assigned | `<NotFoundView />` — **indistinguishable, deliberately** (FR-3.7, XBE-5) |
-| Error | `500` / network | Inline error card + **Try again** |
+| State            | Trigger                       | Renders                                                                                                   |
+| ---------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Loading          | first fetch                   | A detail skeleton                                                                                         |
+| Loaded, assigned | `200`                         | Candidate **name**, role title, round type, stage, time, status. **No panel, no contact fields** (FR-3.3) |
+| Cancelled        | `status: CANCELLED`           | A banner **"This interview was cancelled."** above the detail                                             |
+| `404`            | not found **or** not assigned | `<NotFoundView />` — **indistinguishable, deliberately** (FR-3.7, XBE-5)                                  |
+| Error            | `500` / network               | Inline error card + **Try again**                                                                         |
 
 ### State matrix — `/interviews/[interviewId]`, recruiter
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loaded | `200` | The interviewer's fields plus application stage/status, a candidate link, the panel, and status actions |
-| Unassigned panel | `assignments: []` | **"No interviewers assigned yet."** in a warning tone, plus **Assign interviewer** |
-| Terminal round | `COMPLETED` / `CANCELLED` | Status actions hidden; the panel stays read-write (FR-5.4) |
-| `404` | no such round | `<NotFoundView />` |
+| State            | Trigger                   | Renders                                                                                                 |
+| ---------------- | ------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Loaded           | `200`                     | The interviewer's fields plus application stage/status, a candidate link, the panel, and status actions |
+| Unassigned panel | `assignments: []`         | **"No interviewers assigned yet."** in a warning tone, plus **Assign interviewer**                      |
+| Terminal round   | `COMPLETED` / `CANCELLED` | Status actions hidden; the panel stays read-write (FR-5.4)                                              |
+| `404`            | no such round             | `<NotFoundView />`                                                                                      |
 
 ### State matrix — Schedule interview dialog
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Open | **Schedule interview** clicked | Type select (no default), Stage select **defaulted to the application's current stage**, empty datetime, Submit disabled |
-| Incomplete | any field empty | Submit disabled; field messages on blur |
-| Past date entered | — | **Accepted with no warning** (FR-6.4, D-5) |
-| Submitting | in flight | Submit reads **"Scheduling…"**, fields disabled |
-| `201` | — | Dialog closes; toast **"Interview scheduled."**; queries invalidated |
-| `400` | — | Field messages via `fieldMessage`; **dialog stays open, values intact** |
-| `409 APPLICATION_NOT_ACTIVE` | — | Dialog closes; toast **"This application is closed. Reopen it before scheduling."** |
+| State                        | Trigger                        | Renders                                                                                                                  |
+| ---------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| Open                         | **Schedule interview** clicked | Type select (no default), Stage select **defaulted to the application's current stage**, empty datetime, Submit disabled |
+| Incomplete                   | any field empty                | Submit disabled; field messages on blur                                                                                  |
+| Past date entered            | —                              | **Accepted with no warning** (FR-6.4, D-5)                                                                               |
+| Submitting                   | in flight                      | Submit reads **"Scheduling…"**, fields disabled                                                                          |
+| `201`                        | —                              | Dialog closes; toast **"Interview scheduled."**; queries invalidated                                                     |
+| `400`                        | —                              | Field messages via `fieldMessage`; **dialog stays open, values intact**                                                  |
+| `409 APPLICATION_NOT_ACTIVE` | —                              | Dialog closes; toast **"This application is closed. Reopen it before scheduling."**                                      |
 
 ### State matrix — Assign interviewer dialog
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Open | **Assign interviewer** clicked | A select of interviewers; already-assigned ones **disabled** with **"— already assigned"** |
-| Loading the list | `GET /api/users` in flight | The select is disabled with placeholder **"Loading interviewers…"** |
-| No interviewers exist | `users: []` | **"No interviewer accounts exist yet."**; Submit disabled |
-| Submitting | in flight | Submit reads **"Assigning…"** |
-| `201` | — | Dialog closes; toast **"{name} assigned."**; detail invalidated |
-| `409 ALREADY_ASSIGNED` | — | Toast **"That interviewer is already on this round."**; detail invalidated |
-| `400 NOT_AN_INTERVIEWER` | — | Toast **"That user cannot be assigned as an interviewer."** |
+| State                    | Trigger                        | Renders                                                                                    |
+| ------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------ |
+| Open                     | **Assign interviewer** clicked | A select of interviewers; already-assigned ones **disabled** with **"— already assigned"** |
+| Loading the list         | `GET /api/users` in flight     | The select is disabled with placeholder **"Loading interviewers…"**                        |
+| No interviewers exist    | `users: []`                    | **"No interviewer accounts exist yet."**; Submit disabled                                  |
+| Submitting               | in flight                      | Submit reads **"Assigning…"**                                                              |
+| `201`                    | —                              | Dialog closes; toast **"{name} assigned."**; detail invalidated                            |
+| `409 ALREADY_ASSIGNED`   | —                              | Toast **"That interviewer is already on this round."**; detail invalidated                 |
+| `400 NOT_AN_INTERVIEWER` | —                              | Toast **"That user cannot be assigned as an interviewer."**                                |
 
 ### State matrix — Remove interviewer
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Confirm | **Remove** clicked | Dialog: **"Remove {name} from this interview?"** and the body **"They will lose access to this candidate immediately. Feedback they have already submitted is kept."** |
-| Submitting | in flight | Confirm reads **"Removing…"** |
-| `204` | — | Dialog closes; toast **"{name} removed."**; detail invalidated |
-| `404` | — | Toast **"That interviewer is no longer on this round."**; detail invalidated |
+| State      | Trigger            | Renders                                                                                                                                                                |
+| ---------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Confirm    | **Remove** clicked | Dialog: **"Remove {name} from this interview?"** and the body **"They will lose access to this candidate immediately. Feedback they have already submitted is kept."** |
+| Submitting | in flight          | Confirm reads **"Removing…"**                                                                                                                                          |
+| `204`      | —                  | Dialog closes; toast **"{name} removed."**; detail invalidated                                                                                                         |
+| `404`      | —                  | Toast **"That interviewer is no longer on this round."**; detail invalidated                                                                                           |
 
 ### Other frontend rules
 
@@ -433,6 +433,7 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
 
   A single interface with `assignments?` would be one `&&` away from rendering a panel to someone
   the API did not send one to.
+
 - **FE-5** `[interviewId]/page.tsx` dispatches on `useAuth().role` to one of the two components
   (D-1). **Neither component takes the other's type**, so a mistaken dispatch is a compile error
   rather than a leak.
@@ -493,15 +494,15 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 ## API Contract
 
-| Call | When | Sends | Expects |
-|---|---|---|---|
-| `GET /api/interviews` | `/my-interviews` or `/interviews` mounts; a filter or page changes | `status`, `roleId`, `applicationId`, `page` — omitted at defaults | `200 { interviews, pagination }` · `400` · `403` |
-| `GET /api/interviews/:id` | detail mounts | — | `200 { interview }` · `404` |
-| `POST /api/applications/:id/interviews` | Schedule submitted | `{ type, stage, scheduledAt }` | `201 { interview }` · `400` · `409 APPLICATION_NOT_ACTIVE` |
-| `PATCH /api/interviews/:id` | Mark completed / Cancel | `{ status }` | `200 { interview }` · `409 INVALID_STAGE_TRANSITION` |
-| `POST /api/interviews/:id/assignments` | Assign submitted | `{ interviewerId }` | `201 { assignment }` · `400 NOT_AN_INTERVIEWER` · `409 ALREADY_ASSIGNED` |
-| `DELETE /api/interviews/:id/assignments/:userId` | Remove confirmed | — | `204` · `404` |
-| `GET /api/users` | Assign dialog opens | — | `200 { users }` · `403` |
+| Call                                             | When                                                               | Sends                                                             | Expects                                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `GET /api/interviews`                            | `/my-interviews` or `/interviews` mounts; a filter or page changes | `status`, `roleId`, `applicationId`, `page` — omitted at defaults | `200 { interviews, pagination }` · `400` · `403`                         |
+| `GET /api/interviews/:id`                        | detail mounts                                                      | —                                                                 | `200 { interview }` · `404`                                              |
+| `POST /api/applications/:id/interviews`          | Schedule submitted                                                 | `{ type, stage, scheduledAt }`                                    | `201 { interview }` · `400` · `409 APPLICATION_NOT_ACTIVE`               |
+| `PATCH /api/interviews/:id`                      | Mark completed / Cancel                                            | `{ status }`                                                      | `200 { interview }` · `409 INVALID_STAGE_TRANSITION`                     |
+| `POST /api/interviews/:id/assignments`           | Assign submitted                                                   | `{ interviewerId }`                                               | `201 { assignment }` · `400 NOT_AN_INTERVIEWER` · `409 ALREADY_ASSIGNED` |
+| `DELETE /api/interviews/:id/assignments/:userId` | Remove confirmed                                                   | —                                                                 | `204` · `404`                                                            |
+| `GET /api/users`                                 | Assign dialog opens                                                | —                                                                 | `200 { users }` · `403`                                                  |
 
 ### Client-side rules
 
@@ -520,12 +521,12 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 Client state only.
 
-| State | Where it lives | Lifetime | Persisted? |
-|---|---|---|---|
-| `status`, `roleId`, `applicationId`, `page` | The URL | Until navigation | **In the URL only** |
-| Interview list and detail | TanStack Query cache | Until invalidated or the tab closes | **Never** — memory only |
-| The interviewer list for the picker | Query cache, `['users','interviewers']` | Until the tab closes | **Never** |
-| Dialog form fields | `react-hook-form` state | Until the dialog closes | **Never** |
+| State                                       | Where it lives                          | Lifetime                            | Persisted?              |
+| ------------------------------------------- | --------------------------------------- | ----------------------------------- | ----------------------- |
+| `status`, `roleId`, `applicationId`, `page` | The URL                                 | Until navigation                    | **In the URL only**     |
+| Interview list and detail                   | TanStack Query cache                    | Until invalidated or the tab closes | **Never** — memory only |
+| The interviewer list for the picker         | Query cache, `['users','interviewers']` | Until the tab closes                | **Never**               |
+| Dialog form fields                          | `react-hook-form` state                 | Until the dialog closes             | **Never**               |
 
 - **DM-1** No token, name, email or role is written to `localStorage`, `sessionStorage` or a cookie.
 - **DM-2** **No candidate data is persisted anywhere on the client.**
@@ -538,11 +539,11 @@ Client state only.
 **This matrix is UX, not a control.** Every row describes what renders; the backend re-authorizes
 every request behind it.
 
-| Route | Anonymous | Candidate | Interviewer | Recruiter |
-|---|---|---|---|---|
-| `/my-interviews` | → `/login?next=…` | app 404 | ✅ | app 404 |
-| `/interviews` | → `/login?next=…` | app 404 | app 404 | ✅ |
-| `/interviews/[id]` | → `/login?next=…` | app 404 | ✅ **assigned only → app 404** | ✅ |
+| Route              | Anonymous         | Candidate | Interviewer                    | Recruiter |
+| ------------------ | ----------------- | --------- | ------------------------------ | --------- |
+| `/my-interviews`   | → `/login?next=…` | app 404   | ✅                             | app 404   |
+| `/interviews`      | → `/login?next=…` | app 404   | app 404                        | ✅        |
+| `/interviews/[id]` | → `/login?next=…` | app 404   | ✅ **assigned only → app 404** | ✅        |
 
 - **AZ-1** **None of the above is a security control.** `<RequireAuth>` and `<RequireRole>` decide
   what renders; the API's `403` and `404` are what protect the data.
@@ -567,16 +568,16 @@ every request behind it.
 
 ### `scheduleInterviewSchema` — new, in [`lib/schemas/interview.ts`](../../../src/lib/schemas/interview.ts)
 
-| Field | Rule | Message |
-|---|---|---|
-| `type` | one of the five `InterviewType` values, required | **"Choose an interview type."** |
-| `stage` | one of the four `PipelineStage` values, required | **"Choose the stage this round is for."** |
-| `scheduledAt` | a valid datetime, required. **No minimum** | **"Choose a date and time."** |
+| Field         | Rule                                             | Message                                   |
+| ------------- | ------------------------------------------------ | ----------------------------------------- |
+| `type`        | one of the five `InterviewType` values, required | **"Choose an interview type."**           |
+| `stage`       | one of the four `PipelineStage` values, required | **"Choose the stage this round is for."** |
+| `scheduledAt` | a valid datetime, required. **No minimum**       | **"Choose a date and time."**             |
 
 ### `assignInterviewerSchema`
 
-| Field | Rule | Message |
-|---|---|---|
+| Field           | Rule                       | Message                      |
+| --------------- | -------------------------- | ---------------------------- |
 | `interviewerId` | positive integer, required | **"Choose an interviewer."** |
 
 - **VAL-1** `scheduledAt` carries **no `.min(new Date())`** (D-5, XBE-9). Backfilling a round that
@@ -594,19 +595,19 @@ every request behind it.
 
 ## Error Handling
 
-| Status / `code` | Where | UI behaviour |
-|---|---|---|
-| `401` | any call | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…` |
-| `403` | any call | `apiFetch` redirects to `/forbidden`. Unreachable through the UI; handled |
-| `404` | detail | `<NotFoundView />`. **Not retried** (FE-10). Covers both "no such round" and "not assigned" (FR-3.7) |
-| `400 VALIDATION_ERROR` | schedule dialog | Field messages via `fieldMessage`; **dialog stays open, values intact** |
-| `400 NOT_AN_INTERVIEWER` | assign | Toast **"That user cannot be assigned as an interviewer."** |
-| `409 ALREADY_ASSIGNED` | assign | Toast **"That interviewer is already on this round."**; detail invalidated |
-| `409 APPLICATION_NOT_ACTIVE` | schedule | Toast **"This application is closed. Reopen it before scheduling."**; dialog closes |
-| `409 INVALID_STAGE_TRANSITION` | status change | Toast **"This interview is already closed."**; detail invalidated |
-| `404` | remove assignment | Toast **"That interviewer is no longer on this round."**; detail invalidated |
-| `500` / network | reads | Inline error card + **Try again** |
-| `500` / network | writes | Error toast; **the dialog and its values are left as they were** |
+| Status / `code`                | Where             | UI behaviour                                                                                         |
+| ------------------------------ | ----------------- | ---------------------------------------------------------------------------------------------------- |
+| `401`                          | any call          | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…`                   |
+| `403`                          | any call          | `apiFetch` redirects to `/forbidden`. Unreachable through the UI; handled                            |
+| `404`                          | detail            | `<NotFoundView />`. **Not retried** (FE-10). Covers both "no such round" and "not assigned" (FR-3.7) |
+| `400 VALIDATION_ERROR`         | schedule dialog   | Field messages via `fieldMessage`; **dialog stays open, values intact**                              |
+| `400 NOT_AN_INTERVIEWER`       | assign            | Toast **"That user cannot be assigned as an interviewer."**                                          |
+| `409 ALREADY_ASSIGNED`         | assign            | Toast **"That interviewer is already on this round."**; detail invalidated                           |
+| `409 APPLICATION_NOT_ACTIVE`   | schedule          | Toast **"This application is closed. Reopen it before scheduling."**; dialog closes                  |
+| `409 INVALID_STAGE_TRANSITION` | status change     | Toast **"This interview is already closed."**; detail invalidated                                    |
+| `404`                          | remove assignment | Toast **"That interviewer is no longer on this round."**; detail invalidated                         |
+| `500` / network                | reads             | Inline error card + **Try again**                                                                    |
+| `500` / network                | writes            | Error toast; **the dialog and its values are left as they were**                                     |
 
 - **ERR-1** A **query** failure renders an inline error state with a retry. A **mutation** failure
   raises a toast and leaves the form as it was — **the recruiter's input is never discarded by a
@@ -620,25 +621,25 @@ every request behind it.
 
 ## Edge Cases
 
-| ID | Case | Behaviour |
-|---|---|---|
-| **EC-01** | An interviewer pastes the URL of a round they are not on | `<NotFoundView />`, identical to a nonexistent id. **No copy suggests a permission problem** (FR-3.7, ERR-2, XBE-5) |
-| **EC-02** | An interviewer is unassigned while their detail page is open | Their next refetch returns `404` and the page becomes the not-found view. No re-login needed (XBE-13) |
-| **EC-03** | A recruiter removes the last interviewer | The panel shows **"No interviewers assigned yet."** in a warning tone (FR-4.3, FR-5.2) |
-| **EC-04** | A recruiter double-clicks Assign with the same person | First `201`, second `409 ALREADY_ASSIGNED` → toast and invalidation, which re-disables the option (FR-7.4) |
-| **EC-05** | The picker shows someone who was assigned in another tab | They appear enabled until the detail refetches; assigning them gets the `409` and the correct message (AZ-4) |
-| **EC-06** | No interviewer accounts exist | The assign dialog renders **"No interviewer accounts exist yet."** and Submit is disabled |
-| **EC-07** | A round is scheduled in the past | `201`, no warning (FR-6.4, VAL-1) |
-| **EC-08** | A round's stage differs from the application's current stage | Rendered as-is. The round's stage is what it is **for** (FR-6.3, XBE-8) |
-| **EC-09** | A cancelled round in an interviewer's list | Listed, with a destructive badge; its detail shows the cancellation banner (FR-2.6, FR-3.5, XBE-6) |
-| **EC-10** | A recruiter cancels a round with feedback on it | Assignments and feedback stay; the confirmation said so (FR-5.3, XBE-7) |
-| **EC-11** | A recruiter tries to cancel an already-cancelled round | The action is hidden. If fired anyway, `409` → toast (FR-5.4, AZ-5) |
-| **EC-12** | Scheduling against a rejected application | `409 APPLICATION_NOT_ACTIVE` → toast; the dialog closes (FR-6.6) |
-| **EC-13** | `?status=BANANA&page=-2` | The unfiltered first page renders; neither parameter is sent (VAL-3) |
-| **EC-14** | An interviewer with no assignments logs in | `/my-interviews` shows the explanatory empty state, **not** a bare "no results" (FR-2.9) |
-| **EC-15** | A browser in IST schedules 9:30 | The request carries the correct UTC instant, not `09:30Z` (VAL-2) |
-| **EC-16** | A recruiter opens `/my-interviews` | The app's 404 — that route is the interviewer's (AZ-1) |
-| **EC-17** | A session expires mid-assignment | One `401`, one refresh, one replay |
+| ID        | Case                                                         | Behaviour                                                                                                           |
+| --------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | An interviewer pastes the URL of a round they are not on     | `<NotFoundView />`, identical to a nonexistent id. **No copy suggests a permission problem** (FR-3.7, ERR-2, XBE-5) |
+| **EC-02** | An interviewer is unassigned while their detail page is open | Their next refetch returns `404` and the page becomes the not-found view. No re-login needed (XBE-13)               |
+| **EC-03** | A recruiter removes the last interviewer                     | The panel shows **"No interviewers assigned yet."** in a warning tone (FR-4.3, FR-5.2)                              |
+| **EC-04** | A recruiter double-clicks Assign with the same person        | First `201`, second `409 ALREADY_ASSIGNED` → toast and invalidation, which re-disables the option (FR-7.4)          |
+| **EC-05** | The picker shows someone who was assigned in another tab     | They appear enabled until the detail refetches; assigning them gets the `409` and the correct message (AZ-4)        |
+| **EC-06** | No interviewer accounts exist                                | The assign dialog renders **"No interviewer accounts exist yet."** and Submit is disabled                           |
+| **EC-07** | A round is scheduled in the past                             | `201`, no warning (FR-6.4, VAL-1)                                                                                   |
+| **EC-08** | A round's stage differs from the application's current stage | Rendered as-is. The round's stage is what it is **for** (FR-6.3, XBE-8)                                             |
+| **EC-09** | A cancelled round in an interviewer's list                   | Listed, with a destructive badge; its detail shows the cancellation banner (FR-2.6, FR-3.5, XBE-6)                  |
+| **EC-10** | A recruiter cancels a round with feedback on it              | Assignments and feedback stay; the confirmation said so (FR-5.3, XBE-7)                                             |
+| **EC-11** | A recruiter tries to cancel an already-cancelled round       | The action is hidden. If fired anyway, `409` → toast (FR-5.4, AZ-5)                                                 |
+| **EC-12** | Scheduling against a rejected application                    | `409 APPLICATION_NOT_ACTIVE` → toast; the dialog closes (FR-6.6)                                                    |
+| **EC-13** | `?status=BANANA&page=-2`                                     | The unfiltered first page renders; neither parameter is sent (VAL-3)                                                |
+| **EC-14** | An interviewer with no assignments logs in                   | `/my-interviews` shows the explanatory empty state, **not** a bare "no results" (FR-2.9)                            |
+| **EC-15** | A browser in IST schedules 9:30                              | The request carries the correct UTC instant, not `09:30Z` (VAL-2)                                                   |
+| **EC-16** | A recruiter opens `/my-interviews`                           | The app's 404 — that route is the interviewer's (AZ-1)                                                              |
+| **EC-17** | A session expires mid-assignment                             | One `401`, one refresh, one replay                                                                                  |
 
 ---
 
@@ -804,17 +805,17 @@ and a seeded database.
 
 - **AC-M01** — **Given** a full session as I1 — the list, a detail, a cancelled round — **when**
   every response body in the Network tab is searched, **then** the strings `"email"`, `"phone"` and
-  `"assignments"` appear **zero** times. *Verified in the payload, not the DOM* (XBE-3, XBE-4,
+  `"assignments"` appear **zero** times. _Verified in the payload, not the DOM_ (XBE-3, XBE-4,
   SEC-1).
 - **AC-M02** — **Given** an **interviewer** session, **when**
   `fetch('<API>/api/interviews/<$IV_SOLO id>', …)`,
   `fetch('<API>/api/interviews/<id>/assignments', { method: 'POST', body: … })` and
   `fetch('<API>/api/users', …)` are issued **by hand from the DevTools console**, **then** the first
-  is **`404`** and the other two are **`403`**. *This is the criterion that proves neither the hidden
-  nav links nor the route guards are what is protecting the endpoints* (AZ-1, SEC-5, XBE-1, XBE-5).
+  is **`404`** and the other two are **`403`**. _This is the criterion that proves neither the hidden
+  nav links nor the route guards are what is protecting the endpoints_ (AZ-1, SEC-5, XBE-1, XBE-5).
 - **AC-M03** — **Given** an R session, **when** an assignment for an **already-assigned** interviewer
   is fired **by hand from the console**, bypassing the disabled option, **then** the response is
-  **`409 ALREADY_ASSIGNED`**. *This proves the disabled option is not the control* (AZ-4, SEC-5,
+  **`409 ALREADY_ASSIGNED`**. _This proves the disabled option is not the control_ (AZ-4, SEC-5,
   XBE-11).
 - **AC-M04** — **Given** I1 on `$IV_SOLO`, **when** R removes their assignment and I1 reloads
   `/interviews/$IV_SOLO` **without logging out**, **then** the page becomes the not-found view
@@ -830,18 +831,18 @@ and a seeded database.
 
 ## Out of Scope
 
-| Excluded | Why |
-|---|---|
-| The feedback form and list | The feedback feature owns both; this spec leaves a named slot on the detail page (FR-3.6, FR-5.5) |
-| Rescheduling a round | The API has no such path — cancel and recreate says the same thing |
-| A calendar view | No calendar primitive is vendored, and the brief models rounds, not scheduling (D-4) |
-| Availability or conflict detection | Not in the requirements; `scheduledAt` is a timestamp a recruiter types |
-| Notifying an interviewer of an assignment | No notification channel exists in this app |
-| An interviewer seeing their panel colleagues | D-7. The feedback list is where a panel member learns who else contributed |
-| An interviewer seeing a candidate's other rounds | Their scope is the round, not the person |
-| Bulk assignment | Multiplies the conflict surface for a convenience nobody asked for |
-| A candidate's interview schedule | The walkthrough gives candidates Jobs and My Applications only |
-| Deleting a round | The API has no such path; `CANCELLED` preserves the history |
+| Excluded                                         | Why                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| The feedback form and list                       | The feedback feature owns both; this spec leaves a named slot on the detail page (FR-3.6, FR-5.5) |
+| Rescheduling a round                             | The API has no such path — cancel and recreate says the same thing                                |
+| A calendar view                                  | No calendar primitive is vendored, and the brief models rounds, not scheduling (D-4)              |
+| Availability or conflict detection               | Not in the requirements; `scheduledAt` is a timestamp a recruiter types                           |
+| Notifying an interviewer of an assignment        | No notification channel exists in this app                                                        |
+| An interviewer seeing their panel colleagues     | D-7. The feedback list is where a panel member learns who else contributed                        |
+| An interviewer seeing a candidate's other rounds | Their scope is the round, not the person                                                          |
+| Bulk assignment                                  | Multiplies the conflict surface for a convenience nobody asked for                                |
+| A candidate's interview schedule                 | The walkthrough gives candidates Jobs and My Applications only                                    |
+| Deleting a round                                 | The API has no such path; `CANCELLED` preserves the history                                       |
 
 ---
 
@@ -868,12 +869,12 @@ the Revision section. The backend counterpart is revised in the same pass.
 
 **Modified existing files**
 
-| Path | Change |
-|---|---|
+| Path                                                                                      | Change                                      |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------- |
 | [`src/app/(app)/my-interviews/page.tsx`](<../../../src/app/(app)/my-interviews/page.tsx>) | The placeholder is **replaced** by the list |
-| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) | Hiring section gains Interviews |
-| `src/app/(app)/dashboard/page.tsx` | The seventh tile (FR-8.1) |
-| [`CLAUDE.md`](../../../CLAUDE.md) | Feature table row |
+| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>)                         | Hiring section gains Interviews             |
+| `src/app/(app)/dashboard/page.tsx`                                                        | The seventh tile (FR-8.1)                   |
+| [`CLAUDE.md`](../../../CLAUDE.md)                                                         | Feature table row                           |
 
 **Framework note.** **This is Next.js 16; its APIs differ from older versions.** Route `params` are
 a **Promise**: `[interviewId]/page.tsx` must `await params` and pass the raw segment to

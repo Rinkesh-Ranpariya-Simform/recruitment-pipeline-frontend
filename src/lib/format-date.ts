@@ -16,6 +16,22 @@ const absoluteFormat = new Intl.DateTimeFormat(undefined, {
 
 const relativeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
 
+/**
+ * UTC, explicitly, and labelled as such.
+ *
+ * The one place a local rendering is the wrong answer: an audit entry's
+ * `title` attribute is what someone reads when they are disputing *when*
+ * something happened (audit spec FR-2.3), and two people in two time zones
+ * comparing notes need the stored instant, not each of their own clocks.
+ * Everything else in this app stays local, which is why this is a second
+ * formatter rather than a change to `formatAbsolute`.
+ */
+const utcFormat = new Intl.DateTimeFormat('en-GB', {
+  dateStyle: 'medium',
+  timeStyle: 'medium',
+  timeZone: 'UTC',
+});
+
 /** Largest unit first: the loop stops at the first one the gap fills. */
 const RELATIVE_UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
   ['year', 365 * 24 * 60 * 60 * 1000],
@@ -37,6 +53,12 @@ const parse = (iso: string): Date | null => {
 export const formatAbsolute = (iso: string): string => {
   const date = parse(iso);
   return date ? absoluteFormat.format(date) : INVALID;
+};
+
+/** The absolute instant in UTC, e.g. "18 Sep 2026, 09:14:02 UTC". */
+export const formatAbsoluteUtc = (iso: string): string => {
+  const date = parse(iso);
+  return date ? `${utcFormat.format(date)} UTC` : INVALID;
 };
 
 /**

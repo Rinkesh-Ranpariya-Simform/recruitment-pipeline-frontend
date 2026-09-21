@@ -53,59 +53,59 @@ Offers: 5
 ```
 
 **One deviation from that sketch, stated openly.** The walkthrough's pipeline column shows candidate
-*names*. `GET /api/pipeline` returns **counts and ageing only** — no names, no candidate array
+_names_. `GET /api/pipeline` returns **counts and ageing only** — no names, no candidate array
 (backend FR-7.9). That is deliberate on the backend's part: the board's payload is bounded by roles
 rather than by people, which is what keeps it usable at 20 000 candidates. So this client renders
 the board as **counts with ageing**, and the names live one click away on
 `/candidates?roleId=…&stage=…`, which is paginated and owned by the candidate-access feature. The board
-answers *where is this role stuck*; the drill-down answers *who*.
+answers _where is this role stuck_; the drill-down answers _who_.
 
 ### Translation from the request
 
-| Described | Built as |
-|---|---|
-| A recruiter "Dashboard" nav item | A new `/dashboard` route; the recruiter's `ROLE_LANDING` moves from `/pipeline` to it |
-| The pipeline board | The existing `/pipeline` stub, filled |
-| "Recruiter can move candidates" | A move control on the drill-down list, not drag-and-drop (D-4) |
-| "perform valid stage overrides" | A `<Dialog>` with a required reason field |
-| "Jobs" in the recruiter navbar | The existing `/roles` route — the API's requisitions are this app's jobs, and renaming them would break the shipped roles views |
+| Described                        | Built as                                                                                                                        |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| A recruiter "Dashboard" nav item | A new `/dashboard` route; the recruiter's `ROLE_LANDING` moves from `/pipeline` to it                                           |
+| The pipeline board               | The existing `/pipeline` stub, filled                                                                                           |
+| "Recruiter can move candidates"  | A move control on the drill-down list, not drag-and-drop (D-4)                                                                  |
+| "perform valid stage overrides"  | A `<Dialog>` with a required reason field                                                                                       |
+| "Jobs" in the recruiter navbar   | The existing `/roles` route — the API's requisitions are this app's jobs, and renaming them would break the shipped roles views |
 
 ### Current state of `frontend/`
 
-|                | Today |
-| -------------- | ------ |
-| `/pipeline` | A **placeholder page** rendering only the signed-in user's name — and it is the recruiter's `ROLE_LANDING`, so a recruiter logging in lands on it |
-| `ROLE_LANDING` | `{ RECRUITER: '/pipeline', INTERVIEWER: '/my-interviews', CANDIDATE: '/jobs' }` in [`features/auth/redirect.ts`](../../../src/features/auth/redirect.ts) |
-| Guards | `<RequireRole allow={['RECRUITER']}>` already wraps `/pipeline` in its `layout.tsx` |
-| Nav | `NAV_SECTIONS.RECRUITER` = Hiring (Pipeline, Roles) + Account (Profile) |
+|                  | Today                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `/pipeline`      | A **placeholder page** rendering only the signed-in user's name — and it is the recruiter's `ROLE_LANDING`, so a recruiter logging in lands on it                                          |
+| `ROLE_LANDING`   | `{ RECRUITER: '/pipeline', INTERVIEWER: '/my-interviews', CANDIDATE: '/jobs' }` in [`features/auth/redirect.ts`](../../../src/features/auth/redirect.ts)                                   |
+| Guards           | `<RequireRole allow={['RECRUITER']}>` already wraps `/pipeline` in its `layout.tsx`                                                                                                        |
+| Nav              | `NAV_SECTIONS.RECRUITER` = Hiring (Pipeline, Roles) + Account (Profile)                                                                                                                    |
 | Mutation pattern | `useRoleMutations.ts` — a shared `useWriteSuccess()` doing `setQueryData(detailKey)` + `invalidateQueries(LIST_KEY)` + a success `toast`. **No optimistic updates anywhere, deliberately** |
-| Dialog pattern | `RoleFormDialog.tsx` — `react-hook-form` + `zodResolver`, schema in `src/lib/schemas/` |
-| Stage labels | `features/applications/labels.ts` — `STAGE_LABELS: Record<PipelineStage, string>` and `STATUS_LABELS`, plus tolerant accessors. **Candidate-facing copy** (`REJECTED` → "Not selected") |
-| Primitives | No tabs, no popover, no tooltip, no calendar, no drag-and-drop library |
+| Dialog pattern   | `RoleFormDialog.tsx` — `react-hook-form` + `zodResolver`, schema in `src/lib/schemas/`                                                                                                     |
+| Stage labels     | `features/applications/labels.ts` — `STAGE_LABELS: Record<PipelineStage, string>` and `STATUS_LABELS`, plus tolerant accessors. **Candidate-facing copy** (`REJECTED` → "Not selected")    |
+| Primitives       | No tabs, no popover, no tooltip, no calendar, no drag-and-drop library                                                                                                                     |
 
 ### Decisions carried from the interview
 
-| # | Question | Decision |
-|---|---|---|
-| D-1 | Where does a recruiter land? | **`/dashboard`.** `/pipeline` becomes a destination rather than a doorway |
-| D-2 | Board or table? | **A column-per-stage board**, one card per role per stage, showing count and ageing |
-| D-3 | Are candidate names on the board? | **No** — the API sends none. Names are one click away on `/candidates` |
-| D-4 | Drag-and-drop? | **No.** No DnD library is vendored, and a drag that can fail with a `409` is a worse interaction than a menu. A **Move** menu on the drill-down list |
-| D-5 | Where do the legal moves come from? | **The API.** On a `409` the body carries `details.allowed`; the client renders from it and **never owns a copy of the stage graph** |
-| D-6 | Recruiter-facing stage labels? | **A separate map.** `features/applications/labels.ts` is candidate copy — "Not selected" is wrong on a recruiter's board, where the word is "Rejected" |
-| D-7 | Override reason minimum? | **10 characters**, mirroring the API, with the count shown live. The client check is UX; the `400` is the control |
-| D-8 | New dependency? | **None.** Card, Badge, Button, Dialog, Select, Textarea, Table and `lucide-react` cover it |
+| #   | Question                            | Decision                                                                                                                                               |
+| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D-1 | Where does a recruiter land?        | **`/dashboard`.** `/pipeline` becomes a destination rather than a doorway                                                                              |
+| D-2 | Board or table?                     | **A column-per-stage board**, one card per role per stage, showing count and ageing                                                                    |
+| D-3 | Are candidate names on the board?   | **No** — the API sends none. Names are one click away on `/candidates`                                                                                 |
+| D-4 | Drag-and-drop?                      | **No.** No DnD library is vendored, and a drag that can fail with a `409` is a worse interaction than a menu. A **Move** menu on the drill-down list   |
+| D-5 | Where do the legal moves come from? | **The API.** On a `409` the body carries `details.allowed`; the client renders from it and **never owns a copy of the stage graph**                    |
+| D-6 | Recruiter-facing stage labels?      | **A separate map.** `features/applications/labels.ts` is candidate copy — "Not selected" is wrong on a recruiter's board, where the word is "Rejected" |
+| D-7 | Override reason minimum?            | **10 characters**, mirroring the API, with the count shown live. The client check is UX; the `400` is the control                                      |
+| D-8 | New dependency?                     | **None.** Card, Badge, Button, Dialog, Select, Textarea, Table and `lucide-react` cover it                                                             |
 
 ---
 
 ## Users / Actors
 
-| Actor | Sees |
-|---|---|
-| Anonymous | `/login` with `?next=` |
-| Candidate | The app's 404 on both routes |
-| Interviewer | The app's 404 on both routes |
-| Recruiter | Dashboard, board, drill-down, move and override |
+| Actor       | Sees                                            |
+| ----------- | ----------------------------------------------- |
+| Anonymous   | `/login` with `?next=`                          |
+| Candidate   | The app's 404 on both routes                    |
+| Interviewer | The app's 404 on both routes                    |
+| Recruiter   | Dashboard, board, drill-down, move and override |
 
 **Deliberate trade-offs:** an interviewer has no pipeline view at all — the backend answers `403`,
 and a partial board would imply a scope they do not have. There is no hiring-manager role, so
@@ -115,16 +115,16 @@ and a partial board would imply a scope they do not have. There is no hiring-man
 
 ## User Stories
 
-| ID | Story |
-|---|---|
-| **US-01** | As a recruiter, I want a landing page with real numbers, so that logging in tells me something. |
-| **US-02** | As a recruiter, I want counts per stage per role, so that I can see which role is stuck. |
-| **US-03** | As a recruiter, I want ageing on each cell, so that "eight in Screen" and "eight in Screen for three weeks" look different. |
-| **US-04** | As a recruiter, I want to advance a candidate in one click. |
-| **US-05** | As a recruiter, I want an illegal move to be impossible to attempt, so that I learn the process from the tool. |
-| **US-06** | As a recruiter, I want to skip a stage by typing a reason, and to be told plainly that it is recorded. |
+| ID        | Story                                                                                                                                        |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **US-01** | As a recruiter, I want a landing page with real numbers, so that logging in tells me something.                                              |
+| **US-02** | As a recruiter, I want counts per stage per role, so that I can see which role is stuck.                                                     |
+| **US-03** | As a recruiter, I want ageing on each cell, so that "eight in Screen" and "eight in Screen for three weeks" look different.                  |
+| **US-04** | As a recruiter, I want to advance a candidate in one click.                                                                                  |
+| **US-05** | As a recruiter, I want an illegal move to be impossible to attempt, so that I learn the process from the tool.                               |
+| **US-06** | As a recruiter, I want to skip a stage by typing a reason, and to be told plainly that it is recorded.                                       |
 | **US-07** | As a recruiter, I want to be told when a colleague moved the same candidate first, so that I do not believe a change landed when it did not. |
-| **US-08** | As a recruiter, I want to click a stage cell and see who is in it. |
+| **US-08** | As a recruiter, I want to click a stage cell and see who is in it.                                                                           |
 
 ---
 
@@ -318,51 +318,51 @@ Primitives reused: `Card`, `Badge`, `Button`, `Dialog`, `DropdownMenu`, `Select`
 
 ### State matrix — `/dashboard`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | Six tile skeletons and a strip skeleton |
-| Loaded | both `200` | Six tiles + the stage strip, each linking into `/pipeline` |
-| Empty | all counts zero | Tiles showing `0` plus the line **"No applications yet. Open a role and share it to get started."** |
+| State           | Trigger                    | Renders                                                                                                                            |
+| --------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Loading         | first fetch                | Six tile skeletons and a strip skeleton                                                                                            |
+| Loaded          | both `200`                 | Six tiles + the stage strip, each linking into `/pipeline`                                                                         |
+| Empty           | all counts zero            | Tiles showing `0` plus the line **"No applications yet. Open a role and share it to get started."**                                |
 | Partial failure | summary `200`, board fails | Tiles render; the strip shows an inline **"Could not load stage totals."** with **Try again**. One failure does not blank the page |
-| Both fail | — | A single error card: **"Could not load the dashboard."** with **Try again** |
+| Both fail       | —                          | A single error card: **"Could not load the dashboard."** with **Try again**                                                        |
 
 ### State matrix — `/pipeline`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | Three role-section skeletons, each with four card placeholders |
-| Loaded | `200` with roles | Filters + one section per role |
-| Empty, no filters | `roles: []` | **"No roles yet."** with a **Create a role** link to `/roles` |
-| Empty, filtered | `roles: []`, a filter set | **"No candidates match these filters."** plus **Clear filters** |
-| Filtered to one role | `?roleId=3` | Only that section; the filter select shows the role title |
-| Drill-down open | `?roleId=3&stage=SCREEN` | The board, then a candidate list below it, with the cell highlighted |
+| State                  | Trigger                              | Renders                                                                               |
+| ---------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
+| Loading                | first fetch                          | Three role-section skeletons, each with four card placeholders                        |
+| Loaded                 | `200` with roles                     | Filters + one section per role                                                        |
+| Empty, no filters      | `roles: []`                          | **"No roles yet."** with a **Create a role** link to `/roles`                         |
+| Empty, filtered        | `roles: []`, a filter set            | **"No candidates match these filters."** plus **Clear filters**                       |
+| Filtered to one role   | `?roleId=3`                          | Only that section; the filter select shows the role title                             |
+| Drill-down open        | `?roleId=3&stage=SCREEN`             | The board, then a candidate list below it, with the cell highlighted                  |
 | Drill-down unavailable | candidate-access feature not shipped | **"Candidate detail is not available yet."** and the stage cards do not link (FR-4.2) |
-| Error | non-2xx other than 401/403 | Inline error card: **"Could not load the pipeline."** with **Try again** |
+| Error                  | non-2xx other than 401/403           | Inline error card: **"Could not load the pipeline."** with **Try again**              |
 
 ### State matrix — the Move menu
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Idle, at Applied | — | **Advance to Screen** · Mark hired *(disabled, "Only from Offer.")* · Mark rejected · **Override stage…** |
-| Idle, at Offer | — | Advance *(absent — no next stage)* · **Mark hired** · Mark rejected · **Override stage…** |
-| In flight | a move fired | The trigger is disabled and shows a spinner; other rows stay interactive |
-| `200` | — | Toast **"Moved to Interview."**; board and list invalidated |
-| `409 INVALID_STAGE_TRANSITION` | — | Toast **"A candidate at Applied cannot move to Offer without an override."**; the menu rebuilds from `details.allowed` |
-| `409 STAGE_CONFLICT` | — | Toast **"Someone else moved this candidate. The list has been refreshed."**; immediate invalidation |
-| `409 APPLICATION_NOT_ACTIVE` | — | Toast **"This application is already closed."**; refetch; the control disappears from the refreshed row |
+| State                          | Trigger      | Renders                                                                                                                |
+| ------------------------------ | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| Idle, at Applied               | —            | **Advance to Screen** · Mark hired _(disabled, "Only from Offer.")_ · Mark rejected · **Override stage…**              |
+| Idle, at Offer                 | —            | Advance _(absent — no next stage)_ · **Mark hired** · Mark rejected · **Override stage…**                              |
+| In flight                      | a move fired | The trigger is disabled and shows a spinner; other rows stay interactive                                               |
+| `200`                          | —            | Toast **"Moved to Interview."**; board and list invalidated                                                            |
+| `409 INVALID_STAGE_TRANSITION` | —            | Toast **"A candidate at Applied cannot move to Offer without an override."**; the menu rebuilds from `details.allowed` |
+| `409 STAGE_CONFLICT`           | —            | Toast **"Someone else moved this candidate. The list has been refreshed."**; immediate invalidation                    |
+| `409 APPLICATION_NOT_ACTIVE`   | —            | Toast **"This application is already closed."**; refetch; the control disappears from the refreshed row                |
 
 ### State matrix — the override dialog
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Open | **Override stage…** clicked | Target-stage select (current stage absent), empty Reason, Submit **disabled**, the standing line **"This is recorded against your name and appears in the audit trail."** |
-| Reason too short | < 10 chars after trim | Submit stays disabled; counter reads **"4/10 characters minimum"** |
-| Reason valid | ≥ 10 chars | Submit enabled |
-| Submitting | request in flight | Submit reads **"Recording override…"**, both fields disabled |
-| `201` | — | Dialog closes; toast **"Stage overridden. Reason recorded."**; queries invalidated |
-| `400` `details.reason` | — | Message under the Reason field; **dialog stays open, text intact** |
-| `409 STAGE_CONFLICT` | — | Dialog closes; the conflict toast; queries invalidated |
-| `409 APPLICATION_NOT_ACTIVE` | — | Dialog closes; toast **"This application is already closed."** |
+| State                        | Trigger                     | Renders                                                                                                                                                                   |
+| ---------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Open                         | **Override stage…** clicked | Target-stage select (current stage absent), empty Reason, Submit **disabled**, the standing line **"This is recorded against your name and appears in the audit trail."** |
+| Reason too short             | < 10 chars after trim       | Submit stays disabled; counter reads **"4/10 characters minimum"**                                                                                                        |
+| Reason valid                 | ≥ 10 chars                  | Submit enabled                                                                                                                                                            |
+| Submitting                   | request in flight           | Submit reads **"Recording override…"**, both fields disabled                                                                                                              |
+| `201`                        | —                           | Dialog closes; toast **"Stage overridden. Reason recorded."**; queries invalidated                                                                                        |
+| `400` `details.reason`       | —                           | Message under the Reason field; **dialog stays open, text intact**                                                                                                        |
+| `409 STAGE_CONFLICT`         | —                           | Dialog closes; the conflict toast; queries invalidated                                                                                                                    |
+| `409 APPLICATION_NOT_ACTIVE` | —                           | Dialog closes; toast **"This application is already closed."**                                                                                                            |
 
 ### Other frontend rules
 
@@ -383,8 +383,8 @@ Primitives reused: `Card`, `Badge`, `Button`, `Dialog`, `DropdownMenu`, `Select`
   distinct ways, and an optimistic board would show all three as a flicker.
 - **FE-7** Success → toast; failure → a toast for a menu action, an **inline message** for a dialog
   field error (FR-6.7). A form error belongs next to the field that caused it.
-- **FE-8** **There is no stage-transition map in `features/pipeline/`.** `STAGE_ORDER` for *display*
-  comes from the API's array order (FR-3.2); *legality* comes from the API's `details.allowed`
+- **FE-8** **There is no stage-transition map in `features/pipeline/`.** `STAGE_ORDER` for _display_
+  comes from the API's array order (FR-3.2); _legality_ comes from the API's `details.allowed`
   (FR-5.6). Verified by grep (AC-F31).
 - **FE-9** `ageing.ts` exports `AGEING_WARN_DAYS = 14` and `AGEING_ALERT_DAYS = 30`, and the badge
   component is the only consumer.
@@ -406,7 +406,7 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 - **XBE-2** `409 INVALID_STAGE_TRANSITION` carries `details: { toStage: [...], allowed: [stage, …] }`.
   **The client renders the legal moves from `allowed` and owns no copy of the graph** (FR-5.6,
   FE-8).
-- **XBE-3** `409 STAGE_CONFLICT` means *someone else moved this candidate*. Its remedy is refetch,
+- **XBE-3** `409 STAGE_CONFLICT` means _someone else moved this candidate_. Its remedy is refetch,
   not retry-as-is, and it is a **different code** from `INVALID_STAGE_TRANSITION` precisely so the
   client can say the right thing.
 - **XBE-4** `409 APPLICATION_NOT_ACTIVE` means the application is `HIRED` or `REJECTED`. Terminal.
@@ -435,14 +435,14 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 ## API Contract
 
-| Call | When | Sends | Expects |
-|---|---|---|---|
-| `GET /api/pipeline` | `/pipeline` mounts; a filter changes; after any mutation | `roleId`, `stage` — omitted at their defaults | `200 { roles }` · `400` · `403` |
-| `GET /api/pipeline/summary` | `/dashboard` mounts; after any mutation | — | `200 { summary }` · `403` |
-| `PATCH /api/applications/:id/stage` | **Advance** clicked | `{ toStage }` | `200 { application }` · `409 INVALID_STAGE_TRANSITION` · `409 STAGE_CONFLICT` · `409 APPLICATION_NOT_ACTIVE` |
-| `POST /api/applications/:id/stage-override` | Override dialog submitted | `{ toStage, reason }` | `201 { application, override }` · `400` · `409` |
-| `PATCH /api/applications/:id/outcome` | **Mark hired** / **Mark rejected** | `{ status, reason? }` | `200 { application }` · `409 INVALID_STAGE_TRANSITION` · `409` |
-| `GET /api/candidates` | drill-down opens *(candidate-access feature)* | `roleId`, `stage`, `status=ACTIVE`, `page` | `200 { candidates, pagination }` |
+| Call                                        | When                                                     | Sends                                         | Expects                                                                                                      |
+| ------------------------------------------- | -------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `GET /api/pipeline`                         | `/pipeline` mounts; a filter changes; after any mutation | `roleId`, `stage` — omitted at their defaults | `200 { roles }` · `400` · `403`                                                                              |
+| `GET /api/pipeline/summary`                 | `/dashboard` mounts; after any mutation                  | —                                             | `200 { summary }` · `403`                                                                                    |
+| `PATCH /api/applications/:id/stage`         | **Advance** clicked                                      | `{ toStage }`                                 | `200 { application }` · `409 INVALID_STAGE_TRANSITION` · `409 STAGE_CONFLICT` · `409 APPLICATION_NOT_ACTIVE` |
+| `POST /api/applications/:id/stage-override` | Override dialog submitted                                | `{ toStage, reason }`                         | `201 { application, override }` · `400` · `409`                                                              |
+| `PATCH /api/applications/:id/outcome`       | **Mark hired** / **Mark rejected**                       | `{ status, reason? }`                         | `200 { application }` · `409 INVALID_STAGE_TRANSITION` · `409`                                               |
+| `GET /api/candidates`                       | drill-down opens _(candidate-access feature)_            | `roleId`, `stage`, `status=ACTIVE`, `page`    | `200 { candidates, pagination }`                                                                             |
 
 ### Client-side rules
 
@@ -464,12 +464,12 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 Client state only.
 
-| State | Where it lives | Lifetime | Persisted? |
-|---|---|---|---|
-| `roleId`, `stage`, `page` | The URL | Until navigation | **In the URL only** |
-| Board and summary data | TanStack Query cache | Until invalidated or the tab closes | **Never** — memory only |
-| Override dialog fields | `react-hook-form` state | Until the dialog closes | **Never** |
-| Which row's mutation is in flight | The mutation's own `isPending` plus the row id in `useState` | Until settled | **Never** |
+| State                             | Where it lives                                               | Lifetime                            | Persisted?              |
+| --------------------------------- | ------------------------------------------------------------ | ----------------------------------- | ----------------------- |
+| `roleId`, `stage`, `page`         | The URL                                                      | Until navigation                    | **In the URL only**     |
+| Board and summary data            | TanStack Query cache                                         | Until invalidated or the tab closes | **Never** — memory only |
+| Override dialog fields            | `react-hook-form` state                                      | Until the dialog closes             | **Never**               |
+| Which row's mutation is in flight | The mutation's own `isPending` plus the row id in `useState` | Until settled                       | **Never**               |
 
 - **DM-1** No token, name, email or role is written to `localStorage`, `sessionStorage` or a cookie.
 - **DM-2** **No override reason is written to browser storage**, not even as a draft. It is a
@@ -483,10 +483,10 @@ Client state only.
 **This matrix is UX, not a control.** Every row describes what renders; the backend re-authorizes
 every request behind it.
 
-| Route | Anonymous | Candidate | Interviewer | Recruiter |
-|---|---|---|---|---|
-| `/dashboard` | → `/login?next=/dashboard` | app 404 | app 404 | ✅ |
-| `/pipeline` | → `/login?next=/pipeline` | app 404 | app 404 | ✅ |
+| Route        | Anonymous                  | Candidate | Interviewer | Recruiter |
+| ------------ | -------------------------- | --------- | ----------- | --------- |
+| `/dashboard` | → `/login?next=/dashboard` | app 404   | app 404     | ✅        |
+| `/pipeline`  | → `/login?next=/pipeline`  | app 404   | app 404     | ✅        |
 
 - **AZ-1** **None of the above is a security control.** `<RequireAuth>` and `<RequireRole>` decide
   what renders; the `403` from all five endpoints is what protects them.
@@ -506,16 +506,16 @@ every request behind it.
 
 ### `overrideSchema` — new, in [`lib/schemas/pipeline.ts`](../../../src/lib/schemas/pipeline.ts)
 
-| Field | Rule | Message |
-|---|---|---|
-| `toStage` | one of the four `PipelineStage` values, required | **"Choose a target stage."** |
-| `reason` | trimmed, 10–1000 characters, required | **"Give a reason of at least 10 characters."** / **"Keep the reason under 1000 characters."** |
+| Field     | Rule                                             | Message                                                                                       |
+| --------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `toStage` | one of the four `PipelineStage` values, required | **"Choose a target stage."**                                                                  |
+| `reason`  | trimmed, 10–1000 characters, required            | **"Give a reason of at least 10 characters."** / **"Keep the reason under 1000 characters."** |
 
 ### `outcomeSchema`
 
-| Field | Rule | Message |
-|---|---|---|
-| `status` | `HIRED` or `REJECTED` | — (set by the menu item, never typed) |
+| Field    | Rule                            | Message                                      |
+| -------- | ------------------------------- | -------------------------------------------- |
+| `status` | `HIRED` or `REJECTED`           | — (set by the menu item, never typed)        |
 | `reason` | trimmed, max 1000, **optional** | **"Keep the reason under 1000 characters."** |
 
 - **VAL-1** Both schemas mirror the API's rules exactly (XBE-5). **The client validates for the
@@ -533,23 +533,23 @@ every request behind it.
 
 ## Error Handling
 
-| Status / `code` | Where | UI behaviour |
-|---|---|---|
-| `401` | any call | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…` |
-| `403` | any call | `apiFetch` redirects to `/forbidden`. Unreachable through the UI; handled |
-| `400 VALIDATION_ERROR` | override dialog | `details.reason` renders **under the field**; the dialog stays open with the text intact (FR-6.7) |
-| `409 INVALID_STAGE_TRANSITION` | move / outcome | Error toast; the menu rebuilds from `details.allowed` (FR-5.6) |
-| `409 STAGE_CONFLICT` | any write | Toast **"Someone else moved this candidate. The list has been refreshed."**; immediate invalidation (FR-5.7) |
-| `409 APPLICATION_NOT_ACTIVE` | any write | Toast **"This application is already closed."**; refetch; the control disappears (FR-5.8) |
-| `404` | any write | Toast **"That application no longer exists."**; refetch |
-| `500` / network | reads | Inline error card with **Try again** |
-| `500` / network | writes | Error toast; **the dialog and its text are left as they were** |
+| Status / `code`                | Where           | UI behaviour                                                                                                 |
+| ------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------ |
+| `401`                          | any call        | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…`                           |
+| `403`                          | any call        | `apiFetch` redirects to `/forbidden`. Unreachable through the UI; handled                                    |
+| `400 VALIDATION_ERROR`         | override dialog | `details.reason` renders **under the field**; the dialog stays open with the text intact (FR-6.7)            |
+| `409 INVALID_STAGE_TRANSITION` | move / outcome  | Error toast; the menu rebuilds from `details.allowed` (FR-5.6)                                               |
+| `409 STAGE_CONFLICT`           | any write       | Toast **"Someone else moved this candidate. The list has been refreshed."**; immediate invalidation (FR-5.7) |
+| `409 APPLICATION_NOT_ACTIVE`   | any write       | Toast **"This application is already closed."**; refetch; the control disappears (FR-5.8)                    |
+| `404`                          | any write       | Toast **"That application no longer exists."**; refetch                                                      |
+| `500` / network                | reads           | Inline error card with **Try again**                                                                         |
+| `500` / network                | writes          | Error toast; **the dialog and its text are left as they were**                                               |
 
 - **ERR-1** A **query** failure renders an inline error state with a retry. A **mutation** failure
   raises a toast and leaves the form or menu as it was — **the recruiter's input is never discarded
   by a failed request.**
 - **ERR-2** The three `409`s have three distinct messages, because they have three distinct remedies
-  — *this move is not allowed*, *refetch and look again*, *this is over*. Collapsing them would make
+  — _this move is not allowed_, _refetch and look again_, _this is over_. Collapsing them would make
   the message wrong two times in three (XBE-3).
 - **ERR-3** Codes are read from `errorBodyOf(error)?.code`, never from the message string (API-4).
 - **ERR-4** A partial dashboard failure degrades one panel, not the page (dashboard state matrix).
@@ -558,25 +558,25 @@ every request behind it.
 
 ## Edge Cases
 
-| ID | Case | Behaviour |
-|---|---|---|
-| **EC-01** | A role has no applications at all | Its section renders with four zero cards, each showing `—` for ageing (FR-3.5, FR-3.10) |
-| **EC-02** | A stage has `candidateCount: 0` | Ageing renders `—`, **never "0 days"**, and the card is not a link (FR-3.5, FR-3.7, XBE-7) |
-| **EC-03** | A candidate entered a stage one minute ago | `avgDaysInStage` is `0.0` and renders **"avg 0d"**. Zero means *no time*; `—` means *no candidates* |
-| **EC-04** | `maxDaysInStage` is 35 | The ageing line renders in the destructive tone (FR-3.6, `AGEING_ALERT_DAYS`) |
-| **EC-05** | Two recruiters advance the same candidate at the same instant | One sees the success toast; the other sees the conflict toast and a refreshed list showing the true stage (FR-5.7, XBE-3) |
-| **EC-06** | A recruiter opens the override dialog, and a colleague moves the candidate before they submit | `409 STAGE_CONFLICT`; the dialog closes, the conflict toast shows, queries invalidate (FR-6.8) |
-| **EC-07** | **Mark hired** at `SCREEN` | The item is disabled with **"Only from Offer."** If fired anyway via the API, the `409` toast names the allowed outcomes (FR-5.4, AZ-4) |
-| **EC-08** | An override reason of ten spaces | Submit stays disabled — the check is on `trim()` (VAL-2) |
-| **EC-09** | The API rejects a reason the client accepted | The message renders under the field and the dialog stays open with the text (FR-6.7, ERR-1) |
-| **EC-10** | `?stage=BANANA&roleId=-1` from a stale bookmark | The unfiltered board renders; neither parameter is sent (VAL-4) |
-| **EC-11** | A `CLOSED` role with live applications | It appears on the board with its counts and a `CLOSED` status badge. Hiding it is how people get forgotten (backend AZ-6) |
-| **EC-12** | The interviews feature has not shipped | No Interviews tile renders. The summary's six keys are all that are read (FR-2.3, XBE-9) |
-| **EC-13** | The candidate-access feature has not shipped | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2) |
-| **EC-14** | A recruiter's session expires mid-move | One `401`, one refresh, one replay. On a second `401`, redirect to `/login?next=/pipeline` |
-| **EC-15** | 200 roles on the board | All render; the response is bounded by roles, not candidates, and the grid scrolls vertically (XBE-8, FR-3.9) |
-| **EC-16** | A move succeeds while the dashboard is in another tab | That tab is stale until it refetches on focus. Accepted — the two tabs do not share a query client |
-| **EC-17** | A recruiter logs in for the first time after this ships | They land on `/dashboard`, not `/pipeline` (FR-1.3) |
+| ID        | Case                                                                                          | Behaviour                                                                                                                               |
+| --------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | A role has no applications at all                                                             | Its section renders with four zero cards, each showing `—` for ageing (FR-3.5, FR-3.10)                                                 |
+| **EC-02** | A stage has `candidateCount: 0`                                                               | Ageing renders `—`, **never "0 days"**, and the card is not a link (FR-3.5, FR-3.7, XBE-7)                                              |
+| **EC-03** | A candidate entered a stage one minute ago                                                    | `avgDaysInStage` is `0.0` and renders **"avg 0d"**. Zero means _no time_; `—` means _no candidates_                                     |
+| **EC-04** | `maxDaysInStage` is 35                                                                        | The ageing line renders in the destructive tone (FR-3.6, `AGEING_ALERT_DAYS`)                                                           |
+| **EC-05** | Two recruiters advance the same candidate at the same instant                                 | One sees the success toast; the other sees the conflict toast and a refreshed list showing the true stage (FR-5.7, XBE-3)               |
+| **EC-06** | A recruiter opens the override dialog, and a colleague moves the candidate before they submit | `409 STAGE_CONFLICT`; the dialog closes, the conflict toast shows, queries invalidate (FR-6.8)                                          |
+| **EC-07** | **Mark hired** at `SCREEN`                                                                    | The item is disabled with **"Only from Offer."** If fired anyway via the API, the `409` toast names the allowed outcomes (FR-5.4, AZ-4) |
+| **EC-08** | An override reason of ten spaces                                                              | Submit stays disabled — the check is on `trim()` (VAL-2)                                                                                |
+| **EC-09** | The API rejects a reason the client accepted                                                  | The message renders under the field and the dialog stays open with the text (FR-6.7, ERR-1)                                             |
+| **EC-10** | `?stage=BANANA&roleId=-1` from a stale bookmark                                               | The unfiltered board renders; neither parameter is sent (VAL-4)                                                                         |
+| **EC-11** | A `CLOSED` role with live applications                                                        | It appears on the board with its counts and a `CLOSED` status badge. Hiding it is how people get forgotten (backend AZ-6)               |
+| **EC-12** | The interviews feature has not shipped                                                        | No Interviews tile renders. The summary's six keys are all that are read (FR-2.3, XBE-9)                                                |
+| **EC-13** | The candidate-access feature has not shipped                                                  | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2)                            |
+| **EC-14** | A recruiter's session expires mid-move                                                        | One `401`, one refresh, one replay. On a second `401`, redirect to `/login?next=/pipeline`                                              |
+| **EC-15** | 200 roles on the board                                                                        | All render; the response is bounded by roles, not candidates, and the grid scrolls vertically (XBE-8, FR-3.9)                           |
+| **EC-16** | A move succeeds while the dashboard is in another tab                                         | That tab is stale until it refetches on focus. Accepted — the two tabs do not share a query client                                      |
+| **EC-17** | A recruiter logs in for the first time after this ships                                       | They land on `/dashboard`, not `/pipeline` (FR-1.3)                                                                                     |
 
 ---
 
@@ -735,15 +735,15 @@ and a seeded database.
 - **AC-M01** — **Given** a full session as R across the dashboard, the board and every mutation,
   **when** every response body in the Network tab is searched, **then** the strings `"email"` and
   `"phone"` appear **zero** times, and **no candidate name** appears in any `/api/pipeline` response.
-  *Verified in the payload, not the DOM* (XBE-11, XBE-8, SEC-2).
+  _Verified in the payload, not the DOM_ (XBE-11, XBE-8, SEC-2).
 - **AC-M02** — **Given** an **interviewer** session, **when**
   `fetch('<API>/api/pipeline', …)` and
   `fetch('<API>/api/applications/1/stage', { method: 'PATCH', … })` are issued **by hand from the
-  DevTools console**, **then** both are **`403`**. *This is the criterion that proves neither the
-  hidden nav links nor the route guard is what is protecting the endpoints* (AZ-1, SEC-1, XBE-1).
+  DevTools console**, **then** both are **`403`**. _This is the criterion that proves neither the
+  hidden nav links nor the route guard is what is protecting the endpoints_ (AZ-1, SEC-1, XBE-1).
 - **AC-M03** — **Given** an R session, **when** an override with a **1-character reason** is fired
   **by hand from the console**, bypassing the disabled Submit, **then** the response is **`400`**
-  with `details.reason`. *This proves the disabled button is not the control* (AZ-5, SEC-5, XBE-5).
+  with `details.reason`. _This proves the disabled button is not the control_ (AZ-5, SEC-5, XBE-5).
 - **AC-M04** — **Given** an R session at Applied, **when** a move to `OFFER` is fired **by hand from
   the console**, **then** the response is **`409 INVALID_STAGE_TRANSITION`** carrying
   `details.allowed` (XBE-2, SEC-6).
@@ -762,18 +762,18 @@ and a seeded database.
 
 ## Out of Scope
 
-| Excluded | Why |
-|---|---|
-| Candidate names on the board | The API sends none, deliberately — the board's payload is bounded by roles, not people (XBE-8, D-3). Names are one click away on `/candidates` |
-| **The drill-down candidate list itself** | It calls `GET /api/candidates`, owned by the candidate-access feature. Until that ships, FR-4.2's placeholder renders. Stated here rather than discovered later |
-| Drag-and-drop between columns | D-4. No DnD library is vendored, and a drag that can fail three ways is a worse interaction than a menu |
-| Bulk moves | Multiplies the conflict surface for a convenience nobody asked for |
-| An Interviews dashboard tile | The API does not send the field yet; the interviews feature adds it (FR-2.3) |
-| A "stuck beyond N days" alert view | Brief §8 optional work. `maxDaysInStage` is the input such a view would need, and it is already rendered |
-| Un-rejecting or reopening a candidate | The API has no such path — terminal is terminal |
-| Charts or trend lines | The brief asks for counts and ageing. A chart is a different question |
-| Per-role ownership or a hiring-manager view | Optional in the brief (§2) and absent from the requirements this pass covers |
-| Polling or live board updates | PERF-5. The conflict toast handles the case that matters — two people acting at once |
+| Excluded                                    | Why                                                                                                                                                             |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Candidate names on the board                | The API sends none, deliberately — the board's payload is bounded by roles, not people (XBE-8, D-3). Names are one click away on `/candidates`                  |
+| **The drill-down candidate list itself**    | It calls `GET /api/candidates`, owned by the candidate-access feature. Until that ships, FR-4.2's placeholder renders. Stated here rather than discovered later |
+| Drag-and-drop between columns               | D-4. No DnD library is vendored, and a drag that can fail three ways is a worse interaction than a menu                                                         |
+| Bulk moves                                  | Multiplies the conflict surface for a convenience nobody asked for                                                                                              |
+| An Interviews dashboard tile                | The API does not send the field yet; the interviews feature adds it (FR-2.3)                                                                                    |
+| A "stuck beyond N days" alert view          | Brief §8 optional work. `maxDaysInStage` is the input such a view would need, and it is already rendered                                                        |
+| Un-rejecting or reopening a candidate       | The API has no such path — terminal is terminal                                                                                                                 |
+| Charts or trend lines                       | The brief asks for counts and ageing. A chart is a different question                                                                                           |
+| Per-role ownership or a hiring-manager view | Optional in the brief (§2) and absent from the requirements this pass covers                                                                                    |
+| Polling or live board updates               | PERF-5. The conflict toast handles the case that matters — two people acting at once                                                                            |
 
 ---
 
@@ -794,18 +794,19 @@ Interviews tile. [../candidate-access/spec.md](../candidate-access/spec.md) — 
 **New npm dependencies:** **none.** `Card`, `Badge`, `Button`, `Dialog`, `DropdownMenu`, `Select`,
 `Textarea`, `Table`, `Skeleton` and `Separator` are already vendored in
 [`src/components/ui/`](../../../src/components/ui/), and `react-hook-form` + `@hookform/resolvers`
-+ `zod` + `sonner` already ship.
+
+- `zod` + `sonner` already ship.
 
 **Environment variables:** none.
 
 **Modified existing files**
 
-| Path | Change |
-|---|---|
-| [`src/app/(app)/pipeline/page.tsx`](<../../../src/app/(app)/pipeline/page.tsx>) | The placeholder is **replaced** by the board |
-| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) | Hiring section becomes Dashboard, Pipeline, Roles |
-| [`src/features/auth/redirect.ts`](../../../src/features/auth/redirect.ts) | `ROLE_LANDING.RECRUITER` → `/dashboard` |
-| [`CLAUDE.md`](../../../CLAUDE.md) | Feature table row; the "Views this POC needs" pipeline bullet now points here |
+| Path                                                                            | Change                                                                        |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [`src/app/(app)/pipeline/page.tsx`](<../../../src/app/(app)/pipeline/page.tsx>) | The placeholder is **replaced** by the board                                  |
+| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>)               | Hiring section becomes Dashboard, Pipeline, Roles                             |
+| [`src/features/auth/redirect.ts`](../../../src/features/auth/redirect.ts)       | `ROLE_LANDING.RECRUITER` → `/dashboard`                                       |
+| [`CLAUDE.md`](../../../CLAUDE.md)                                               | Feature table row; the "Views this POC needs" pipeline bullet now points here |
 
 **Framework note.** **This is Next.js 16; its APIs differ from older versions.** `PipelineView` reads
 `useSearchParams()`, so `pipeline/page.tsx` **must** wrap it in `<Suspense>` or `next build` fails

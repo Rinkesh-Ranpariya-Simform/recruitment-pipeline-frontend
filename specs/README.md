@@ -12,16 +12,16 @@ before the next begins.
 
 ## Status
 
-| Feature                                       | spec        | plan                                                | code                |
-| --------------------------------------------- | ----------- | --------------------------------------------------- | ------------------- |
-| [authentication](features/authentication/spec.md) | ✅ approved | [✅ drafted](features/authentication/plan.md)       | ✅ implemented      |
-| [roles](features/roles/spec.md)               | ✅ approved | [✅ drafted](features/roles/plan.md)                | ✅ implemented      |
-| [candidate](features/candidate/spec.md)       | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented      |
-| [audit](features/audit/spec.md)               | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
-| [pipeline](features/pipeline/spec.md)         | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
-| [interviews](features/interviews/spec.md)     | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
-| [feedback](features/feedback/spec.md)         | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
-| [candidate-access](features/candidate-access/spec.md) | 🟡 draft    | ⬜ not started                                       | ⬜ not started      |
+| Feature                                               | spec        | plan                                            | code           |
+| ----------------------------------------------------- | ----------- | ----------------------------------------------- | -------------- |
+| [authentication](features/authentication/spec.md)     | ✅ approved | [✅ drafted](features/authentication/plan.md)   | ✅ implemented |
+| [roles](features/roles/spec.md)                       | ✅ approved | [✅ drafted](features/roles/plan.md)            | ✅ implemented |
+| [candidate](features/candidate/spec.md)               | ✅ approved | ⬜ skipped (implemented straight from the spec) | ✅ implemented |
+| [audit](features/audit/spec.md)                       | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
+| [pipeline](features/pipeline/spec.md)                 | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
+| [interviews](features/interviews/spec.md)             | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
+| [feedback](features/feedback/spec.md)                 | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
+| [candidate-access](features/candidate-access/spec.md) | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
 
 ---
 
@@ -46,13 +46,13 @@ scoping depends on a table three features away.
 
 ## What each feature adds to this client
 
-| Feature | Routes | Nav |
-|---|---|---|
-| `audit` | `/audit` **NEW** | Recruiter → Audit |
-| `pipeline` | `/dashboard` **NEW** · `/pipeline` **fills the existing stub** | Recruiter → Dashboard; recruiter landing moves to `/dashboard` |
-| `interviews` | `/interviews` **NEW** · `/interviews/[interviewId]` **NEW** · `/my-interviews` **fills the existing stub** | Recruiter → Interviews; interviewer unchanged |
-| `feedback` | none — components on `/interviews/[interviewId]` and `/candidates/[candidateId]` | none |
-| `candidate-access` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD** | Recruiter → Candidates; interviewer → Candidates |
+| Feature            | Routes                                                                                                     | Nav                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `audit`            | `/audit` **NEW**                                                                                           | Recruiter → Audit                                              |
+| `pipeline`         | `/dashboard` **NEW** · `/pipeline` **fills the existing stub**                                             | Recruiter → Dashboard; recruiter landing moves to `/dashboard` |
+| `interviews`       | `/interviews` **NEW** · `/interviews/[interviewId]` **NEW** · `/my-interviews` **fills the existing stub** | Recruiter → Interviews; interviewer unchanged                  |
+| `feedback`         | none — components on `/interviews/[interviewId]` and `/candidates/[candidateId]`                           | none                                                           |
+| `candidate-access` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD**                    | Recruiter → Candidates; interviewer → Candidates               |
 
 Two of these fill routes that already exist. [`(app)/pipeline/page.tsx`](<../src/app/(app)/pipeline/page.tsx>)
 and [`(app)/my-interviews/page.tsx`](<../src/app/(app)/my-interviews/page.tsx>) are placeholder pages
@@ -62,11 +62,11 @@ authentication feature stubbed.
 
 The final navigation, per the walkthrough:
 
-| Role | Sections |
-|---|---|
-| Recruiter | **Hiring** — Dashboard, Pipeline, Roles, Candidates, Interviews · **Records** — Audit · **Account** — Profile |
-| Interviewer | **Interviews** — My interviews, Candidates · **Account** — Profile |
-| Candidate | **Jobs** — Jobs, My applications · **Account** — Profile *(unchanged)* |
+| Role        | Sections                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------- |
+| Recruiter   | **Hiring** — Dashboard, Pipeline, Roles, Candidates, Interviews · **Records** — Audit · **Account** — Profile |
+| Interviewer | **Interviews** — My interviews, Candidates · **Account** — Profile                                            |
+| Candidate   | **Jobs** — Jobs, My applications · **Account** — Profile _(unchanged)_                                        |
 
 ---
 
@@ -90,11 +90,11 @@ renders; it is **UX, never security**. Every route matrix in these specs opens b
 ## Reading order for a reviewer
 
 1. This file.
-2. [features/candidate-access/spec.md](features/candidate-access/spec.md) § *Frontend Requirements* — the two
+2. [features/candidate-access/spec.md](features/candidate-access/spec.md) § _Frontend Requirements_ — the two
    candidate views, and why they are two components rather than one with a role check.
-3. [features/pipeline/spec.md](features/pipeline/spec.md) § *Functional Requirements* — the board,
+3. [features/pipeline/spec.md](features/pipeline/spec.md) § _Functional Requirements_ — the board,
    the move, and the override dialog that will not submit without a reason.
-4. [features/feedback/spec.md](features/feedback/spec.md) § *Error Handling* — what the client does
+4. [features/feedback/spec.md](features/feedback/spec.md) § _Error Handling_ — what the client does
    with the `409` that the concurrency policy produces.
 
 The backend counterparts live at [../../backend/specs/README.md](../../backend/specs/README.md). The

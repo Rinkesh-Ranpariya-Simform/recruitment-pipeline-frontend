@@ -53,6 +53,7 @@ conditionally renders contact fields based on a client-side role check.
   Both rules are style-only — `Array<T>` and `T[]` are the same type, so neither changes a
   payload. [../backend/CLAUDE.md](../backend/CLAUDE.md) carries the identical pair, so a contract
   type mirrored in both repos is written the same way on both sides
+
 - Components: declare props as an `interface` named `<ComponentName>Props` (not a type alias, not
   inline), and write the component as an arrow function typed `React.FC<…Props>` with the props
   destructured in the signature:
@@ -130,11 +131,12 @@ Feature specs live in `specs/features/<feature>/`, each holding `spec.md` (what 
 `plan.md` (how). Phases run in that order and each is approved before the next begins; if implementation reveals
 the spec is wrong, update the spec and get it re-approved rather than letting code and spec drift.
 
-| Feature                                                 | spec        | plan                                                | code                                                                                                                    |
-| ------------------------------------------------------- | ----------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                   |
-| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off |
-| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**           |
+| Feature                                                 | spec        | plan                                                | code                                                                                                                                                            |
+| ------------------------------------------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                                                           |
+| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off                                         |
+| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**                                                   |
+| [audit](specs/features/audit/spec.md)                   | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean and the URL-sanitising helpers exercised directly; **the in-browser AC pass (AC-F01…AC-M05) is not yet signed off** |
 
 The **candidate** feature added `/signup`, a `CANDIDATE` role, and the Jobs / My Applications / Profile
 views. It **deliberately reversed two rules that used to be stated below**; both paragraphs are now rewritten
@@ -185,14 +187,36 @@ endpoint does not exist: `CLOSED` is a requisition's end state.
 a `CANDIDATE` and nothing else; the backend removed `role` from that endpoint's contract, which is what made a
 browser form safe. **The rest of the rule stands**: no interviewer provisioning, no `/team`, **no role
 selector — do not add one**, and no `/api/users` wrapper. Interviewers and recruiters still come only from the
-backend's seed, so a seeded database is still required to sign in as one. The client now calls **eleven**
-endpoints: login, refresh, me, logout, signup, the four roles routes, and the two application routes.
+backend's seed, so a seeded database is still required to sign in as one. The client now calls **twelve**
+endpoints: login, refresh, me, logout, signup, the four roles routes, the two application routes, and
+`GET /api/audit` (added by the audit feature — a read, and the only route on it).
 
 **Candidate views never filter restricted data client-side.** `/jobs` shows only open positions because the
 API's query for a non-recruiter cannot return a closed one, and an application row carries no feedback,
 rating, interviewer or override reason because those columns are never selected. The `Job` and `Application`
 types declare exactly the promised fields, so a widened payload fails type-checking as well as review — if one
 ever appears, **report it as a backend bug rather than hiding the field here**.
+
+**The audit feed is the first route the API also refuses.** `/audit` is recruiter-only in
+`NAV_SECTIONS` (a new **Records** section) and behind `<RequireRole allow={AUDIT_USER_ROLES}>` in its route
+layout — but unlike `/roles` and `/jobs`, where the guard is a judgement about whose job a page is, here
+`GET /api/audit` genuinely answers an interviewer or a candidate **403**. The guard and the hidden link are
+still only affordances; **the 403 is the control**, and the criterion that proves it is issuing the request
+by hand from the DevTools console as an interviewer (audit spec AC-M03).
+
+**`features/audit/` renders `metadata` defensively, on purpose.** `AuditEntry.metadata` is typed
+`Record<string, unknown>` rather than a union keyed off `action`, because the API sends an open object whose
+shape depends on the action and a payload is untrusted input. `AuditMetadata.tsx` narrows every value at the
+point of use, renders any key it does not recognise in a fallback list rather than dropping it, and falls
+back to the raw action string for an action this client has no label for — so a backend that ships a tenth
+`AuditAction` first produces an ugly row, not a crash. **Do not "clean up" that component by trusting the
+shape.** The same rule that governs contact data applies to this feed: the API sends no email, phone or
+feedback `notes`, and if one ever appears in the fallback list **that is a backend bug to report, not a field
+to hide here**.
+
+**The feed is read-only and there is no mutation in the feature.** There is no `PATCH` or `DELETE` on an
+audit entry — both answer 404 — so `audit.api.ts` exports exactly one function. Don't add a wrapper for an
+endpoint with no UI.
 
 **There is no `middleware.ts` / `proxy.ts`, and that is deliberate** (spec FE-6, revised during
 implementation). The backend scopes the refresh cookie `Path=/api/auth`, so a frontend route request

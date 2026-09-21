@@ -54,47 +54,47 @@ not a create, and the `409` is a state transition rather than an error to apolog
 
 ### Translation from the request
 
-| Described | Built as |
-|---|---|
-| `Rating: ⭐⭐⭐⭐☆` | A five-button radio group, keyboard-operable, emitting integers 1–5 (D-2) |
-| `Notes: Strong backend fundamentals...` | A `<Textarea>`, required |
-| `[Submit Feedback]` | One button that submits or saves, depending on whether feedback already exists |
-| `Feedback: Interviewer A: 4/5, Interviewer B: 5/5` (recruiter view) | A read-only list on the recruiter's round detail and candidate detail |
+| Described                                                           | Built as                                                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `Rating: ⭐⭐⭐⭐☆`                                                 | A five-button radio group, keyboard-operable, emitting integers 1–5 (D-2)      |
+| `Notes: Strong backend fundamentals...`                             | A `<Textarea>`, required                                                       |
+| `[Submit Feedback]`                                                 | One button that submits or saves, depending on whether feedback already exists |
+| `Feedback: Interviewer A: 4/5, Interviewer B: 5/5` (recruiter view) | A read-only list on the recruiter's round detail and candidate detail          |
 
 ### Current state of `frontend/`
 
-|                | Today, assuming interviews has shipped |
-| -------------- | ------ |
-| `/interviews/[interviewId]` | Exists, with a named slot for this feature's components (interviews FR-3.6, FR-5.5) |
-| Forms | `react-hook-form` + `@hookform/resolvers/zod`, schemas under `src/lib/schemas/` |
-| Field errors | `fieldMessage(details, field)` in [`src/lib/error-details.ts`](../../../src/lib/error-details.ts) |
-| Primitives | `Textarea`, `Button`, `Card`, `Badge`, `Field`, `Label`, `Separator`, `Skeleton`. **No rating or star component is vendored** |
-| Mutation pattern | `useWriteSuccess()` — invalidate + toast; invalidation `onSettled`; **no optimistic updates anywhere** |
-| Feedback | **nothing** |
+|                             | Today, assuming interviews has shipped                                                                                        |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `/interviews/[interviewId]` | Exists, with a named slot for this feature's components (interviews FR-3.6, FR-5.5)                                           |
+| Forms                       | `react-hook-form` + `@hookform/resolvers/zod`, schemas under `src/lib/schemas/`                                               |
+| Field errors                | `fieldMessage(details, field)` in [`src/lib/error-details.ts`](../../../src/lib/error-details.ts)                             |
+| Primitives                  | `Textarea`, `Button`, `Card`, `Badge`, `Field`, `Label`, `Separator`, `Skeleton`. **No rating or star component is vendored** |
+| Mutation pattern            | `useWriteSuccess()` — invalidate + toast; invalidation `onSettled`; **no optimistic updates anywhere**                        |
+| Feedback                    | **nothing**                                                                                                                   |
 
 ### Decisions carried from the interview
 
-| # | Question | Decision |
-|---|---|---|
-| D-1 | Where does the form live? | Inline on `/interviews/[interviewId]`, not a separate route. A form behind a navigation is a form people skip |
-| D-2 | Star component? | **Hand-rolled**, from `Button` + `lucide-react`'s `StarIcon`. No rating library, and a native `radiogroup` for keyboard and screen-reader support |
-| D-3 | Create and edit: one component or two? | **One.** The API's `409` makes a second `POST` an edit, so the form is a create-or-edit from the start and the `409` is a state it enters |
-| D-4 | Does the interviewer see colleagues' feedback before writing? | **Yes**, and it renders above the form. That is the brief's opening complaint being fixed |
-| D-5 | Can a recruiter write or edit? | **No.** They see a read-only list with no form and no edit control |
-| D-6 | Where else does feedback render? | The recruiter's **candidate detail**, from the candidate payload — **not** by calling this feature's endpoint per round (D-6 is a performance decision as much as a scoping one) |
-| D-7 | New dependency? | **None** |
+| #   | Question                                                      | Decision                                                                                                                                                                         |
+| --- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-1 | Where does the form live?                                     | Inline on `/interviews/[interviewId]`, not a separate route. A form behind a navigation is a form people skip                                                                    |
+| D-2 | Star component?                                               | **Hand-rolled**, from `Button` + `lucide-react`'s `StarIcon`. No rating library, and a native `radiogroup` for keyboard and screen-reader support                                |
+| D-3 | Create and edit: one component or two?                        | **One.** The API's `409` makes a second `POST` an edit, so the form is a create-or-edit from the start and the `409` is a state it enters                                        |
+| D-4 | Does the interviewer see colleagues' feedback before writing? | **Yes**, and it renders above the form. That is the brief's opening complaint being fixed                                                                                        |
+| D-5 | Can a recruiter write or edit?                                | **No.** They see a read-only list with no form and no edit control                                                                                                               |
+| D-6 | Where else does feedback render?                              | The recruiter's **candidate detail**, from the candidate payload — **not** by calling this feature's endpoint per round (D-6 is a performance decision as much as a scoping one) |
+| D-7 | New dependency?                                               | **None**                                                                                                                                                                         |
 
 ---
 
 ## Users / Actors
 
-| Actor | Sees |
-|---|---|
-| Anonymous | `/login` with `?next=` |
-| Candidate | Nothing. No route here is reachable |
-| Interviewer (assigned) | The panel's feedback, and a form for their own |
+| Actor                      | Sees                                                             |
+| -------------------------- | ---------------------------------------------------------------- |
+| Anonymous                  | `/login` with `?next=`                                           |
+| Candidate                  | Nothing. No route here is reachable                              |
+| Interviewer (assigned)     | The panel's feedback, and a form for their own                   |
 | Interviewer (not assigned) | The app's not-found view — the whole page, not just this section |
-| Recruiter | Every panellist's feedback, **read-only** |
+| Recruiter                  | Every panellist's feedback, **read-only**                        |
 
 **Deliberate trade-offs:** an interviewer can read their colleagues' ratings before writing their
 own (D-4). That is the stated problem being fixed, and the anchoring risk it creates is named in
@@ -105,15 +105,15 @@ they did not conduct the interview.
 
 ## User Stories
 
-| ID | Story |
-|---|---|
-| **US-01** | As an interviewer, I want to rate and write notes on my round, so that my assessment is on the record. |
-| **US-02** | As an interviewer, I want to read what my colleagues wrote, so that I am not the third person asking the same question. |
-| **US-03** | As an interviewer, I want to correct a rating I mis-clicked. |
+| ID        | Story                                                                                                                                                      |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **US-01** | As an interviewer, I want to rate and write notes on my round, so that my assessment is on the record.                                                     |
+| **US-02** | As an interviewer, I want to read what my colleagues wrote, so that I am not the third person asking the same question.                                    |
+| **US-03** | As an interviewer, I want to correct a rating I mis-clicked.                                                                                               |
 | **US-04** | As an interviewer, I want the app to load my existing feedback instead of telling me I already submitted, so that "already done" is a state, not an error. |
-| **US-05** | As a recruiter, I want every panellist's feedback in one place, so that I can decide with all of it. |
-| **US-06** | As a recruiter, I want no way to edit an interviewer's assessment, so that what I read is what they wrote. |
-| **US-07** | As a security reviewer, I want to confirm this screen shows no candidate contact detail, since §3.6 names it. |
+| **US-05** | As a recruiter, I want every panellist's feedback in one place, so that I can decide with all of it.                                                       |
+| **US-06** | As a recruiter, I want no way to edit an interviewer's assessment, so that what I read is what they wrote.                                                 |
+| **US-07** | As a security reviewer, I want to confirm this screen shows no candidate contact detail, since §3.6 names it.                                              |
 
 ---
 
@@ -249,43 +249,43 @@ Primitives reused: `Card`, `Button`, `Textarea`, `Badge`, `Field`, `Label`, `Sep
 
 ### State matrix — `<FeedbackForm>`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Empty, create | no existing entry | Rating unselected, empty Notes, Submit **"Submit feedback"** disabled |
-| Rating chosen only | — | Submit still disabled; Notes shows its required message on blur |
-| Valid | rating 1–5 and non-empty notes | Submit enabled |
-| Submitting | in flight | Submit reads **"Submitting…"**, both fields disabled |
-| `201` | — | Toast **"Feedback submitted."**; list refetches; **form switches to edit mode with the saved values** |
-| Prefilled, edit | an existing entry | Fields prefilled, Submit reads **"Save changes"**, **disabled while unchanged** |
-| Saving | in flight | Submit reads **"Saving…"** |
-| `200` | — | Toast **"Feedback updated."**; list refetches |
-| `400` `details.rating` / `details.notes` | — | Messages under the fields; **everything typed stays** (FR-3.8) |
-| **`409 FEEDBACK_ALREADY_SUBMITTED`** | a second tab submitted first | Info toast **"You have already submitted feedback for this round. Your existing entry is loaded for editing."**; list refetches; **form switches to edit mode and the typed text is kept** (FR-4.2, FR-4.3) |
-| `409 INTERVIEW_CANCELLED` | the round was cancelled meanwhile | Toast **"This interview was cancelled. Feedback can no longer be submitted."**; the form is replaced by that line |
-| Round already cancelled | `status: CANCELLED` on mount | The form never renders; the line above renders instead (FR-3.10) |
-| `500` / network | — | Error toast; **form untouched, values intact** |
+| State                                    | Trigger                           | Renders                                                                                                                                                                                                     |
+| ---------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Empty, create                            | no existing entry                 | Rating unselected, empty Notes, Submit **"Submit feedback"** disabled                                                                                                                                       |
+| Rating chosen only                       | —                                 | Submit still disabled; Notes shows its required message on blur                                                                                                                                             |
+| Valid                                    | rating 1–5 and non-empty notes    | Submit enabled                                                                                                                                                                                              |
+| Submitting                               | in flight                         | Submit reads **"Submitting…"**, both fields disabled                                                                                                                                                        |
+| `201`                                    | —                                 | Toast **"Feedback submitted."**; list refetches; **form switches to edit mode with the saved values**                                                                                                       |
+| Prefilled, edit                          | an existing entry                 | Fields prefilled, Submit reads **"Save changes"**, **disabled while unchanged**                                                                                                                             |
+| Saving                                   | in flight                         | Submit reads **"Saving…"**                                                                                                                                                                                  |
+| `200`                                    | —                                 | Toast **"Feedback updated."**; list refetches                                                                                                                                                               |
+| `400` `details.rating` / `details.notes` | —                                 | Messages under the fields; **everything typed stays** (FR-3.8)                                                                                                                                              |
+| **`409 FEEDBACK_ALREADY_SUBMITTED`**     | a second tab submitted first      | Info toast **"You have already submitted feedback for this round. Your existing entry is loaded for editing."**; list refetches; **form switches to edit mode and the typed text is kept** (FR-4.2, FR-4.3) |
+| `409 INTERVIEW_CANCELLED`                | the round was cancelled meanwhile | Toast **"This interview was cancelled. Feedback can no longer be submitted."**; the form is replaced by that line                                                                                           |
+| Round already cancelled                  | `status: CANCELLED` on mount      | The form never renders; the line above renders instead (FR-3.10)                                                                                                                                            |
+| `500` / network                          | —                                 | Error toast; **form untouched, values intact**                                                                                                                                                              |
 
 ### State matrix — `<FeedbackList>`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | Two card skeletons |
-| Loaded | `200` with entries | One card per entry, newest first |
-| Empty, interviewer | `feedback: []` | **"No feedback yet. Yours will be the first."** |
-| Empty, recruiter | `feedback: []` | **"No feedback submitted for this round yet."** |
-| Own entry present | `entry.interviewer.id === user.id` and `editable` | That card is marked **"Your feedback"** with an **Edit** button |
-| Edited entry | `updatedAt > createdAt` | **"edited {relative time}"** beside the timestamp |
-| Error | `500` / network | Inline error card **"Could not load feedback."** + **Try again** |
+| State              | Trigger                                           | Renders                                                          |
+| ------------------ | ------------------------------------------------- | ---------------------------------------------------------------- |
+| Loading            | first fetch                                       | Two card skeletons                                               |
+| Loaded             | `200` with entries                                | One card per entry, newest first                                 |
+| Empty, interviewer | `feedback: []`                                    | **"No feedback yet. Yours will be the first."**                  |
+| Empty, recruiter   | `feedback: []`                                    | **"No feedback submitted for this round yet."**                  |
+| Own entry present  | `entry.interviewer.id === user.id` and `editable` | That card is marked **"Your feedback"** with an **Edit** button  |
+| Edited entry       | `updatedAt > createdAt`                           | **"edited {relative time}"** beside the timestamp                |
+| Error              | `500` / network                                   | Inline error card **"Could not load feedback."** + **Try again** |
 
 ### State matrix — `<StarRating>`
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Unselected | initial | Five outline stars; `aria-checked="false"` on all; the group is focusable |
-| Hover | pointer over star _n_ | Stars 1..n fill in a preview tone; **the value does not change** |
-| Selected | click or `Space` on star _n_ | Stars 1..n filled; `aria-checked="true"` on _n_; the label reads **"{n} of 5"** |
-| Keyboard | `ArrowRight` / `ArrowLeft` | The selection moves one step and stays within 1–5 |
-| Disabled | submitting | No hover, no focus, muted tone |
+| State      | Trigger                      | Renders                                                                         |
+| ---------- | ---------------------------- | ------------------------------------------------------------------------------- |
+| Unselected | initial                      | Five outline stars; `aria-checked="false"` on all; the group is focusable       |
+| Hover      | pointer over star _n_        | Stars 1..n fill in a preview tone; **the value does not change**                |
+| Selected   | click or `Space` on star _n_ | Stars 1..n filled; `aria-checked="true"` on _n_; the label reads **"{n} of 5"** |
+| Keyboard   | `ArrowRight` / `ArrowLeft`   | The selection moves one step and stays within 1–5                               |
+| Disabled   | submitting                   | No hover, no focus, muted tone                                                  |
 
 ### Other frontend rules
 
@@ -350,11 +350,11 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 ## API Contract
 
-| Call | When | Sends | Expects |
-|---|---|---|---|
-| `GET /api/interviews/:id/feedback` | the round detail mounts; after any mutation | — | `200 { feedback }` · `404` |
-| `POST /api/interviews/:id/feedback` | Submit pressed with no existing entry | `{ rating, notes }` | `201 { feedback }` · `400` · `404` · `409 FEEDBACK_ALREADY_SUBMITTED` · `409 INTERVIEW_CANCELLED` |
-| `PATCH /api/interviews/:id/feedback` | Save pressed in edit mode | `{ rating?, notes? }` | `200 { feedback }` · `400` · `404` |
+| Call                                 | When                                        | Sends                 | Expects                                                                                           |
+| ------------------------------------ | ------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| `GET /api/interviews/:id/feedback`   | the round detail mounts; after any mutation | —                     | `200 { feedback }` · `404`                                                                        |
+| `POST /api/interviews/:id/feedback`  | Submit pressed with no existing entry       | `{ rating, notes }`   | `201 { feedback }` · `400` · `404` · `409 FEEDBACK_ALREADY_SUBMITTED` · `409 INTERVIEW_CANCELLED` |
+| `PATCH /api/interviews/:id/feedback` | Save pressed in edit mode                   | `{ rating?, notes? }` | `200 { feedback }` · `400` · `404`                                                                |
 
 ### Client-side rules
 
@@ -375,11 +375,11 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 Client state only.
 
-| State | Where it lives | Lifetime | Persisted? |
-|---|---|---|---|
-| Feedback entries | TanStack Query cache, `['feedback','interview',id]` | Until invalidated or the tab closes | **Never** — memory only |
-| Form rating and notes | `react-hook-form` state | Until the page unmounts | **Never** (DM-2) |
-| Create vs edit mode | Derived from the fetched list plus `user.id` — **not** `useState` | Per render | **Never** |
+| State                 | Where it lives                                                    | Lifetime                            | Persisted?              |
+| --------------------- | ----------------------------------------------------------------- | ----------------------------------- | ----------------------- |
+| Feedback entries      | TanStack Query cache, `['feedback','interview',id]`               | Until invalidated or the tab closes | **Never** — memory only |
+| Form rating and notes | `react-hook-form` state                                           | Until the page unmounts             | **Never** (DM-2)        |
+| Create vs edit mode   | Derived from the fetched list plus `user.id` — **not** `useState` | Per render                          | **Never**               |
 
 - **DM-1** No token, name, email or role is written to `localStorage`, `sessionStorage` or a cookie.
 - **DM-2** **An unsent draft assessment is never written to browser storage** (FR-6.4). It is one
@@ -397,11 +397,11 @@ Client state only.
 **This matrix is UX, not a control.** Every row describes what renders; the backend re-authorizes
 every request behind it.
 
-| Surface | Anonymous | Candidate | Interviewer (assigned) | Interviewer (not assigned) | Recruiter |
-|---|---|---|---|---|---|
-| `<FeedbackList>` on the round detail | → `/login` | app 404 | ✅ | **whole page is app 404** | ✅ read-only |
-| `<FeedbackForm>` | → `/login` | app 404 | ✅ | never renders | **never renders** |
-| `<FeedbackList>` on the candidate detail | → `/login` | app 404 | n/a | n/a | ✅ read-only |
+| Surface                                  | Anonymous  | Candidate | Interviewer (assigned) | Interviewer (not assigned) | Recruiter         |
+| ---------------------------------------- | ---------- | --------- | ---------------------- | -------------------------- | ----------------- |
+| `<FeedbackList>` on the round detail     | → `/login` | app 404   | ✅                     | **whole page is app 404**  | ✅ read-only      |
+| `<FeedbackForm>`                         | → `/login` | app 404   | ✅                     | never renders              | **never renders** |
+| `<FeedbackList>` on the candidate detail | → `/login` | app 404   | n/a                    | n/a                        | ✅ read-only      |
 
 - **AZ-1** **None of the above is a security control.** The API's `403`, `404` and `409` are.
 - **AZ-2** An unassigned interviewer never reaches these components, because
@@ -424,10 +424,10 @@ every request behind it.
 
 ### `feedbackSchema` — new, in [`lib/schemas/feedback.ts`](../../../src/lib/schemas/feedback.ts)
 
-| Field | Rule | Message |
-|---|---|---|
-| `rating` | integer, 1–5, required | **"Choose a rating from 1 to 5."** |
-| `notes` | trimmed, 1–5000 characters, required | **"Write a few notes about this interview."** / **"Keep your notes under 5000 characters."** |
+| Field    | Rule                                 | Message                                                                                      |
+| -------- | ------------------------------------ | -------------------------------------------------------------------------------------------- |
+| `rating` | integer, 1–5, required               | **"Choose a rating from 1 to 5."**                                                           |
+| `notes`  | trimmed, 1–5000 characters, required | **"Write a few notes about this interview."** / **"Keep your notes under 5000 characters."** |
 
 - **VAL-1** `rating` is `z.number().int().min(1).max(5)` — **not** `z.coerce.number()`, matching the
   API, which deliberately does not coerce a JSON body (XBE-3). `<StarRating>` emits a number, so
@@ -444,16 +444,16 @@ every request behind it.
 
 ## Error Handling
 
-| Status / `code` | Where | UI behaviour |
-|---|---|---|
-| `401` | any call | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…` |
-| `403` | `POST` / `PATCH` | `apiFetch` redirects to `/forbidden`. Unreachable through the UI (no form renders for a recruiter); handled |
-| `404` | any call | The round is gone or the caller is not assigned. Toast **"This interview is no longer available."** and the page refetches into its not-found view. **No copy mentions assignment** |
-| `400` `details.rating` / `details.notes` | form | Messages under the fields; **everything typed stays** (FR-3.8) |
-| **`409 FEEDBACK_ALREADY_SUBMITTED`** | `POST` | **Not an error state.** Info toast, refetch, prefill, switch to edit mode, **keep the typed text** (FR-4.2, FR-4.3) |
-| `409 INTERVIEW_CANCELLED` | `POST` | Toast **"This interview was cancelled. Feedback can no longer be submitted."**; the form is replaced by that line |
-| `500` / network | list | Inline error card **"Could not load feedback."** + **Try again** |
-| `500` / network | form | Error toast; **form untouched, values intact** |
+| Status / `code`                          | Where            | UI behaviour                                                                                                                                                                        |
+| ---------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401`                                    | any call         | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…`                                                                                                  |
+| `403`                                    | `POST` / `PATCH` | `apiFetch` redirects to `/forbidden`. Unreachable through the UI (no form renders for a recruiter); handled                                                                         |
+| `404`                                    | any call         | The round is gone or the caller is not assigned. Toast **"This interview is no longer available."** and the page refetches into its not-found view. **No copy mentions assignment** |
+| `400` `details.rating` / `details.notes` | form             | Messages under the fields; **everything typed stays** (FR-3.8)                                                                                                                      |
+| **`409 FEEDBACK_ALREADY_SUBMITTED`**     | `POST`           | **Not an error state.** Info toast, refetch, prefill, switch to edit mode, **keep the typed text** (FR-4.2, FR-4.3)                                                                 |
+| `409 INTERVIEW_CANCELLED`                | `POST`           | Toast **"This interview was cancelled. Feedback can no longer be submitted."**; the form is replaced by that line                                                                   |
+| `500` / network                          | list             | Inline error card **"Could not load feedback."** + **Try again**                                                                                                                    |
+| `500` / network                          | form             | Error toast; **form untouched, values intact**                                                                                                                                      |
 
 - **ERR-1** **A failed submission never discards what was typed.** This is stated first because it
   is the behaviour that matters most here: an interviewer has just written a considered assessment,
@@ -472,26 +472,26 @@ every request behind it.
 
 ## Edge Cases
 
-| ID | Case | Behaviour |
-|---|---|---|
-| **EC-01** | **Two panellists submit at the same instant** | Both succeed. Each sees their own toast and, after the refetch, **two cards** — one marked "Your feedback". *This is the brief's §3.4 case, and the UI shows the documented outcome* (XBE-12) |
-| **EC-02** | **The same interviewer submits from two tabs at once** | One `201`, one `409`. The `409` tab refetches, prefills, switches to edit mode, and **keeps what was typed there** (FR-4.2, FR-4.3) |
-| **EC-03** | An interviewer opens the page having already submitted | The form is in edit mode, prefilled, Submit reads **"Save changes"** and is **disabled until something changes** (FR-3.6) |
-| **EC-04** | An interviewer reads colleagues' feedback before writing | The list renders above the empty form. *This is the brief's opening complaint being fixed* (D-4, FR-3.1) |
-| **EC-05** | An interviewer edits their rating from 4 to 5 | `PATCH` sends **only** `rating` (API-3); the card shows **"edited {time}"** afterwards (FR-2.2) |
-| **EC-06** | A recruiter opens the round detail | The list renders with **no form, no Edit, no Delete** (FR-5.1, FR-5.3) |
-| **EC-07** | An unassigned interviewer opens the round URL | The **whole page** is the app's not-found view; these components never mount (FR-1.4, AZ-2) |
-| **EC-08** | A round is cancelled while the form is open | Submitting returns `409 INTERVIEW_CANCELLED`; the form is replaced by the cancellation line (FR-3.10) |
-| **EC-09** | A round is already cancelled on mount | The form never renders (FR-3.10) |
-| **EC-10** | Notes of 5200 characters | Client `400` before sending; the counter is visible from 4500 (VAL-5) |
-| **EC-11** | Notes of only spaces | Client blocks it on `trim()`; if bypassed, the API `400`s with `details.notes` (VAL-2) |
-| **EC-12** | Notes containing `<script>alert(1)</script>` | Rendered as **visible text**. React escapes it; no `dangerouslySetInnerHTML` exists here (SEC-4, FE-9) |
-| **EC-13** | Notes with blank lines and indentation | Preserved by `whitespace-pre-wrap` (FR-2.6) |
-| **EC-14** | An interviewer is unassigned while the page is open | Their next refetch `404`s and the page becomes not-found. No re-login needed |
-| **EC-15** | A network failure mid-submit | Error toast; **the form keeps every character** (ERR-1) |
-| **EC-16** | A recruiter opens a candidate with five rounds | Feedback renders for all five from the **candidate payload** — **one** request, not six (FR-1.2, API-6, XBE-13) |
-| **EC-17** | Keyboard-only rating entry | The group is reachable by `Tab`; arrows move the value; `Space` selects. `aria-checked` reflects the value (FR-3.3) |
-| **EC-18** | An accidental page reload with an unsaved draft | **The draft is lost.** Accepted, and stated (DM-2) rather than traded for storing an assessment in the browser |
+| ID        | Case                                                     | Behaviour                                                                                                                                                                                     |
+| --------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | **Two panellists submit at the same instant**            | Both succeed. Each sees their own toast and, after the refetch, **two cards** — one marked "Your feedback". _This is the brief's §3.4 case, and the UI shows the documented outcome_ (XBE-12) |
+| **EC-02** | **The same interviewer submits from two tabs at once**   | One `201`, one `409`. The `409` tab refetches, prefills, switches to edit mode, and **keeps what was typed there** (FR-4.2, FR-4.3)                                                           |
+| **EC-03** | An interviewer opens the page having already submitted   | The form is in edit mode, prefilled, Submit reads **"Save changes"** and is **disabled until something changes** (FR-3.6)                                                                     |
+| **EC-04** | An interviewer reads colleagues' feedback before writing | The list renders above the empty form. _This is the brief's opening complaint being fixed_ (D-4, FR-3.1)                                                                                      |
+| **EC-05** | An interviewer edits their rating from 4 to 5            | `PATCH` sends **only** `rating` (API-3); the card shows **"edited {time}"** afterwards (FR-2.2)                                                                                               |
+| **EC-06** | A recruiter opens the round detail                       | The list renders with **no form, no Edit, no Delete** (FR-5.1, FR-5.3)                                                                                                                        |
+| **EC-07** | An unassigned interviewer opens the round URL            | The **whole page** is the app's not-found view; these components never mount (FR-1.4, AZ-2)                                                                                                   |
+| **EC-08** | A round is cancelled while the form is open              | Submitting returns `409 INTERVIEW_CANCELLED`; the form is replaced by the cancellation line (FR-3.10)                                                                                         |
+| **EC-09** | A round is already cancelled on mount                    | The form never renders (FR-3.10)                                                                                                                                                              |
+| **EC-10** | Notes of 5200 characters                                 | Client `400` before sending; the counter is visible from 4500 (VAL-5)                                                                                                                         |
+| **EC-11** | Notes of only spaces                                     | Client blocks it on `trim()`; if bypassed, the API `400`s with `details.notes` (VAL-2)                                                                                                        |
+| **EC-12** | Notes containing `<script>alert(1)</script>`             | Rendered as **visible text**. React escapes it; no `dangerouslySetInnerHTML` exists here (SEC-4, FE-9)                                                                                        |
+| **EC-13** | Notes with blank lines and indentation                   | Preserved by `whitespace-pre-wrap` (FR-2.6)                                                                                                                                                   |
+| **EC-14** | An interviewer is unassigned while the page is open      | Their next refetch `404`s and the page becomes not-found. No re-login needed                                                                                                                  |
+| **EC-15** | A network failure mid-submit                             | Error toast; **the form keeps every character** (ERR-1)                                                                                                                                       |
+| **EC-16** | A recruiter opens a candidate with five rounds           | Feedback renders for all five from the **candidate payload** — **one** request, not six (FR-1.2, API-6, XBE-13)                                                                               |
+| **EC-17** | Keyboard-only rating entry                               | The group is reachable by `Tab`; arrows move the value; `Space` selects. `aria-checked` reflects the value (FR-3.3)                                                                           |
+| **EC-18** | An accidental page reload with an unsaved draft          | **The draft is lost.** Accepted, and stated (DM-2) rather than traded for storing an assessment in the browser                                                                                |
 
 ---
 
@@ -604,7 +604,7 @@ and a seeded database.
 
 - **AC-F16** — **Given** `$IV` with feedback from I1, **when** **I2** opens it having written
   nothing, **then** I1's entry renders with their name, rating and notes, **above** the empty form.
-  *This is the brief's opening complaint being fixed* (D-4, FR-3.1, EC-04, XBE-12).
+  _This is the brief's opening complaint being fixed_ (D-4, FR-3.1, EC-04, XBE-12).
 - **AC-F17** — **Given** a panel of two, **when** the list renders, **then** each card names its
   author and only the signed-in user's card is marked **"Your feedback"** (FR-2.3).
 - **AC-F18** — **Given** any entry, **when** it renders, **then** the rating appears as filled stars
@@ -651,12 +651,12 @@ and a seeded database.
 - **AC-M01** — **Given** a full session as I1 — loading the round, reading the panel, submitting and
   editing — **when** every `/api/interviews/*/feedback` response body in the Network tab is
   searched, **then** the strings `"email"`, `"phone"`, `"candidate"` and `"candidateUserId"` appear
-  **zero** times. *§3.6 names this endpoint specifically; verified in the payload, not the DOM*
+  **zero** times. _§3.6 names this endpoint specifically; verified in the payload, not the DOM_
   (XBE-2, SEC-1).
 - **AC-M02** — **Given** a **recruiter** session, **when**
   `fetch('<API>/api/interviews/<$IV>/feedback', { method: 'POST', body: '{"rating":5,"notes":"x"}' , …})`
-  is issued **by hand from the DevTools console**, **then** the response is **`403`**. *This is the
-  criterion that proves the missing form is not what stops a recruiter writing feedback* (AZ-1,
+  is issued **by hand from the DevTools console**, **then** the response is **`403`**. _This is the
+  criterion that proves the missing form is not what stops a recruiter writing feedback_ (AZ-1,
   SEC-6, XBE-1).
 - **AC-M03** — **Given** an **I2** session, **when** a `PATCH` against `$IV`'s feedback is issued
   **by hand from the console** while I2 has no entry of their own, **then** the response is
@@ -666,11 +666,11 @@ and a seeded database.
   from the console**, **then** the response is **`404`**, not `403` (XBE-8, AZ-2).
 - **AC-M05** — **Given** an **I1** session, **when** a `rating` of `0` and then `4.5` are submitted
   **by hand from the console**, bypassing the star control, **then** both are **`400`** with
-  `details.rating`. *This proves the star control is not the control* (AZ-4, XBE-3).
+  `details.rating`. _This proves the star control is not the control_ (AZ-4, XBE-3).
 - **AC-M06** — **Given** `$IV` with I1 and I2 both assigned and neither having written anything,
   **when** **both submit at the same moment** from two browsers, **then** **both** see a success
   toast, and after both refetch **each sees two cards** — one theirs, one their colleague's.
-  *This is the brief's §3.4 case observed from the UI* (EC-01, XBE-12).
+  _This is the brief's §3.4 case observed from the UI_ (EC-01, XBE-12).
 - **AC-M07** — **Given** a full session as I1, **when** `localStorage`, `sessionStorage` and
   `document.cookie` are read in the console at the end, **then** none contains a token, a candidate
   name, **or any draft or submitted notes text** (DM-1, DM-2, SEC-5).
@@ -682,18 +682,18 @@ and a seeded database.
 
 ## Out of Scope
 
-| Excluded | Why |
-|---|---|
-| Deleting feedback | The API has no such route (XBE-9). Retracting an assessment without a trace is the opposite of what §6 asks for |
-| Per-competency ratings or a rubric | The brief asks for *"a rating plus notes"*. A rubric is a product decision nobody has made |
-| A hire/no-hire recommendation field | Same reason; the rating already carries the signal |
-| Markdown or rich text in notes | An injection surface for no requirement (SEC-4). Line breaks are preserved, which is what people actually use |
-| Draft autosave to browser storage | DM-2, SEC-5. The lost-draft cost is accepted and stated |
-| Blind feedback (hidden until you submit) | Would undo the brief's opening complaint. The bias risk is named in SEC-8a instead |
-| Averaging or aggregating ratings | Feedback informs a recruiter; the API does not aggregate and neither does this |
-| Candidate access to feedback | A legal and product decision this POC does not make |
-| Attachments or code samples | No storage layer exists in this app |
-| A cross-round "everything I have written" view | No requirement asks for it, and no endpoint serves it |
+| Excluded                                       | Why                                                                                                             |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Deleting feedback                              | The API has no such route (XBE-9). Retracting an assessment without a trace is the opposite of what §6 asks for |
+| Per-competency ratings or a rubric             | The brief asks for _"a rating plus notes"_. A rubric is a product decision nobody has made                      |
+| A hire/no-hire recommendation field            | Same reason; the rating already carries the signal                                                              |
+| Markdown or rich text in notes                 | An injection surface for no requirement (SEC-4). Line breaks are preserved, which is what people actually use   |
+| Draft autosave to browser storage              | DM-2, SEC-5. The lost-draft cost is accepted and stated                                                         |
+| Blind feedback (hidden until you submit)       | Would undo the brief's opening complaint. The bias risk is named in SEC-8a instead                              |
+| Averaging or aggregating ratings               | Feedback informs a recruiter; the API does not aggregate and neither does this                                  |
+| Candidate access to feedback                   | A legal and product decision this POC does not make                                                             |
+| Attachments or code samples                    | No storage layer exists in this app                                                                             |
+| A cross-round "everything I have written" view | No requirement asks for it, and no endpoint serves it                                                           |
 
 ---
 
@@ -717,10 +717,10 @@ the rating control is hand-rolled (D-2).
 
 **Modified existing files**
 
-| Path | Change |
-|---|---|
+| Path                                              | Change                                                                                              |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `src/app/(app)/interviews/[interviewId]/page.tsx` | Mounts `<FeedbackSection>` for an interviewer and `<FeedbackList editable={false}>` for a recruiter |
-| [`CLAUDE.md`](../../../CLAUDE.md) | Feature table row; the "Feedback submission" bullet under *Views this POC needs* now points here |
+| [`CLAUDE.md`](../../../CLAUDE.md)                 | Feature table row; the "Feedback submission" bullet under _Views this POC needs_ now points here    |
 
 **Framework note.** **This is Next.js 16; its APIs differ from older versions.** This feature adds
 no route and no `useSearchParams()` call, so neither the `<Suspense>` requirement nor the

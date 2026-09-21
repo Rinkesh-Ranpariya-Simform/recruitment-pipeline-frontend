@@ -48,24 +48,24 @@ one refactor away from being the leak the whole POC is built to prevent.
 
 ### Translation from the request
 
-| Described | Built as |
-|---|---|
-| Recruiter navbar: "Candidates / Applications" | A `/candidates` route. The word is **Candidates** — `/applications` is already the *candidate's own* route and renaming it would break a shipped view |
-| "Job Details → Applicants" | An **Applicants** section on the existing `/roles/[roleId]` page, calling `GET /api/candidates?roleId=…` |
-| "Candidate Details" with pipeline, interviews, feedback | `/candidates/[candidateId]`, recruiter view |
-| Interviewer's "Candidate information: Name: John Smith" | `/candidates/[candidateId]`, interviewer view — a name, and their own rounds |
+| Described                                               | Built as                                                                                                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Recruiter navbar: "Candidates / Applications"           | A `/candidates` route. The word is **Candidates** — `/applications` is already the _candidate's own_ route and renaming it would break a shipped view |
+| "Job Details → Applicants"                              | An **Applicants** section on the existing `/roles/[roleId]` page, calling `GET /api/candidates?roleId=…`                                              |
+| "Candidate Details" with pipeline, interviews, feedback | `/candidates/[candidateId]`, recruiter view                                                                                                           |
+| Interviewer's "Candidate information: Name: John Smith" | `/candidates/[candidateId]`, interviewer view — a name, and their own rounds                                                                          |
 
 ### Current state of `frontend/`
 
-|                | Today, assuming the three preceding features have shipped |
-| -------------- | ------ |
-| `/roles/[roleId]` | Built — title, description, status, edit/delete actions. **No applicants section** |
-| `/applications` | The **candidate's own** applications list. Unrelated to this feature and unchanged |
-| `/pipeline` | The board; its drill-down renders **"Candidate detail is not available yet."** (pipeline FR-4.2) |
-| `/interviews/[id]` | Built, with the feedback components mounted |
-| Nav | Recruiter: Dashboard, Pipeline, Roles, Interviews + Audit + Profile. Interviewer: My interviews + Profile |
-| Types | `features/roles/types.ts`, `features/applications/types.ts`, `features/interviews/types.ts` — **all mirrored by hand; nothing is imported across repos** |
-| `features/interviews/types.ts` | Already demonstrates the two-interface pattern this feature repeats (interviews FE-4) |
+|                                | Today, assuming the three preceding features have shipped                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/roles/[roleId]`              | Built — title, description, status, edit/delete actions. **No applicants section**                                                                       |
+| `/applications`                | The **candidate's own** applications list. Unrelated to this feature and unchanged                                                                       |
+| `/pipeline`                    | The board; its drill-down renders **"Candidate detail is not available yet."** (pipeline FR-4.2)                                                         |
+| `/interviews/[id]`             | Built, with the feedback components mounted                                                                                                              |
+| Nav                            | Recruiter: Dashboard, Pipeline, Roles, Interviews + Audit + Profile. Interviewer: My interviews + Profile                                                |
+| Types                          | `features/roles/types.ts`, `features/applications/types.ts`, `features/interviews/types.ts` — **all mirrored by hand; nothing is imported across repos** |
+| `features/interviews/types.ts` | Already demonstrates the two-interface pattern this feature repeats (interviews FE-4)                                                                    |
 
 ## Revision to the pipeline spec — the drill-down becomes real
 
@@ -75,7 +75,7 @@ cards do not link and the drill-down renders **"Candidate detail is not availabl
 to `/pipeline?roleId=…&stage=…`, and the drill-down renders a real candidate list from this
 feature's api module.
 
-**What this reverses:** pipeline FR-4.2 and the *Drill-down unavailable* row of its `/pipeline` state
+**What this reverses:** pipeline FR-4.2 and the _Drill-down unavailable_ row of its `/pipeline` state
 matrix.
 
 **Why it is being overridden:** it was a stated placeholder from the start, waiting on this feature.
@@ -88,32 +88,32 @@ authorization surface appears.
 board itself is unchanged.
 
 **What must change alongside this spec:** pipeline FR-3.7 (cards link), FR-4.2 (replaced), FR-4.3
-and FR-4.4 (now live), the *Drill-down unavailable* state row, and pipeline AC-F13 — which asserted
+and FR-4.4 (now live), the _Drill-down unavailable_ state row, and pipeline AC-F13 — which asserted
 that a **zero-count** card is not a link and **remains true**. The backend counterpart is unaffected.
 
 ### Decisions carried from the interview
 
-| # | Question | Decision |
-|---|---|---|
-| D-1 | One component or two? | **Two components, two interfaces, dispatched by role before render** (CLAUDE.md's standing rule). Never one with a `candidate.email &&` branch |
-| D-2 | Where do applicants for a job live? | An **Applicants section on `/roles/[roleId]`**, not a nested route. It is a filtered candidate list, and a second route would be a second place to scope |
-| D-3 | Is there a create-candidate form? | **No.** There is no `POST /api/candidates` (XBE-10) |
-| D-4 | Are name and email editable? | **No.** Only phone, location and headline (XBE-4) |
-| D-5 | Does the interviewer get a candidate list? | **Yes** — their assigned candidates, name only. It gets a nav entry, because a list of two names is still the answer to "who am I interviewing" |
-| D-6 | Search box for interviewers? | **No.** `?q=` is a `400` for them (XBE-8), and a search over people is exactly the affordance this feature denies them |
-| D-7 | How does the recruiter detail render feedback? | With the **feedback** feature's `<FeedbackList>`, fed from the candidate payload — zero extra requests (feedback FR-1.2) |
-| D-8 | New dependency? | **None** |
+| #   | Question                                       | Decision                                                                                                                                                 |
+| --- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D-1 | One component or two?                          | **Two components, two interfaces, dispatched by role before render** (CLAUDE.md's standing rule). Never one with a `candidate.email &&` branch           |
+| D-2 | Where do applicants for a job live?            | An **Applicants section on `/roles/[roleId]`**, not a nested route. It is a filtered candidate list, and a second route would be a second place to scope |
+| D-3 | Is there a create-candidate form?              | **No.** There is no `POST /api/candidates` (XBE-10)                                                                                                      |
+| D-4 | Are name and email editable?                   | **No.** Only phone, location and headline (XBE-4)                                                                                                        |
+| D-5 | Does the interviewer get a candidate list?     | **Yes** — their assigned candidates, name only. It gets a nav entry, because a list of two names is still the answer to "who am I interviewing"          |
+| D-6 | Search box for interviewers?                   | **No.** `?q=` is a `400` for them (XBE-8), and a search over people is exactly the affordance this feature denies them                                   |
+| D-7 | How does the recruiter detail render feedback? | With the **feedback** feature's `<FeedbackList>`, fed from the candidate payload — zero extra requests (feedback FR-1.2)                                 |
+| D-8 | New dependency?                                | **None**                                                                                                                                                 |
 
 ---
 
 ## Users / Actors
 
-| Actor | Sees |
-|---|---|
-| Anonymous | `/login` with `?next=` |
-| Candidate | The app's 404 on both routes. Their own record is `/profile` and `/applications`, both shipped |
-| Interviewer | Their assigned candidates — **name only** — and, per candidate, **their own rounds** |
-| Recruiter | Every candidate, in full: contact, applications, stage history, rounds, panels, feedback |
+| Actor       | Sees                                                                                           |
+| ----------- | ---------------------------------------------------------------------------------------------- |
+| Anonymous   | `/login` with `?next=`                                                                         |
+| Candidate   | The app's 404 on both routes. Their own record is `/profile` and `/applications`, both shipped |
+| Interviewer | Their assigned candidates — **name only** — and, per candidate, **their own rounds**           |
+| Recruiter   | Every candidate, in full: contact, applications, stage history, rounds, panels, feedback       |
 
 **Deliberate trade-offs:** a candidate cannot open their own record here — `403` from the API, and
 the app's 404 in the client. An interviewer sees a name, which is personal data the brief does not
@@ -123,15 +123,15 @@ restrict and an interview cannot happen without.
 
 ## User Stories
 
-| ID | Story |
-|---|---|
-| **US-01** | As a recruiter, I want a candidate's whole record on one screen, so that I can decide without opening five things. |
-| **US-02** | As a recruiter, I want a role's applicants listed on the role page, so that job → applicants is one click. |
-| **US-03** | As a recruiter, I want to record a phone number, so that "call them" does not mean finding the original email. |
-| **US-04** | As a recruiter, I want to search by name or email, so that finding someone is a keystroke. |
-| **US-05** | As a recruiter, I want to click a pipeline cell and see who is in it. |
-| **US-06** | As an interviewer, I want to see who I am interviewing and when. |
-| **US-07** | As an interviewer, I want no way at all to reach a candidate I am not assigned to. |
+| ID        | Story                                                                                                                                  |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **US-01** | As a recruiter, I want a candidate's whole record on one screen, so that I can decide without opening five things.                     |
+| **US-02** | As a recruiter, I want a role's applicants listed on the role page, so that job → applicants is one click.                             |
+| **US-03** | As a recruiter, I want to record a phone number, so that "call them" does not mean finding the original email.                         |
+| **US-04** | As a recruiter, I want to search by name or email, so that finding someone is a keystroke.                                             |
+| **US-05** | As a recruiter, I want to click a pipeline cell and see who is in it.                                                                  |
+| **US-06** | As an interviewer, I want to see who I am interviewing and when.                                                                       |
+| **US-07** | As an interviewer, I want no way at all to reach a candidate I am not assigned to.                                                     |
 | **US-08** | As a security reviewer, I want to open one component and confirm it cannot render a contact field, rather than trusting a conditional. |
 
 ---
@@ -326,56 +326,56 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
 
 ### State matrix — `/candidates`, recruiter
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | An 8-row skeleton table |
-| Loaded | `200` | Name, Email, Phone, Applications, Joined + pager |
-| No phone recorded | `phone: null` | `—` in that cell — never a blank cell, which reads as a rendering bug |
-| Searching | `q` typed | Debounced 400 ms; previous rows stay visible |
-| Empty, filtered | `total: 0` | **"No candidates match these filters."** + **Clear filters** |
-| Empty, unfiltered | `total: 0` | **"No candidates yet."** + **"People who sign up and apply appear here."** |
-| Error | `500` / network | Inline error card + **Try again** |
+| State             | Trigger         | Renders                                                                    |
+| ----------------- | --------------- | -------------------------------------------------------------------------- |
+| Loading           | first fetch     | An 8-row skeleton table                                                    |
+| Loaded            | `200`           | Name, Email, Phone, Applications, Joined + pager                           |
+| No phone recorded | `phone: null`   | `—` in that cell — never a blank cell, which reads as a rendering bug      |
+| Searching         | `q` typed       | Debounced 400 ms; previous rows stay visible                               |
+| Empty, filtered   | `total: 0`      | **"No candidates match these filters."** + **Clear filters**               |
+| Empty, unfiltered | `total: 0`      | **"No candidates yet."** + **"People who sign up and apply appear here."** |
+| Error             | `500` / network | Inline error card + **Try again**                                          |
 
 ### State matrix — `/candidates`, interviewer
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | A 3-row skeleton |
-| Loaded | `200` | **One column: Name.** No search box, no email, no phone (FR-3.1, FR-3.2) |
-| Empty | `total: 0` | **"You are not assigned to any candidates yet."** + **"Candidates appear here when a recruiter assigns you to an interview."** |
-| Error | `500` | Inline error card + **Try again** |
+| State   | Trigger     | Renders                                                                                                                        |
+| ------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Loading | first fetch | A 3-row skeleton                                                                                                               |
+| Loaded  | `200`       | **One column: Name.** No search box, no email, no phone (FR-3.1, FR-3.2)                                                       |
+| Empty   | `total: 0`  | **"You are not assigned to any candidates yet."** + **"Candidates appear here when a recruiter assigns you to an interview."** |
+| Error   | `500`       | Inline error card + **Try again**                                                                                              |
 
 ### State matrix — `/candidates/[candidateId]`, recruiter
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loading | first fetch | A header skeleton + two application-card skeletons |
-| Loaded | `200` | Header + one card per application, each with timeline, rounds, panels and feedback |
-| No profile recorded | `profile` all null | Contact rows read `—`; **Edit contact details** still offered (XBE-12) |
-| No applications | `applications: []` | Header + **"No applications yet."** |
+| State                | Trigger             | Renders                                                                              |
+| -------------------- | ------------------- | ------------------------------------------------------------------------------------ |
+| Loading              | first fetch         | A header skeleton + two application-card skeletons                                   |
+| Loaded               | `200`               | Header + one card per application, each with timeline, rounds, panels and feedback   |
+| No profile recorded  | `profile` all null  | Contact rows read `—`; **Edit contact details** still offered (XBE-12)               |
+| No applications      | `applications: []`  | Header + **"No applications yet."**                                                  |
 | Terminal application | `status !== ACTIVE` | Its card shows a status badge; the Move menu and Schedule button are absent (FR-6.5) |
-| `404` | no such candidate | `<NotFoundView />` |
-| Error | `500` | Inline error card + **Try again** |
+| `404`                | no such candidate   | `<NotFoundView />`                                                                   |
+| Error                | `500`               | Inline error card + **Try again**                                                    |
 
 ### State matrix — `/candidates/[candidateId]`, interviewer
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Loaded, assigned | `200` | The **name**, and a list of **their own rounds**. Nothing else (FR-7.3) |
-| No rounds *(unreachable)* | `interviews: []` | **"No interviews with this candidate."** — unreachable, since an empty list means the `404` path, and handled anyway |
-| `404` | not found, not a candidate, **or** not assigned | `<NotFoundView />` — **indistinguishable, deliberately** (FR-7.4, XBE-9) |
+| State                     | Trigger                                         | Renders                                                                                                              |
+| ------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Loaded, assigned          | `200`                                           | The **name**, and a list of **their own rounds**. Nothing else (FR-7.3)                                              |
+| No rounds _(unreachable)_ | `interviews: []`                                | **"No interviews with this candidate."** — unreachable, since an empty list means the `404` path, and handled anyway |
+| `404`                     | not found, not a candidate, **or** not assigned | `<NotFoundView />` — **indistinguishable, deliberately** (FR-7.4, XBE-9)                                             |
 
 ### State matrix — the contact dialog
 
-| State | Trigger | Renders |
-| ----- | ------- | ------- |
-| Open | **Edit contact details** clicked | Phone, Location, Headline prefilled; **Name and email read-only** with **"Managed by the candidate's account."**; Submit disabled |
-| Changed | any field differs | Submit enabled |
-| Field cleared | a field emptied | On submit it sends **`null`**, not `""` (FR-8.3) |
-| Submitting | in flight | Submit reads **"Saving…"**, fields disabled |
-| `200` | — | Dialog closes; toast **"Contact details updated."**; the detail cache is written from the response — **no refetch** (FR-8.5) |
-| `400` | — | Field messages; **dialog stays open, values intact** |
-| `404` | — | Dialog closes; toast **"That candidate no longer exists."** |
+| State         | Trigger                          | Renders                                                                                                                           |
+| ------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Open          | **Edit contact details** clicked | Phone, Location, Headline prefilled; **Name and email read-only** with **"Managed by the candidate's account."**; Submit disabled |
+| Changed       | any field differs                | Submit enabled                                                                                                                    |
+| Field cleared | a field emptied                  | On submit it sends **`null`**, not `""` (FR-8.3)                                                                                  |
+| Submitting    | in flight                        | Submit reads **"Saving…"**, fields disabled                                                                                       |
+| `200`         | —                                | Dialog closes; toast **"Contact details updated."**; the detail cache is written from the response — **no refetch** (FR-8.5)      |
+| `400`         | —                                | Field messages; **dialog stays open, values intact**                                                                              |
+| `404`         | —                                | Dialog closes; toast **"That candidate no longer exists."**                                                                       |
 
 ### Other frontend rules
 
@@ -412,7 +412,13 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
     phone: string | null;
     createdAt: string;
     applicationCount: number;
-    applications: Array<{ id: number; status: ApplicationStatus; currentStage: PipelineStage; stageEnteredAt: string; role: { id: number; title: string } }>;
+    applications: Array<{
+      id: number;
+      status: ApplicationStatus;
+      currentStage: PipelineStage;
+      stageEnteredAt: string;
+      role: { id: number; title: string };
+    }>;
   }
 
   export interface RecruiterCandidate {
@@ -420,7 +426,12 @@ Primitives reused: `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Inpu
     name: string;
     email: string;
     createdAt: string;
-    profile: { phone: string | null; location: string | null; headline: string | null; updatedAt: string | null };
+    profile: {
+      phone: string | null;
+      location: string | null;
+      headline: string | null;
+      updatedAt: string | null;
+    };
     applications: Array<RecruiterCandidateApplication>;
   }
   ```
@@ -467,7 +478,7 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 - **XBE-4** `PATCH` accepts **only** `phone`, `location` and `headline`. **`name` and `email` are
   silently stripped** — a form submitting them appears to succeed while changing nothing, which is
   why FR-8.2 renders them read-only rather than editable.
-- **XBE-5** Stage history is ordered **oldest first** by the API (FR-5.1). *(b)* On `PATCH`, an
+- **XBE-5** Stage history is ordered **oldest first** by the API (FR-5.1). _(b)_ On `PATCH`, an
   explicit `null` clears a field and an omitted key leaves it unchanged (FR-8.3).
 - **XBE-6** The recruiter detail carries each round's feedback **inline**, so this client never
   calls the feedback endpoint from here (FR-6.2, FE-7).
@@ -489,11 +500,11 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 ## API Contract
 
-| Call | When | Sends | Expects |
-|---|---|---|---|
-| `GET /api/candidates` | `/candidates` mounts; a filter or page changes; the Applicants section mounts; the drill-down opens | `q` *(recruiter only)*, `roleId`, `stage`, `status`, `page` — omitted at defaults | `200 { candidates, pagination }` · `400` · `403` |
-| `GET /api/candidates/:id` | the detail mounts | — | `200 { candidate, interviews? }` · `404` |
-| `PATCH /api/candidates/:id` | the contact dialog submits | `{ phone?, location?, headline? }` — `null` to clear | `200 { candidate }` · `400` · `404` |
+| Call                        | When                                                                                                | Sends                                                                             | Expects                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `GET /api/candidates`       | `/candidates` mounts; a filter or page changes; the Applicants section mounts; the drill-down opens | `q` _(recruiter only)_, `roleId`, `stage`, `status`, `page` — omitted at defaults | `200 { candidates, pagination }` · `400` · `403` |
+| `GET /api/candidates/:id`   | the detail mounts                                                                                   | —                                                                                 | `200 { candidate, interviews? }` · `404`         |
+| `PATCH /api/candidates/:id` | the contact dialog submits                                                                          | `{ phone?, location?, headline? }` — `null` to clear                              | `200 { candidate }` · `400` · `404`              |
 
 ### Client-side rules
 
@@ -515,12 +526,12 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 
 Client state only.
 
-| State | Where it lives | Lifetime | Persisted? |
-|---|---|---|---|
-| `q`, `roleId`, `stage`, `status`, `page`, `applicantsPage` | The URL | Until navigation | **In the URL only** |
-| Candidate list and detail | TanStack Query cache | Until invalidated or the tab closes | **Never** — memory only |
-| Contact dialog fields | `react-hook-form` state | Until the dialog closes | **Never** |
-| Debounced search input | `useState` in the filter component | Until unmount | **Never** |
+| State                                                      | Where it lives                     | Lifetime                            | Persisted?              |
+| ---------------------------------------------------------- | ---------------------------------- | ----------------------------------- | ----------------------- |
+| `q`, `roleId`, `stage`, `status`, `page`, `applicantsPage` | The URL                            | Until navigation                    | **In the URL only**     |
+| Candidate list and detail                                  | TanStack Query cache               | Until invalidated or the tab closes | **Never** — memory only |
+| Contact dialog fields                                      | `react-hook-form` state            | Until the dialog closes             | **Never**               |
+| Debounced search input                                     | `useState` in the filter component | Until unmount                       | **Never**               |
 
 - **DM-1** No token, name, email or role is written to `localStorage`, `sessionStorage` or a cookie.
 - **DM-2** **No candidate contact detail is written to browser storage** — not as a draft, not as a
@@ -538,12 +549,12 @@ Client state only.
 **This matrix is UX, not a control.** Every row describes what renders; the backend re-authorizes
 every request behind it.
 
-| Route | Anonymous | Candidate | Interviewer | Recruiter |
-|---|---|---|---|---|
-| `/candidates` | → `/login?next=…` | app 404 | ✅ **assigned only, name only** | ✅ all, full rows |
-| `/candidates/[id]` | → `/login?next=…` | app 404 | ✅ **assigned only → app 404** | ✅ |
-| `/roles/[id]` Applicants section | → `/login?next=…` | app 404 | **not rendered** | ✅ |
-| `/pipeline` drill-down | → `/login?next=…` | app 404 | app 404 *(route-level)* | ✅ |
+| Route                            | Anonymous         | Candidate | Interviewer                     | Recruiter         |
+| -------------------------------- | ----------------- | --------- | ------------------------------- | ----------------- |
+| `/candidates`                    | → `/login?next=…` | app 404   | ✅ **assigned only, name only** | ✅ all, full rows |
+| `/candidates/[id]`               | → `/login?next=…` | app 404   | ✅ **assigned only → app 404**  | ✅                |
+| `/roles/[id]` Applicants section | → `/login?next=…` | app 404   | **not rendered**                | ✅                |
+| `/pipeline` drill-down           | → `/login?next=…` | app 404   | app 404 _(route-level)_         | ✅                |
 
 - **AZ-1** **None of the above is a security control.** `<RequireAuth>` and `<RequireRole>` decide
   what renders; the API's `403` and `404` protect the data.
@@ -552,8 +563,8 @@ every request behind it.
   may see what.
 - **AZ-3** **The interviewer's components cannot render a contact field, because their prop types
   have none** (FE-3, FE-4). This is a compile-time property, not a runtime branch — and it is what
-  [../../../CLAUDE.md](../../../CLAUDE.md) means by *"don't build one candidate view that
-  conditionally renders contact fields based on a client-side role check."*
+  [../../../CLAUDE.md](../../../CLAUDE.md) means by _"don't build one candidate view that
+  conditionally renders contact fields based on a client-side role check."_
 - **AZ-4** An interviewer reaching an unassigned candidate's URL gets `<NotFoundView />` **because
   the API returned `404`** — not because the client checked anything (FR-7.4, XBE-9).
 - **AZ-5** The Applicants section is gated on the caller's role explicitly (FR-9.6) rather than
@@ -569,12 +580,12 @@ every request behind it.
 
 ### `contactDetailsSchema` — new, in [`lib/schemas/candidate.ts`](../../../src/lib/schemas/candidate.ts)
 
-| Field | Rule | Message |
-|---|---|---|
-| `phone` | trimmed, max 40, nullable, optional | **"Keep the phone number under 40 characters."** |
-| `location` | trimmed, max 120, nullable, optional | **"Keep the location under 120 characters."** |
-| `headline` | trimmed, max 200, nullable, optional | **"Keep the headline under 200 characters."** |
-| — | at least one field changed | *(Submit stays disabled; no message)* |
+| Field      | Rule                                 | Message                                          |
+| ---------- | ------------------------------------ | ------------------------------------------------ |
+| `phone`    | trimmed, max 40, nullable, optional  | **"Keep the phone number under 40 characters."** |
+| `location` | trimmed, max 120, nullable, optional | **"Keep the location under 120 characters."**    |
+| `headline` | trimmed, max 200, nullable, optional | **"Keep the headline under 200 characters."**    |
+| —          | at least one field changed           | _(Submit stays disabled; no message)_            |
 
 - **VAL-1** **No format validation on `phone`**, matching the API. A POC that rejects a valid
   international number is worse than one that stores a string.
@@ -592,16 +603,16 @@ every request behind it.
 
 ## Error Handling
 
-| Status / `code` | Where | UI behaviour |
-|---|---|---|
-| `401` | any call | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…` |
-| `403` | any call | `apiFetch` redirects to `/forbidden`. Unreachable through the UI; handled |
-| `404` | detail | `<NotFoundView />`. **Not retried** (FE-8). Covers "no such candidate", "not a candidate" and "not assigned" alike (FR-7.4) |
-| `404` | `PATCH` | Dialog closes; toast **"That candidate no longer exists."**; the list is invalidated |
-| `400 VALIDATION_ERROR` | contact dialog | Field messages via `fieldMessage`; **dialog stays open, values intact** |
-| `400 VALIDATION_ERROR` | list | Inline error card **"That filter combination isn't valid."** Should be unreachable given VAL-4, VAL-5 |
-| `500` / network | reads | Inline error card + **Try again** |
-| `500` / network | writes | Error toast; **the dialog and its values are left as they were** |
+| Status / `code`        | Where          | UI behaviour                                                                                                                |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `401`                  | any call       | `apiFetch` refreshes once and replays; a second `401` redirects to `/login?next=…`                                          |
+| `403`                  | any call       | `apiFetch` redirects to `/forbidden`. Unreachable through the UI; handled                                                   |
+| `404`                  | detail         | `<NotFoundView />`. **Not retried** (FE-8). Covers "no such candidate", "not a candidate" and "not assigned" alike (FR-7.4) |
+| `404`                  | `PATCH`        | Dialog closes; toast **"That candidate no longer exists."**; the list is invalidated                                        |
+| `400 VALIDATION_ERROR` | contact dialog | Field messages via `fieldMessage`; **dialog stays open, values intact**                                                     |
+| `400 VALIDATION_ERROR` | list           | Inline error card **"That filter combination isn't valid."** Should be unreachable given VAL-4, VAL-5                       |
+| `500` / network        | reads          | Inline error card + **Try again**                                                                                           |
+| `500` / network        | writes         | Error toast; **the dialog and its values are left as they were**                                                            |
 
 - **ERR-1** A **query** failure renders an inline error state with a retry. A **mutation** failure
   raises a toast and leaves the form as it was — the recruiter's input is never discarded.
@@ -616,32 +627,32 @@ every request behind it.
 
 ## Edge Cases
 
-| ID | Case | Behaviour |
-|---|---|---|
-| **EC-01** | **An interviewer pastes the URL of a candidate they are not assigned to** | `<NotFoundView />`, identical to a nonexistent id. **No copy mentions permissions** (FR-7.4, ERR-2, XBE-9) |
-| **EC-02** | An interviewer opens `/candidates` | One column of names. **No search box, no email column, no phone column** (FR-3.1, FR-3.2) |
-| **EC-03** | An interviewer hand-edits `?q=john` into the URL | The parameter is dropped before the request; the response is `200` (VAL-5, API-4) |
-| **EC-04** | An interviewer is unassigned while their candidate detail is open | Their next refetch `404`s and the page becomes not-found. No re-login needed (XBE-9) |
-| **EC-05** | A candidate is interviewed by two panels | Each interviewer's detail lists **only their own rounds** (FR-7.2) |
-| **EC-06** | A candidate with no phone recorded | The cell and the detail row read **`—`**; **Edit contact details** is still offered (XBE-12) |
-| **EC-07** | The first contact edit for a candidate | `200`; the profile row is created server-side by upsert. The client sees no difference between create and update (FR-8.5) |
-| **EC-08** | A recruiter clears the phone field | `null` is sent; the row renders `—` (FR-8.3, VAL-2) |
-| **EC-09** | A recruiter opens the dialog and changes nothing | Submit stays disabled (FR-8.4) |
-| **EC-10** | A recruiter edits contact details | **One** request; the detail cache is written from the response, **no refetch** (FR-8.5, PERF-4) |
-| **EC-11** | A candidate with no applications | The header card plus **"No applications yet."** (FR-4.5) |
-| **EC-12** | An application with an override in its history | That timeline entry is destructive-toned, labelled **"Override"**, and shows **the full reason** and its author (FR-5.4, FR-5.5) |
-| **EC-13** | An override reason of 900 characters | Rendered in full, wrapped. No truncation, no "show more" (FR-5.5) |
-| **EC-14** | The first timeline entry, `fromStage: null` | Renders as **"Applied"**, not `null → Applied` (FR-5.3) |
-| **EC-15** | A candidate with five rounds and eight feedback entries | **One** request total; feedback comes from the same payload (FR-4.6, FR-6.2, PERF-2) |
-| **EC-16** | A terminal application | Its card shows the status badge; the Move menu and Schedule button are absent (FR-6.5, AZ-6) |
-| **EC-17** | A role with no applicants | The section renders **"No applicants yet."** (FR-9.5) |
-| **EC-18** | An interviewer opens `/roles/[id]` | The role detail renders; the **Applicants section does not** (FR-9.6, AZ-5) |
-| **EC-19** | Paging the Applicants section | Only `applicantsPage` changes; the roles list's own `page` is untouched (FR-9.4) |
-| **EC-20** | A recruiter searches an email fragment | Matching rows render; the term is in the URL only, **never in storage** (DM-3) |
-| **EC-21** | A stage card with a zero count on `/pipeline` | **Still not a link** (FR-10.3, pipeline AC-F13) |
-| **EC-22** | `?stage=BANANA&page=-2` | The unfiltered first page; neither parameter is sent (VAL-4) |
-| **EC-23** | A candidate opens `/candidates/<their own id>` | The app's 404 — the route is not theirs (AZ-1) |
-| **EC-24** | A session expires mid-edit | One `401`, one refresh, one replay; the dialog keeps its values |
+| ID        | Case                                                                      | Behaviour                                                                                                                        |
+| --------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | **An interviewer pastes the URL of a candidate they are not assigned to** | `<NotFoundView />`, identical to a nonexistent id. **No copy mentions permissions** (FR-7.4, ERR-2, XBE-9)                       |
+| **EC-02** | An interviewer opens `/candidates`                                        | One column of names. **No search box, no email column, no phone column** (FR-3.1, FR-3.2)                                        |
+| **EC-03** | An interviewer hand-edits `?q=john` into the URL                          | The parameter is dropped before the request; the response is `200` (VAL-5, API-4)                                                |
+| **EC-04** | An interviewer is unassigned while their candidate detail is open         | Their next refetch `404`s and the page becomes not-found. No re-login needed (XBE-9)                                             |
+| **EC-05** | A candidate is interviewed by two panels                                  | Each interviewer's detail lists **only their own rounds** (FR-7.2)                                                               |
+| **EC-06** | A candidate with no phone recorded                                        | The cell and the detail row read **`—`**; **Edit contact details** is still offered (XBE-12)                                     |
+| **EC-07** | The first contact edit for a candidate                                    | `200`; the profile row is created server-side by upsert. The client sees no difference between create and update (FR-8.5)        |
+| **EC-08** | A recruiter clears the phone field                                        | `null` is sent; the row renders `—` (FR-8.3, VAL-2)                                                                              |
+| **EC-09** | A recruiter opens the dialog and changes nothing                          | Submit stays disabled (FR-8.4)                                                                                                   |
+| **EC-10** | A recruiter edits contact details                                         | **One** request; the detail cache is written from the response, **no refetch** (FR-8.5, PERF-4)                                  |
+| **EC-11** | A candidate with no applications                                          | The header card plus **"No applications yet."** (FR-4.5)                                                                         |
+| **EC-12** | An application with an override in its history                            | That timeline entry is destructive-toned, labelled **"Override"**, and shows **the full reason** and its author (FR-5.4, FR-5.5) |
+| **EC-13** | An override reason of 900 characters                                      | Rendered in full, wrapped. No truncation, no "show more" (FR-5.5)                                                                |
+| **EC-14** | The first timeline entry, `fromStage: null`                               | Renders as **"Applied"**, not `null → Applied` (FR-5.3)                                                                          |
+| **EC-15** | A candidate with five rounds and eight feedback entries                   | **One** request total; feedback comes from the same payload (FR-4.6, FR-6.2, PERF-2)                                             |
+| **EC-16** | A terminal application                                                    | Its card shows the status badge; the Move menu and Schedule button are absent (FR-6.5, AZ-6)                                     |
+| **EC-17** | A role with no applicants                                                 | The section renders **"No applicants yet."** (FR-9.5)                                                                            |
+| **EC-18** | An interviewer opens `/roles/[id]`                                        | The role detail renders; the **Applicants section does not** (FR-9.6, AZ-5)                                                      |
+| **EC-19** | Paging the Applicants section                                             | Only `applicantsPage` changes; the roles list's own `page` is untouched (FR-9.4)                                                 |
+| **EC-20** | A recruiter searches an email fragment                                    | Matching rows render; the term is in the URL only, **never in storage** (DM-3)                                                   |
+| **EC-21** | A stage card with a zero count on `/pipeline`                             | **Still not a link** (FR-10.3, pipeline AC-F13)                                                                                  |
+| **EC-22** | `?stage=BANANA&page=-2`                                                   | The unfiltered first page; neither parameter is sent (VAL-4)                                                                     |
+| **EC-23** | A candidate opens `/candidates/<their own id>`                            | The app's 404 — the route is not theirs (AZ-1)                                                                                   |
+| **EC-24** | A session expires mid-edit                                                | One `401`, one refresh, one replay; the dialog keeps its values                                                                  |
 
 ---
 
@@ -841,25 +852,25 @@ and a seeded database.
 - **AC-M01** — **Given** a full session as I1 — the candidate list, a candidate detail, and their
   round detail — **when** every response body in the Network tab is searched, **then** the strings
   `"email"`, `"phone"`, `"applications"`, `"stageHistory"` and `"feedback"` appear **zero** times.
-  *This is the invariant the POC is judged on; verified in the payload, not the DOM* (XBE-3,
+  _This is the invariant the POC is judged on; verified in the payload, not the DOM_ (XBE-3,
   SEC-1).
 - **AC-M02** — **Given** `$CAND` has a phone recorded by R, **when** I1 completes a full session —
   `/candidates`, `/candidates/$CAND`, `/my-interviews`, their round detail and its feedback — **then
-  that phone string appears in no response body from any endpoint.** *The contact detail appears in
-  no response to any interviewer, anywhere in the app* (SEC-1).
+  that phone string appears in no response body from any endpoint.** _The contact detail appears in
+  no response to any interviewer, anywhere in the app_ (SEC-1).
 - **AC-M03** — **Given** an **interviewer** session, **when**
   `fetch('<API>/api/candidates/<$CAND_OTHER>', …)` and
   `fetch('<API>/api/candidates/<$CAND>', { method: 'PATCH', body: '{"phone":"1"}' }, …)` are issued
   **by hand from the DevTools console**, **then** the first is **`404`** and the second is
-  **`403`**. *This is the criterion that proves neither the missing column nor the route guard is
-  what is protecting the data* (AZ-1, SEC-6, XBE-9).
+  **`403`**. _This is the criterion that proves neither the missing column nor the route guard is
+  what is protecting the data_ (AZ-1, SEC-6, XBE-9).
 - **AC-M04** — **Given** an **interviewer** session, **when**
   `fetch('<API>/api/candidates?q=john', …)` is issued **by hand from the console**, **then** the
   response is **`400`** — the missing search box is not the control (XBE-8, SEC-6).
 - **AC-M05** — **Given** an **R** session, **when** a `PATCH` carrying
   `{"phone":"1","email":"attacker@evil.test","name":"X"}` is issued **by hand from the console**,
   **then** the response is **`200`** and the candidate's email and name are **unchanged** on reload.
-  *This proves the read-only fields in the dialog are not what protects them* (XBE-4, AZ-7).
+  _This proves the read-only fields in the dialog are not what protects them_ (XBE-4, AZ-7).
 - **AC-M06** — **Given** a **candidate** session, **when** `fetch('<API>/api/candidates', …)` is
   issued **by hand from the console**, **then** the response is **`403`** (AZ-1).
 - **AC-M07** — **Given** a full session as R including a search by email and a contact edit, **when**
@@ -877,17 +888,17 @@ and a seeded database.
 
 ## Out of Scope
 
-| Excluded | Why |
-|---|---|
-| Creating a candidate | There is no `POST /api/candidates` (D-3, XBE-10) |
-| Editing a candidate's name or email | Identity belongs to the account (D-4, XBE-4) |
-| Candidate self-service profile editing | The candidate's own surface is `/profile` and `/applications`, both shipped and both read-only |
-| Deleting or anonymising a candidate | The API has no such path, and a GDPR-shaped anonymise is a real feature rather than a button |
-| Résumé or document upload | No storage layer exists in this app |
-| Recruiter notes or tags on a candidate | A separate record with its own authorization question; feedback already covers assessment |
-| Searching by phone | No requirement asks for it and the API does not support it |
-| An interviewer search box | D-6. `?q=` is a `400` for them, and a search over people is the affordance this feature denies |
-| Bulk actions on candidates | Multiplies the conflict surface for a convenience nobody asked for |
+| Excluded                                             | Why                                                                                                               |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Creating a candidate                                 | There is no `POST /api/candidates` (D-3, XBE-10)                                                                  |
+| Editing a candidate's name or email                  | Identity belongs to the account (D-4, XBE-4)                                                                      |
+| Candidate self-service profile editing               | The candidate's own surface is `/profile` and `/applications`, both shipped and both read-only                    |
+| Deleting or anonymising a candidate                  | The API has no such path, and a GDPR-shaped anonymise is a real feature rather than a button                      |
+| Résumé or document upload                            | No storage layer exists in this app                                                                               |
+| Recruiter notes or tags on a candidate               | A separate record with its own authorization question; feedback already covers assessment                         |
+| Searching by phone                                   | No requirement asks for it and the API does not support it                                                        |
+| An interviewer search box                            | D-6. `?q=` is a `400` for them, and a search over people is the affordance this feature denies                    |
+| Bulk actions on candidates                           | Multiplies the conflict surface for a convenience nobody asked for                                                |
 | A candidate-facing view of their own pipeline detail | `/applications` already shows a candidate their stage; anything more is a product decision this POC does not make |
 
 ---
@@ -905,7 +916,7 @@ spec revises its drill-down.
 **Blocks:** nothing. This is the last feature in the sequence; see [../README.md](../../README.md).
 
 **Revises:** [../pipeline/spec.md](../pipeline/spec.md) FR-3.7, FR-4.2, FR-4.3, FR-4.4, its
-*Drill-down unavailable* state row — see the Revision section. Pipeline AC-F13 is unchanged and
+_Drill-down unavailable_ state row — see the Revision section. Pipeline AC-F13 is unchanged and
 remains true.
 
 **New npm dependencies:** **none.** `Table`, `Card`, `Badge`, `Button`, `Dialog`, `Select`, `Input`,
@@ -916,12 +927,12 @@ remains true.
 
 **Modified existing files**
 
-| Path | Change |
-|---|---|
-| [`src/app/(app)/roles/[roleId]/page.tsx`](<../../../src/app/(app)/roles/[roleId]/page.tsx>) | The Applicants section (FR-9) |
-| `src/app/(app)/pipeline/page.tsx` | The real drill-down (FR-10, the Revision) |
-| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>) | Candidates added for both privileged roles |
-| [`CLAUDE.md`](../../../CLAUDE.md) | Feature table row; the "Candidate detail" bullet under *Views this POC needs* now points here |
+| Path                                                                                        | Change                                                                                        |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [`src/app/(app)/roles/[roleId]/page.tsx`](<../../../src/app/(app)/roles/[roleId]/page.tsx>) | The Applicants section (FR-9)                                                                 |
+| `src/app/(app)/pipeline/page.tsx`                                                           | The real drill-down (FR-10, the Revision)                                                     |
+| [`src/app/(app)/layout.tsx`](<../../../src/app/(app)/layout.tsx>)                           | Candidates added for both privileged roles                                                    |
+| [`CLAUDE.md`](../../../CLAUDE.md)                                                           | Feature table row; the "Candidate detail" bullet under _Views this POC needs_ now points here |
 
 **Framework note.** **This is Next.js 16; its APIs differ from older versions.** Route `params` are
 a **Promise**: `[candidateId]/page.tsx` must `await params` and pass the raw segment to

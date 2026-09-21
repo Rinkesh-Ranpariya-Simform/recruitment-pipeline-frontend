@@ -8,6 +8,7 @@ import {
   FileTextIcon,
   GitBranchIcon,
   LogOutIcon,
+  ScrollTextIcon,
   UserIcon,
   type LucideIcon,
 } from 'lucide-react';
@@ -50,6 +51,10 @@ const MY_APPLICATIONS: NavLink = {
   label: 'My applications',
   icon: FileTextIcon,
 };
+// Recruiter-only, and the one nav entry whose route the API also refuses:
+// `GET /api/audit` is a 403 for an interviewer or a candidate. Omitting the
+// link is still only an affordance (audit spec FR-1.3, FR-1.4).
+const AUDIT: NavLink = { href: '/audit', label: 'Audit', icon: ScrollTextIcon };
 const PROFILE: NavLink = { href: '/profile', label: 'Profile', icon: UserIcon };
 
 /** Offered to every role — `/profile` renders for all three. */
@@ -70,7 +75,11 @@ const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
  * guards, not this table, are what make those routes safe to leave unlinked.
  */
 const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
-  RECRUITER: [{ label: 'Hiring', links: [PIPELINE, ROLES] }, ACCOUNT_SECTION],
+  RECRUITER: [
+    { label: 'Hiring', links: [PIPELINE, ROLES] },
+    { label: 'Records', links: [AUDIT] },
+    ACCOUNT_SECTION,
+  ],
   INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS] }, ACCOUNT_SECTION],
   CANDIDATE: [{ label: 'Jobs', links: [JOBS, MY_APPLICATIONS] }, ACCOUNT_SECTION],
 };
