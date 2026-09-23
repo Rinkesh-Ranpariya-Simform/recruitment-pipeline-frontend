@@ -32,6 +32,7 @@ import {
   INTERVIEW_TYPE_VALUES,
   PIPELINE_STAGE_VALUES,
   scheduleInterviewSchema,
+  toScheduledAtInstant,
   type ScheduleInterviewFormValues,
 } from '@/lib/schemas/interview';
 import { INTERVIEW_TYPE_LABELS } from '../labels';
@@ -64,18 +65,23 @@ interface ScheduleInterviewDialogProps {
 /**
  * Schedules a round against one application.
  *
- * **One component, two call sites** — a round's detail ("schedule another round
- * on this application") and, once the candidate-access feature ships, the
- * candidate detail page. A second copy would be a second place for the
- * conversion below to drift.
+ * **One call site as of the applications feature** — the recruiter's application
+ * detail page, where the whole of a candidate's process lives. It was reachable
+ * from a round's page too; that link is gone, because "schedule another round"
+ * belonged on the page that shows what rounds there already are.
  *
- * Two rules here are easy to get wrong in opposite directions:
+ * Three rules here are easy to get wrong in opposite directions:
+ *
+ *   - **A date is optional.** A recruiter routinely decides to run a round
+ *     before agreeing a time for it, and forcing one here would make them invent
+ *     a date that nothing downstream can tell apart from a real one.
  *
  *   - **Stage is seeded from the application's current stage but is freely
  *     changeable.** The API does not require the two to match, because a
  *     recruiter routinely schedules the technical round while the candidate is
  *     still at Screen. A round's stage is what it is *for*, not a claim about
  *     now — so this is a default, never a constraint.
+ *
  *   - **A past date is accepted with no warning.** Backfilling a round that
  *     already happened is normal and the API has no floor either; a
  *     confirmation prompt for an ordinary action is noise, and a client-side
@@ -174,12 +180,13 @@ export const ScheduleInterviewDialog: React.FC<ScheduleInterviewDialogProps> = (
         values: {
           type: values.type,
           stage: values.stage,
-          // `datetime-local` hands back a local wall-clock string with no zone.
-          // `new Date(...)` reads it in the browser's zone and `toISOString()`
-          // renders the instant in UTC — so 9:30 typed in IST is sent as
-          // 04:00Z, not 09:30Z. Sending the raw value would schedule every
-          // round in a non-UTC browser at the wrong time.
-          scheduledAt: new Date(values.scheduledAt).toISOString(),
+          // Blank becomes `null` — a round with no date yet, which is now an
+          // ordinary thing to create. The local-to-UTC conversion lives in
+          // `toScheduledAtInstant`, shared with the edit dialog so the two
+          // cannot drift: `datetime-local` hands back a local wall-clock string
+          // with no zone, and sending it raw would schedule every round in a
+          // non-UTC browser at the wrong time.
+          scheduledAt: toScheduledAtInstant(values.scheduledAt),
         },
       });
 
@@ -282,7 +289,7 @@ export const ScheduleInterviewDialog: React.FC<ScheduleInterviewDialogProps> = (
 
             <Field data-invalid={!!errors.scheduledAt}>
               <FieldLabel htmlFor="interview-scheduled-at" className="font-semibold">
-                Date and time
+                Date and time <span className="font-normal text-muted-foreground">(optional)</span>
               </FieldLabel>
               {/* No `min`: a past instant is a legitimate entry. */}
               <Input
@@ -292,6 +299,10 @@ export const ScheduleInterviewDialog: React.FC<ScheduleInterviewDialogProps> = (
                 aria-invalid={!!errors.scheduledAt}
                 {...register('scheduledAt')}
               />
+              <p className="text-xs text-muted-foreground">
+                Leave it blank if the time is not agreed yet. You can set it from the round&rsquo;s
+                page later.
+              </p>
               <FieldError
                 className="text-xs"
                 errors={errors.scheduledAt ? [errors.scheduledAt] : undefined}

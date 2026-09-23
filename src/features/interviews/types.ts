@@ -28,6 +28,16 @@ export type InterviewType =
  */
 export type InterviewStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
 
+/**
+ * A recruiter's verdict AT one round — the Select / Reject pair.
+ *
+ * Deliberately separate from `InterviewStatus`, which answers a different
+ * question: `COMPLETED` says the round happened, `SELECTED` says the candidate
+ * passed it. There is no `PENDING`, because "not decided yet" is `null`, not a
+ * value.
+ */
+export type InterviewOutcome = 'SELECTED' | 'REJECTED';
+
 /** Matching the shipped roles and audit pagers, so the pager component is reusable in shape. */
 export interface Pagination {
   page: number;
@@ -59,12 +69,25 @@ export interface InterviewerInterview {
   id: number;
   type: InterviewType;
   stage: PipelineStage;
-  scheduledAt: string;
+  /**
+   * **Nullable**: a round a recruiter started from the applications table has no
+   * date until they set one, and that is ordinary rather than an error state.
+   */
+  scheduledAt: string | null;
   status: InterviewStatus;
   role: { id: number; title: string };
   /** `{ id, name }` — the only thing this payload says about the person. */
   candidate: { id: number; name: string };
 }
+
+/**
+ * **There is deliberately no `outcome` on this interface**, and it is not an
+ * omission to fix: the backend's interviewer projection does not select it.
+ *
+ * A round's verdict is the recruiter's decision about a candidate's process, not
+ * a fact an assessor needs in order to assess — and an interviewer who can see
+ * it before writing their feedback is an interviewer being told the answer.
+ */
 
 /** One seat on a panel, as a recruiter's payload carries it. */
 export interface InterviewAssignment {
@@ -86,8 +109,13 @@ export interface RecruiterInterview {
   id: number;
   type: InterviewType;
   stage: PipelineStage;
-  scheduledAt: string;
+  /** Nullable, as on the interviewer's view — an undated round is ordinary. */
+  scheduledAt: string | null;
   status: InterviewStatus;
+  /** The verdict at this round, null until a recruiter records one. */
+  outcome: InterviewOutcome | null;
+  decidedAt: string | null;
+  decidedBy: { id: number; name: string } | null;
   application: {
     id: number;
     currentStage: PipelineStage;

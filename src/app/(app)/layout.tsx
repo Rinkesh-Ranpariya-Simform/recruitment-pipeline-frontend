@@ -47,17 +47,30 @@ const MY_INTERVIEWS: NavLink = {
   label: 'My interviews',
   icon: ClipboardListIcon,
 };
-// The recruiter's view of every round, added by the interviews feature. A
-// DIFFERENT icon from MY_INTERVIEWS deliberately: the two are not the same list
-// seen from two sides — one is a personal schedule, the other is the whole
-// board — and no user is ever offered both.
+// The recruiter's view of every candidate already in an interview process,
+// reshaped by the applications feature — it used to list rounds. A DIFFERENT
+// icon from MY_INTERVIEWS deliberately: the two are not the same list seen from
+// two sides — one is a personal schedule, the other is the whole board — and no
+// user is ever offered both.
 const INTERVIEWS: NavLink = { href: '/interviews', label: 'Interviews', icon: CalendarDaysIcon };
+// The recruiter's view of every application, added by the applications feature.
+// The same icon as MY_APPLICATIONS below but a DIFFERENT href: the two used to
+// be one route with two projections behind it, and are now two routes, exactly
+// as `/interviews` and `/my-interviews` are. The labels differ because the two
+// audiences are asking different questions of the same rows — "who applied to
+// us?" against "where did my applications get to?" — and no user is ever
+// offered both.
+const APPLICATIONS: NavLink = {
+  href: '/applications',
+  label: 'Applications',
+  icon: FileTextIcon,
+};
 // Deliberately the same icon as ROLES: a candidate's "job" and a recruiter's
 // "requisition" are the same object seen from opposite sides, and they are
 // served by the same endpoint.
 const JOBS: NavLink = { href: '/jobs', label: 'Jobs', icon: BriefcaseIcon };
 const MY_APPLICATIONS: NavLink = {
-  href: '/applications',
+  href: '/my-applications',
   label: 'My applications',
   icon: FileTextIcon,
 };
@@ -86,10 +99,12 @@ const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
  */
 const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
   RECRUITER: [
-    // Dashboard, Pipeline, Roles, Interviews — in that order. The interviews
-    // feature added the fourth, after Roles as its spec asks; the
-    // candidate-access feature inserts Candidates later.
-    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES, INTERVIEWS] },
+    // Dashboard, Pipeline, Roles, Applications, Interviews — in that order, and
+    // the order is the workflow rather than an alphabet: a recruiter starts at
+    // Applications (everyone who applied), starts a phone screen, and the
+    // candidate appears under Interviews (everyone in process). Applications
+    // therefore sits immediately before it.
+    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES, APPLICATIONS, INTERVIEWS] },
     { label: 'Records', links: [AUDIT] },
     ACCOUNT_SECTION,
   ],

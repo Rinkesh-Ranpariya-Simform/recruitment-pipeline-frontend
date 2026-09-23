@@ -139,9 +139,21 @@ export const InterviewerInterviewDetail: React.FC<InterviewerInterviewDetailProp
         </div>
         <div className="space-y-1">
           <dt className="text-muted-foreground">When</dt>
+          {/* A round can exist before its date does — a recruiter decides to run
+              one before agreeing a time. "Not scheduled yet" is said in words
+              rather than left as a blank, because an interviewer reading a blank
+              would assume the page had failed to load it. */}
           <dd>
-            {formatAbsolute(interview.scheduledAt)}{' '}
-            <span className="text-muted-foreground">({formatRelative(interview.scheduledAt)})</span>
+            {interview.scheduledAt === null ? (
+              <span className="text-muted-foreground">Not scheduled yet</span>
+            ) : (
+              <>
+                {formatAbsolute(interview.scheduledAt)}{' '}
+                <span className="text-muted-foreground">
+                  ({formatRelative(interview.scheduledAt)})
+                </span>
+              </>
+            )}
           </dd>
         </div>
         <div className="space-y-1">

@@ -1,12 +1,14 @@
 import { RequireRole } from '@/features/auth/components/RequireRole';
+import { MY_INTERVIEWS_ROLES } from '@/features/interviews/permissions';
 
 /**
- * Interviewer-only, closing the same gap `/pipeline` had: the route was
- * reachable by any authenticated user who typed the URL.
+ * Interviewer-only, across the list and the round page beneath it — closing the
+ * same gap `/pipeline` had: the route was reachable by any authenticated user
+ * who typed the URL.
  *
- * A rendering decision, not a security control — the assigned-rounds query
- * behind this page is scoped server-side.
+ * A rendering decision, not a security control — both queries behind this tree
+ * are scoped server-side to the signed-in interviewer's own assignments.
  */
 export default function MyInterviewsLayout({ children }: { children: React.ReactNode }) {
-  return <RequireRole allow={['INTERVIEWER']}>{children}</RequireRole>;
+  return <RequireRole allow={MY_INTERVIEWS_ROLES}>{children}</RequireRole>;
 }

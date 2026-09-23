@@ -3,11 +3,11 @@ import type { ScheduleInterviewValues } from '@/lib/schemas/interview';
 import type { InterviewsSearchParams } from '../search-params';
 import type {
   AssignmentResponse,
+  InterviewOutcome,
   InterviewStatus,
   InterviewerInterviewResponse,
   InterviewerInterviewsResponse,
   RecruiterInterviewResponse,
-  RecruiterInterviewsResponse,
 } from '../types';
 
 /**
@@ -74,12 +74,15 @@ export const listInterviewerInterviews = (
   return apiFetch<InterviewerInterviewsResponse>(interviewsPath(params));
 };
 
-/** Every round, with its panel. The same endpoint, the recruiter's projection. */
-export const listRecruiterInterviews = (
-  params: Partial<InterviewsSearchParams> = {},
-): Promise<RecruiterInterviewsResponse> => {
-  return apiFetch<RecruiterInterviewsResponse>(interviewsPath(params));
-};
+/**
+ * **`listRecruiterInterviews` was removed by the applications feature**, with
+ * the hook that called it.
+ *
+ * The endpoint is unchanged and still serves a recruiter's projection; nothing
+ * in the UI asks for it, because `/interviews` now lists candidates in a process
+ * rather than rounds. `interviewsPath` above stays: the interviewer's list still
+ * uses it, and it is the one place a URL for this endpoint is built.
+ */
 
 /**
  * One round, as an interviewer.
@@ -104,8 +107,9 @@ export const getRecruiterInterview = (interviewId: number): Promise<RecruiterInt
  * Schedules a round against one application.
  *
  * `scheduledAt` is already an ISO UTC string by the time it gets here — the
- * dialog converts the local-time value the browser's datetime field produces.
- * A past instant is accepted by the API and is not a client concern.
+ * dialog converts the local-time value the browser's datetime field produces
+ * (`toScheduledAtInstant`). A past instant is accepted by the API and is not a
+ * client concern, and so is `null`: a round can exist before its date does.
  *
  * `409 APPLICATION_NOT_ACTIVE` when the application is closed. The UI only
  * offering this where the application is live is a convenience, not the check.
@@ -121,20 +125,88 @@ export const createInterview = (
 };
 
 /**
- * Completes or cancels a round. `SCHEDULED` is not an accepted value — the API
- * answers `400`, because un-cancelling is not an action this POC has.
+ * Starts the FIRST round on an application, from the applications table
+ * (applications FR-2.2).
  *
- * A second change to an already-terminal round is `409
- * INVALID_STAGE_TRANSITION`. Hiding the controls once a round is terminal is a
+ * One click, no dialog and **no date** — which is the whole point. A recruiter
+ * moving somebody out of the raw applied pile has decided to phone them, not
+ * agreed a time with them; the date arrives later through `updateInterview`.
+ *
+ * `PHONE_SCREEN` at `SCREEN` are literals rather than parameters: this is a
+ * named action ("start the phone screen"), not a scheduler with its inputs
+ * hidden. Anything else goes through the dialog, where the recruiter can see
+ * what they are choosing.
+ *
+ * **It does not move the candidate's stage**, and that is deliberate: they are
+ * still at Applied until the phone screen is passed. The move happens when the
+ * recruiter records a verdict on this round — see `recordInterviewDecision`.
+ */
+export const startPhoneScreen = (applicationId: number): Promise<RecruiterInterviewResponse> => {
+  return createInterview(applicationId, {
+    type: 'PHONE_SCREEN',
+    stage: 'SCREEN',
+    scheduledAt: null,
+  });
+};
+
+/**
+ * Changes a round's status, its date, or both.
+ *
+ * `SCHEDULED` is not an accepted status — the API answers `400`, because
+ * un-cancelling is not an action this POC has. An empty body is a `400` too: a
+ * PATCH that changes nothing is a client bug, and answering it with the
+ * unmodified round would hide the bug behind a success.
+ *
+ * `scheduledAt: null` clears the date back to undated. The key being **absent**
+ * means "leave it alone", which is a different request — so callers must pass
+ * the key deliberately rather than letting an `undefined` fall through.
+ *
+ * A change to an already-terminal round is `409 INVALID_STAGE_TRANSITION`,
+ * whichever field it touched. Hiding the controls once a round is terminal is a
  * convenience; that `409` is the check.
  */
-export const updateInterviewStatus = (
+export const updateInterview = (
   interviewId: number,
-  status: Extract<InterviewStatus, 'COMPLETED' | 'CANCELLED'>,
+  body: {
+    status?: Extract<InterviewStatus, 'COMPLETED' | 'CANCELLED'>;
+    scheduledAt?: string | null;
+  },
 ): Promise<RecruiterInterviewResponse> => {
   return apiFetch<RecruiterInterviewResponse>(`/api/interviews/${interviewId}`, {
     method: 'PATCH',
-    body: { status },
+    body,
+  });
+};
+
+/**
+ * Records the verdict at one round — **Select or Reject** (applications FR-3).
+ *
+ * One request, and the server does the rest in one transaction: it closes the
+ * round, and either advances the candidate to the round's stage or closes their
+ * application as rejected. The response carries the application's new
+ * `currentStage` and `status`, so nothing has to be guessed or refetched to
+ * render the result.
+ *
+ * Four refusals are expected rather than exceptional:
+ *
+ * - **`409 DECISION_ALREADY_RECORDED`** — somebody decided this round first. A
+ *   decision cannot be edited; undoing one is a stage override, with a reason.
+ * - **`409 INVALID_STAGE_TRANSITION`** — selecting here would skip a stage. The
+ *   recruiter's path is an override, which records why.
+ * - **`409 APPLICATION_NOT_ACTIVE`** — the application is already closed.
+ * - **`409 INTERVIEW_CANCELLED`** — a cancelled round did not happen, so there
+ *   is nothing to decide about it.
+ *
+ * Hiding the buttons in each of those cases is a convenience. **The 409s are the
+ * check**, and they hold for two recruiters clicking at the same instant.
+ */
+export const recordInterviewDecision = (
+  interviewId: number,
+  decision: InterviewOutcome,
+): Promise<RecruiterInterviewResponse> => {
+  return apiFetch<RecruiterInterviewResponse>(`/api/interviews/${interviewId}/decision`, {
+    method: 'POST',
+    body: { decision },
   });
 };
 

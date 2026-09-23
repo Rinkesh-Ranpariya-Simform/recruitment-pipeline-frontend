@@ -51,8 +51,15 @@ scoping depends on a table three features away.
 | `audit`            | `/audit` **NEW**                                                                                           | Recruiter → Audit                                              |
 | `pipeline`         | `/dashboard` **NEW** · `/pipeline` **fills the existing stub**                                             | Recruiter → Dashboard; recruiter landing moves to `/dashboard` |
 | `interviews`       | `/interviews` **NEW** · `/interviews/[interviewId]` **NEW** · `/my-interviews` **fills the existing stub** | Recruiter → Interviews; interviewer unchanged                  |
+| `applications`     | `/applications` **MOD** (recruiter projection) · `/interviews/[applicationId]` **NEW** · `/interviews/[applicationId]/[interviewId]` **MOD from `/interviews/[interviewId]`** · `/my-interviews/[interviewId]` **NEW** | Recruiter → Applications, before Interviews |
 | `feedback`         | none — components on `/interviews/[interviewId]` and `/candidates/[candidateId]`                           | none                                                           |
 | `candidate-access` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD**                    | Recruiter → Candidates; interviewer → Candidates               |
+
+The `applications` row **supersedes the `interviews` row above it.** The recruiter's surfaces were
+rearranged into three levels — the list of processes, one candidate's process, one round — and the
+interviewer's round page moved under `/my-interviews`, where their list already lived. The reasoning
+is [Amendment A](features/applications/spec.md#amendment-a--the-routing-revised-after-the-walkthrough)
+in the applications spec.
 
 Two of these fill routes that already exist. [`(app)/pipeline/page.tsx`](<../src/app/(app)/pipeline/page.tsx>)
 and [`(app)/my-interviews/page.tsx`](<../src/app/(app)/my-interviews/page.tsx>) are placeholder pages

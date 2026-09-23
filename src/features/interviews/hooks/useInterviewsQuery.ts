@@ -7,7 +7,6 @@ import {
   getInterviewerInterview,
   getRecruiterInterview,
   listInterviewerInterviews,
-  listRecruiterInterviews,
 } from '../api/interviews.api';
 import type { InterviewsSearchParams } from '../search-params';
 
@@ -80,14 +79,16 @@ export const useInterviewerInterviewsQuery = (params: InterviewsSearchParams) =>
   });
 };
 
-/** Every round, with its panel. */
-export const useRecruiterInterviewsQuery = (params: InterviewsSearchParams) => {
-  return useQuery({
-    queryKey: interviewsListKey(params),
-    queryFn: () => listRecruiterInterviews(params),
-    placeholderData: (previous) => previous,
-  });
-};
+/**
+ * **`useRecruiterInterviewsQuery` was removed by the applications feature.**
+ *
+ * `GET /api/interviews` still serves a recruiter's projection — the endpoint is
+ * unchanged — but no screen asks for it any more: `/interviews` now lists the
+ * candidates in a process, and a recruiter reaches a round through that
+ * candidate's application. A hook nothing calls is a hook nobody maintains, so
+ * it is gone rather than left as an invitation to build a second flat list. Its
+ * `listRecruiterInterviews` counterpart went with it.
+ */
 
 /**
  * One round, as an interviewer.

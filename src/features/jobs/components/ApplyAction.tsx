@@ -87,7 +87,7 @@ export const ApplyAction: React.FC<ApplyActionProps> = ({ jobId, onGone }) => {
               returns — there is no feedback or rating to render here. */}
           Applied {formatAbsolute(existing.createdAt)} · {stageLabel(existing.currentStage)}
         </p>
-        <Button variant="outline" size="sm" render={<Link href="/applications" />}>
+        <Button variant="outline" size="sm" render={<Link href="/my-applications" />}>
           Check your application
         </Button>
       </section>

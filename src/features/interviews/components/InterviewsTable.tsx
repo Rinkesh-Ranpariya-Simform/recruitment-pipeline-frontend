@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -16,20 +15,19 @@ import {
 import { formatAbsolute, formatRelative } from '@/lib/format-date';
 import { interviewTypeLabel } from '../labels';
 import { InterviewStatusBadge } from './InterviewStatusBadge';
-import type { InterviewerInterview, RecruiterInterview } from '../types';
+import type { InterviewerInterview } from '../types';
 
 /**
- * The two list tables.
+ * The interviewer's list table, and the skeleton it shares with nothing else
+ * any more.
  *
- * **Two components, not one with a `panel?` prop**, because they are handed two
- * different payloads. `InterviewerInterviewsTable` takes rows that have no
- * panel and no contact detail in their type at all, so there is no branch in
- * here that could render either — the guarantee is in the prop type rather than
- * in a condition somebody has to keep correct.
+ * It takes `InterviewerInterview` rows, which have **no panel and no contact
+ * detail in their type at all** — so there is no branch in here that could
+ * render either. The guarantee is in the prop type rather than in a condition
+ * somebody has to keep correct.
  *
- * They share this file because they share a shape, a skeleton and four of five
- * columns; splitting them would mean keeping two copies of the row layout in
- * step. They share no props type.
+ * The recruiter's counterpart used to live beside it; see the note at the foot
+ * of this file for why it does not.
  */
 
 const SKELETON_ROWS = 6;
@@ -69,7 +67,14 @@ export const InterviewsTableSkeleton: React.FC<{ columns?: number }> = ({ column
  * icon. Backfilling a round that already happened is normal, so styling it as a
  * problem would be the client disagreeing with the API about what is ordinary.
  */
-const WhenCell: React.FC<{ scheduledAt: string }> = ({ scheduledAt }) => {
+const WhenCell: React.FC<{ scheduledAt: string | null }> = ({ scheduledAt }) => {
+  if (scheduledAt === null) {
+    // A round can exist before its date does. "No date yet" is a fact an
+    // interviewer needs — it is the row they should chase — so it is said in
+    // words rather than left as an empty cell to skim past.
+    return <span className="text-xs font-medium whitespace-nowrap">No date yet</span>;
+  }
+
   return (
     <div className="flex flex-col">
       <span className="whitespace-nowrap">{formatAbsolute(scheduledAt)}</span>
@@ -81,7 +86,13 @@ const WhenCell: React.FC<{ scheduledAt: string }> = ({ scheduledAt }) => {
 };
 
 /**
- * A row's click target.
+ * A row's click target: `/my-interviews/:interviewId`, the interviewer's own
+ * leaf.
+ *
+ * **Not `/interviews/…`** — that tree is the recruiter's, and its round page is
+ * nested under the application it belongs to. `InterviewerInterview` carries no
+ * application id, deliberately, so a row here could not build that path even if
+ * it were allowed to. The projection and the route agree.
  *
  * The whole row is clickable and the first cell is also a real `<Link>`: the
  * row is what a mouse expects, and the link is what makes the destination
@@ -97,7 +108,7 @@ const useRowNavigation = () => {
       return;
     }
 
-    router.push(`/interviews/${interviewId}`);
+    router.push(`/my-interviews/${interviewId}`);
   };
 };
 
@@ -140,7 +151,7 @@ export const InterviewerInterviewsTable: React.FC<InterviewerInterviewsTableProp
                 sideways. */}
             <TableCell className="w-full max-w-0 py-3">
               <Link
-                href={`/interviews/${interview.id}`}
+                href={`/my-interviews/${interview.id}`}
                 title={interview.candidate.name}
                 className="block truncate font-medium hover:underline focus-visible:underline focus-visible:outline-none"
               >
@@ -168,83 +179,17 @@ export const InterviewerInterviewsTable: React.FC<InterviewerInterviewsTableProp
   );
 };
 
-interface RecruiterInterviewsTableProps {
-  interviews: Array<RecruiterInterview>;
-}
-
 /**
- * **Candidate · Role · Round · When · Status · Panel.**
+ * **`RecruiterInterviewsTable` was removed by the applications feature**, and
+ * its absence is deliberate rather than an oversight.
  *
- * The Panel column renders **Unassigned** in a warning tone when the round has
- * nobody on it — a scheduled round with an empty panel is the single thing on
- * this screen a recruiter most needs to notice, and a blank cell would not say
- * it.
+ * `/interviews` no longer lists rounds: it lists the candidates in an interview
+ * process, one row per candidate per requisition, and a recruiter reaches a
+ * round through that candidate's application page. The flat list it served
+ * showed one person once per round, which made "who am I running a process
+ * for?" a question you had to answer by eye.
+ *
+ * A recruiter's list of rounds now exists only inside one application, at
+ * `/interviews/:applicationId`, as `InterviewRoundCard`s. If a flat one is ever
+ * wanted back, it belongs beside that card rather than as a second table here.
  */
-export const RecruiterInterviewsTable: React.FC<RecruiterInterviewsTableProps> = ({
-  interviews,
-}) => {
-  const onRowClick = useRowNavigation();
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-full">Candidate</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Round</TableHead>
-          <TableHead>When</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Panel</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {interviews.map((interview) => (
-          <TableRow
-            key={interview.id}
-            className="cursor-pointer"
-            onClick={onRowClick(interview.id)}
-          >
-            <TableCell className="w-full max-w-0 py-3">
-              <Link
-                href={`/interviews/${interview.id}`}
-                title={interview.application.candidate.name}
-                className="block truncate font-medium hover:underline focus-visible:underline focus-visible:outline-none"
-              >
-                {interview.application.candidate.name}
-              </Link>
-            </TableCell>
-            <TableCell className="py-3 text-muted-foreground">
-              <span className="block max-w-48 truncate" title={interview.application.role.title}>
-                {interview.application.role.title}
-              </span>
-            </TableCell>
-            <TableCell className="py-3 whitespace-nowrap">
-              {interviewTypeLabel(interview.type)}
-            </TableCell>
-            <TableCell className="py-3 text-muted-foreground">
-              <WhenCell scheduledAt={interview.scheduledAt} />
-            </TableCell>
-            <TableCell className="py-3">
-              <InterviewStatusBadge status={interview.status} />
-            </TableCell>
-            <TableCell className="py-3">
-              {interview.assignments.length === 0 ? (
-                <span className="text-xs font-medium whitespace-nowrap text-destructive">
-                  Unassigned
-                </span>
-              ) : (
-                <div className="flex flex-wrap gap-1">
-                  {interview.assignments.map((assignment) => (
-                    <Badge key={assignment.id} variant="outline" className="whitespace-nowrap">
-                      {assignment.interviewer.name}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-};
