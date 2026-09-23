@@ -63,10 +63,10 @@ export interface PipelineBoardResponse {
 /**
  * The dashboard headline.
  *
- * **Six keys, and there is deliberately no `interviews`** (XBE-9). The backend
- * does not send one until the interviews feature ships, and a tile rendering
- * `undefined` as `0` would state something false. The interviews feature adds
- * both the field and the tile, in the same pass.
+ * **Seven keys as of the interviews feature**, which added `interviews` — the
+ * count of SCHEDULED rounds — and with it the walkthrough's fourth headline
+ * tile. This supersedes the note that used to stand here saying the field would
+ * not exist; it does now, and pipeline XBE-9 is inverted along with it.
  */
 export interface PipelineSummary {
   openRoles: number;
@@ -75,6 +75,7 @@ export interface PipelineSummary {
   offers: number;
   hired: number;
   rejected: number;
+  interviews: number;
 }
 
 /** `GET /api/pipeline/summary` — 200. */

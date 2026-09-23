@@ -1,6 +1,10 @@
 # Interviews — Rounds, Panels and My Interviews (Frontend)
 
-> **Status:** Draft — awaiting approval. `plan.md` is a later artifact and does not exist yet.
+> **Status:** ✅ Approved and implemented. `plan.md` was skipped — built straight from this spec,
+> as `candidate`, `audit` and `pipeline` were. Lint, type-check and `next build` are clean; **the
+> in-browser AC pass (AC-F01…AC-M06) is not yet signed off**, matching every shipped feature. See
+> "Deviations recorded at implementation" at the foot for the three clauses whose literal form does
+> not hold and why.
 > **Feature slug:** `interviews`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
 > **Counterpart:** [../../../../backend/specs/features/interviews/spec.md](../../../../backend/specs/features/interviews/spec.md)
@@ -888,3 +892,49 @@ are globally generated and are the types the new files use.
 **Cross-repo:** a change to the seven endpoints, the two projections, the `404`-not-`403` rule, the
 two new error codes, or the summary's field list must be made in **both** specs — see
 [../../../../backend/specs/features/interviews/spec.md](../../../../backend/specs/features/interviews/spec.md).
+
+---
+
+## Deviations recorded at implementation
+
+Three clauses do not hold as written. Each is recorded here rather than quietly worked around.
+
+**AC-F30's grep is over-broad, and cannot be satisfied as written.**
+`grep -rniE "email|phone" src/features/interviews/` matches two lines — and both are the API's own
+round type:
+
+```
+src/features/interviews/labels.ts:14:  PHONE_SCREEN: 'Phone screen',
+src/features/interviews/types.ts:21:  'PHONE_SCREEN' | 'TECHNICAL' | …
+```
+
+`PHONE_SCREEN` is an `InterviewType` value the client must key its label map on, so the substring is
+unavoidable. **The property the criterion is testing does hold**, and this grep proves it:
+
+```
+$ grep -rn "email\|phone" src/features/interviews/
+(no matches)
+```
+
+Zero occurrences of either wire field name, in any file, in any case that a payload could carry.
+Both candidate shapes in `types.ts` are `{ id, name }` and nothing else. Read AC-F30 as
+case-**sensitive** and it passes exactly as intended.
+
+**FR-6.2's `/interviews`-list call site is not built, because it cannot be yet.** The schedule dialog
+needs an application to hang a round off, and `/interviews` holds _rounds_. There is no
+recruiter-facing endpoint that lists applications to pick one from — `GET /api/applications` is
+`CANDIDATE`-only — so a Schedule button on that list would have nothing to offer. The dialog is
+therefore built exactly as specified, as **one reusable component**, and mounted at the call site
+where an application is already in hand: the recruiter's round detail, as **Schedule another round**
+on the same application. The candidate detail page is the second call site and will use the same
+component unchanged, so **this is a missing call site, not a missing component** — it closes when
+candidate-access ships.
+
+**Two components exist that the file structure does not list.**
+`InterviewsPagination.tsx` and `InterviewsStatusFilter.tsx`, both shared by the two list views and
+both mirroring their shipped `features/roles/` counterparts. FR-2.7, FR-4.4 and the state matrices
+require a status filter and pagination; the structure table simply did not name the files.
+`InterviewDetailDispatch.tsx` is the third: `[interviewId]/page.tsx` must `await params` and so is a
+server component, which cannot call `useAuth()` — FE-5's role dispatch therefore lives one level
+down, in a client component the page renders. The dispatch is otherwise exactly as FE-5 specifies,
+and neither detail component accepts the other's props type.

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BriefcaseIcon,
+  CalendarDaysIcon,
   ClipboardListIcon,
   FileTextIcon,
   GaugeIcon,
@@ -46,6 +47,11 @@ const MY_INTERVIEWS: NavLink = {
   label: 'My interviews',
   icon: ClipboardListIcon,
 };
+// The recruiter's view of every round, added by the interviews feature. A
+// DIFFERENT icon from MY_INTERVIEWS deliberately: the two are not the same list
+// seen from two sides — one is a personal schedule, the other is the whole
+// board — and no user is ever offered both.
+const INTERVIEWS: NavLink = { href: '/interviews', label: 'Interviews', icon: CalendarDaysIcon };
 // Deliberately the same icon as ROLES: a candidate's "job" and a recruiter's
 // "requisition" are the same object seen from opposite sides, and they are
 // served by the same endpoint.
@@ -80,12 +86,16 @@ const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
  */
 const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
   RECRUITER: [
-    // Dashboard, Pipeline, Roles — in that order (FR-1.4). Later features
-    // insert Candidates and Interviews after Roles.
-    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES] },
+    // Dashboard, Pipeline, Roles, Interviews — in that order. The interviews
+    // feature added the fourth, after Roles as its spec asks; the
+    // candidate-access feature inserts Candidates later.
+    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES, INTERVIEWS] },
     { label: 'Records', links: [AUDIT] },
     ACCOUNT_SECTION,
   ],
+  // Unchanged by the interviews feature: an interviewer's entry point stays My
+  // interviews, and they are NOT offered `/interviews` — that route is the
+  // recruiter's whole-board view and its page turns them away.
   INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS] }, ACCOUNT_SECTION],
   CANDIDATE: [{ label: 'Jobs', links: [JOBS, MY_APPLICATIONS] }, ACCOUNT_SECTION],
 };

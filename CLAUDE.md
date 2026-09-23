@@ -113,6 +113,11 @@ conditionally renders contact fields based on a client-side role check.
 INVALID_STAGE_TRANSITION` carries `details.allowed`, and the Move menu rebuilds from it. A
   transitions map in `features/pipeline/` would be a second opinion about the process, and the two
   would disagree the first time the graph changed.
+- **My interviews / Interviews**: **shipped by the
+  [interviews feature](specs/features/interviews/spec.md)** as `/my-interviews` (the interviewer's
+  own rounds, and their landing route), `/interviews` (the recruiter's whole board) and
+  `/interviews/[interviewId]`, which serves both roles from one endpoint with **two response
+  shapes**. See "Interviewer scoping" below before touching any of them.
 - **Candidate detail**: stage history, assigned interviewers/rounds, feedback. Contact details
   render only when the API response actually includes them (recruiter-scoped call).
 - **Feedback submission** (interviewer): rating + notes tied to a specific round; only reachable
@@ -139,13 +144,14 @@ Feature specs live in `specs/features/<feature>/`, each holding `spec.md` (what 
 `plan.md` (how). Phases run in that order and each is approved before the next begins; if implementation reveals
 the spec is wrong, update the spec and get it re-approved rather than letting code and spec drift.
 
-| Feature                                                 | spec        | plan                                                | code                                                                                                                                                                                               |
-| ------------------------------------------------------- | ----------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                                                                                              |
-| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off                                                                            |
-| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**                                                                                      |
-| [audit](specs/features/audit/spec.md)                   | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean and the URL-sanitising helpers exercised directly; **the in-browser AC pass (AC-F01…AC-M05) is not yet signed off**                                    |
-| [pipeline](specs/features/pipeline/spec.md)             | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean, structural ACs (F30–F33) checked; **the in-browser AC pass (AC-F01…AC-M07) is not yet signed off**, and the drill-down list waits on candidate-access |
+| Feature                                                 | spec        | plan                                                | code                                                                                                                                                                                                            |
+| ------------------------------------------------------- | ----------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [authentication](specs/features/authentication/spec.md) | ✅ approved | [✅ drafted](specs/features/authentication/plan.md) | ✅ implemented — unverified against a running backend                                                                                                                                                           |
+| [roles](specs/features/roles/spec.md)                   | ✅ approved | [✅ drafted](specs/features/roles/plan.md)          | ✅ implemented — API contract verified against the running seeded backend; the in-browser AC pass is not yet signed off                                                                                         |
+| [candidate](specs/features/candidate/spec.md)           | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean; **the in-browser AC pass (AC-F01…AC-F60) is not yet signed off**                                                                                                   |
+| [audit](specs/features/audit/spec.md)                   | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean and the URL-sanitising helpers exercised directly; **the in-browser AC pass (AC-F01…AC-M05) is not yet signed off**                                                 |
+| [pipeline](specs/features/pipeline/spec.md)             | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/build clean, structural ACs (F30–F33) checked; **the in-browser AC pass (AC-F01…AC-M07) is not yet signed off**, and the drill-down list waits on candidate-access              |
+| [interviews](specs/features/interviews/spec.md)         | ✅ approved | ⬜ skipped (implemented straight from the spec)     | ✅ implemented — lint/typecheck/`next build` clean, structural ACs checked against the shipped backend; **the in-browser AC pass (AC-F01…AC-M06) is not yet signed off**; three deviations recorded in the spec |
 
 The **candidate** feature added `/signup`, a `CANDIDATE` role, and the Jobs / My Applications / Profile
 views. It **deliberately reversed two rules that used to be stated below**; both paragraphs are now rewritten
@@ -204,6 +210,12 @@ backend's seed, so a seeded database is still required to sign in as one. The cl
 endpoints: login, refresh, me, logout, signup, the four roles routes, the two application routes, and
 `GET /api/audit` (added by the audit feature — a read, and the only route on it).
 
+**The interviews feature added seven more calls and gave `GET /api/users` its first caller ever.**
+Six interviews routes — the role-aware list and detail, create, status change, assign, unassign —
+plus `GET /api/users`, which is fetched **only while the assign dialog is open**, so a recruiter who
+never staffs a panel never requests it. That endpoint still has no other caller, and **it is not an
+account-creation surface**: it reads interviewers, and the rule above is unchanged.
+
 **Candidate views never filter restricted data client-side.** `/jobs` shows only open positions because the
 API's query for a non-recruiter cannot return a closed one, and an application row carries no feedback,
 rating, interviewer or override reason because those columns are never selected. The `Job` and `Application`
@@ -230,6 +242,60 @@ to hide here**.
 **The feed is read-only and there is no mutation in the feature.** There is no `PATCH` or `DELETE` on an
 audit entry — both answer 404 — so `audit.api.ts` exports exactly one function. Don't add a wrapper for an
 endpoint with no UI.
+
+## Interviewer scoping (read before touching anything in `features/interviews/`)
+
+Shipped by the [interviews feature](specs/features/interviews/spec.md). This is the brief's §3.2
+"core hard case" on the client side, and almost all of it is a property of the **types** rather than
+of any runtime branch.
+
+- **Two interfaces, never one with optional fields.** `features/interviews/types.ts` declares
+  `InterviewerInterview` and `RecruiterInterview` separately. The interviewer's has no contact
+  field and **no `assignments` array**, because the API sends neither — so the interviewer's
+  components cannot render a panel or a contact detail, and that is a compile-time property rather
+  than something a reviewer has to keep checking. **Do not add an optional field to either.** A
+  shape with `assignments?` is one `&&` away from showing somebody their panel colleagues.
+- **A case-sensitive grep for the two contact field names across `features/interviews/` returns
+  nothing.** Not one file in the feature names either. If one ever arrives in a payload, **that is
+  a backend bug to report, not a field to hide here** — the same rule that governs
+  `features/applications/`.
+- **The two detail components do not share a props type**, so `InterviewDetailDispatch` getting the
+  role wrong is a compile error rather than a recruiter's payload reaching a component written for
+  an interviewer. The dispatch protects nothing on its own: the API picks its projection from the
+  verified token, so an interviewer cannot obtain the other shape by any route.
+- **A `404` on the detail is never explained.** For an interviewer the API answers a round outside
+  their own **byte-identically** to one that does not exist, so the client genuinely cannot tell
+  which it is. `InterviewNotFound` therefore says only that the interview was not found. A grep of
+  the feature for copy suggesting a rights problem returns nothing, and **must keep returning
+  nothing** — a helpful sentence there would hand back exactly what the API withheld.
+- **Nothing in the feature filters a list.** An interviewer's rows are narrow because the request
+  they made was narrow: the API reads their id from the token and puts the assignment predicate into
+  its own query. `MyInterviewsView` drops no rows and **must not start**.
+- **Route guards, disabled picker options and hidden status actions are affordances.** The controls
+  are the API's `403`, its `404`, `409 ALREADY_ASSIGNED` (a database unique index, so it holds under
+  two genuinely concurrent clicks) and `409 INVALID_STAGE_TRANSITION`. Every one of them is handled,
+  including the ones the UI should make unreachable — `400 NOT_AN_INTERVIEWER` cannot normally be
+  produced by a picker sourced from an interviewers-only endpoint, which is exactly why it is worth
+  having.
+- **`/interviews` carries its own `<RequireRole>`, narrower than its layout's.** The layout admits
+  both privileged roles because the detail route below it serves both; the recruiter's list page
+  narrows to `RECRUITER` on its own. An interviewer typing `/interviews` gets the app's 404 — their
+  list is `/my-interviews`.
+- **Mutations invalidate `onSettled`, not `onSuccess`**, and that is the point rather than a
+  detail: a `409 ALREADY_ASSIGNED` means the view was stale, so the failure is precisely the case
+  where a refetch is most needed.
+
+**The dashboard now has seven tiles.** `summary.interviews` counts scheduled rounds and the tile
+links to `/interviews`. This reverses pipeline FR-2.3, XBE-9, AC-F07 and EC-12, which are struck
+through in that spec rather than deleted.
+
+**The schedule dialog has one call site today, not two.** FR-6.2 asks for it on `/interviews` as
+well, but scheduling needs an application and no recruiter-facing endpoint lists applications
+(`GET /api/applications` is the candidate's own). It is mounted on the recruiter's round detail,
+where the application is already in hand, and the candidate-access feature will add the second call
+site using the same component. That, and two acceptance criteria whose literal form does not hold,
+are written up under "Deviations recorded at implementation" in
+[the interviews spec](specs/features/interviews/spec.md). **Don't re-derive them.**
 
 **There is no `middleware.ts` / `proxy.ts`, and that is deliberate** (spec FE-6, revised during
 implementation). The backend scopes the refresh cookie `Path=/api/auth`, so a frontend route request

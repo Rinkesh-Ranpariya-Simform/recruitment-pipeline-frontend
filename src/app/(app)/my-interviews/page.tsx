@@ -1,20 +1,20 @@
-'use client';
+import { Suspense } from 'react';
 
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { MyInterviewsView } from '@/features/interviews/components/MyInterviewsView';
+import { InterviewsTableSkeleton } from '@/features/interviews/components/InterviewsTable';
 
 /**
- * Placeholder landing route for interviewers. It renders the authenticated user
- * only — assigned rounds and feedback belong to later features.
+ * The interviewer's landing route, and their own rounds.
+ *
+ * `MyInterviewsView` uses `useSearchParams()`, which requires a Suspense
+ * boundary — without one `next build` fails, though `next dev` does not.
+ *
+ * The interviewer guard stays in this route's `layout.tsx`, unchanged.
  */
 export default function MyInterviewsPage() {
-  const { user } = useAuth();
-
   return (
-    <section className="flex flex-col gap-2">
-      <h1 className="text-2xl font-semibold">My interviews</h1>
-      <p className="text-sm text-muted-foreground">
-        Signed in as {user?.name} ({user?.role}).
-      </p>
-    </section>
+    <Suspense fallback={<InterviewsTableSkeleton />}>
+      <MyInterviewsView />
+    </Suspense>
   );
 }

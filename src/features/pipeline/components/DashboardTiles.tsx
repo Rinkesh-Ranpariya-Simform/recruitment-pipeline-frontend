@@ -13,13 +13,15 @@ interface Tile {
 }
 
 /**
- * The six tiles, in reading order (FR-2.2).
+ * The seven tiles, in reading order (FR-2.2, revised by the interviews
+ * feature).
  *
- * **There is no Interviews tile** (FR-2.3, XBE-9, EC-12). The API does not send
- * the field until the interviews feature ships, and a tile rendering
- * `undefined` as `0` would tell a recruiter there are no interviews scheduled —
- * which is a statement, and a false one. The interviews feature adds the field
- * and this row at the same time.
+ * **The Interviews tile is the seventh**, added once the API began sending
+ * `summary.interviews` — the count of SCHEDULED rounds. It reverses the note
+ * that used to stand here: the field's absence was a build-order fact, not a
+ * product decision, and the walkthrough's dashboard has always shown this tile.
+ * It links to `/interviews`, the recruiter's list, rather than into the board —
+ * the rounds it counts are not a board column.
  *
  * Every tile links into the board (FR-2.5): a number nobody can act on is
  * decoration. `Offers` deep-links to the Offer column, since that is the one
@@ -36,16 +38,17 @@ const TILES: ReadonlyArray<Tile> = [
   { key: 'offers', label: 'Offers', href: buildPipelineHref({ stage: 'OFFER' }) },
   { key: 'hired', label: 'Hired', href: buildPipelineHref({}) },
   { key: 'rejected', label: 'Rejected', href: buildPipelineHref({}) },
+  { key: 'interviews', label: 'Interviews', href: '/interviews' },
 ];
 
 interface DashboardTilesProps {
   summary: PipelineSummary;
 }
 
-/** The headline row. Six numbers, each a link into the board it summarises. */
+/** The headline row. Seven numbers, each a link to what it summarises. */
 export const DashboardTiles: React.FC<DashboardTilesProps> = ({ summary }) => {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
       {TILES.map((tile) => (
         <Link
           key={tile.key}
@@ -62,11 +65,11 @@ export const DashboardTiles: React.FC<DashboardTilesProps> = ({ summary }) => {
   );
 };
 
-/** The tiles' loading shape — six placeholders in the same grid. */
+/** The tiles' loading shape — seven placeholders in the same grid. */
 export const DashboardTilesSkeleton: React.FC = () => {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6" aria-hidden="true">
-      {[0, 1, 2, 3, 4, 5].map((tile) => (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7" aria-hidden="true">
+      {[0, 1, 2, 3, 4, 5, 6].map((tile) => (
         <div key={tile} className="h-20 animate-pulse rounded-xl bg-muted" />
       ))}
     </div>

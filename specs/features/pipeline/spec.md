@@ -2,6 +2,9 @@
 
 > **Status:** ✅ Approved and implemented. `plan.md` was skipped — built straight from this spec,
 > as `candidate` and `audit` were. See `## Revisions` at the foot for what implementation changed.
+> **Revised by:** [../interviews/spec.md](../interviews/spec.md) — the dashboard gained a seventh
+> tile, Interviews. FR-2.2, FR-2.3, XBE-9, AC-F06, AC-F07 and EC-12 are amended in place below; the
+> struck-through text is what the tile's absence used to say.
 > **Feature slug:** `pipeline`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
 > **Counterpart:** [../../../../backend/specs/features/pipeline/spec.md](../../../../backend/specs/features/pipeline/spec.md)
@@ -151,11 +154,13 @@ and a partial board would imply a scope they do not have. There is no hiring-man
 
 - **FR-2.1** `/dashboard` renders a row of stat tiles from `GET /api/pipeline/summary`, plus a
   compact total-per-stage strip from `GET /api/pipeline`.
-- **FR-2.2** Six tiles: **Open roles · Total applicants · Active · Offers · Hired · Rejected**.
-  Each is a `<Card>` with a large number and a muted label.
-- **FR-2.3** **No Interviews tile in this version.** The API does not send the field until the
-  interviews feature ships (XBE-9); a tile rendering `undefined` as `0` states something false.
-  The interviews feature adds it.
+- **FR-2.2** ~~Six tiles~~ **Seven tiles**: **Open roles · Total applicants · Active · Offers ·
+  Hired · Rejected · Interviews**. Each is a `<Card>` with a large number and a muted label. The
+  seventh was added by the interviews feature and links to `/interviews` rather than into the
+  board — the rounds it counts are not a board column.
+- **FR-2.3** ~~**No Interviews tile in this version.**~~ **SUPERSEDED by the interviews feature.**
+  The API sends `summary.interviews` now, so the objection this clause rested on — a tile rendering
+  `undefined` as `0` — no longer applies. XBE-9 is inverted with it.
 - **FR-2.4** The stage strip sums each stage across all roles, computed **from the `/api/pipeline`
   response the page already fetched** — not by a second endpoint and not by fetching candidates.
 - **FR-2.5** Each tile and each stage in the strip is a link: tiles to `/pipeline`, stages to
@@ -420,9 +425,9 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
   `candidateCount` is `0`. Formatting `null` as `0 days` would state something false.
 - **XBE-8** `GET /api/pipeline` is **unpaginated** and returns **no candidate names** — only counts
   and ageing. The board is not a candidate list; names come from `GET /api/candidates`.
-- **XBE-9** `GET /api/pipeline/summary` has **no `interviews` key** in this version. The interviews
-  feature adds it; until then the client must not render a tile for a field the API does not send
-  (FR-2.3).
+- **XBE-9** ~~`GET /api/pipeline/summary` has **no `interviews` key**~~ — **INVERTED by the
+  interviews feature.** The summary carries `interviews`, the count of `SCHEDULED` rounds, and the
+  client renders the seventh tile from it (FR-2.2).
 - **XBE-10** The override endpoint accepts **any `PipelineStage` other than the current one**,
   forwards or backwards. `toStage === currentStage` is a `400`.
 - **XBE-11** **No response from any endpoint in this feature contains a candidate's `email`,
@@ -560,25 +565,25 @@ every request behind it.
 
 ## Edge Cases
 
-| ID        | Case                                                                                          | Behaviour                                                                                                                               |
-| --------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **EC-01** | A role has no applications at all                                                             | Its section renders with four zero cards, each showing `—` for ageing (FR-3.5, FR-3.10)                                                 |
-| **EC-02** | A stage has `candidateCount: 0`                                                               | Ageing renders `—`, **never "0 days"**, and the card is not a link (FR-3.5, FR-3.7, XBE-7)                                              |
-| **EC-03** | A candidate entered a stage one minute ago                                                    | `avgDaysInStage` is `0.0` and renders **"avg 0d"**. Zero means _no time_; `—` means _no candidates_                                     |
-| **EC-04** | `maxDaysInStage` is 35                                                                        | The ageing line renders in the destructive tone (FR-3.6, `AGEING_ALERT_DAYS`)                                                           |
-| **EC-05** | Two recruiters advance the same candidate at the same instant                                 | One sees the success toast; the other sees the conflict toast and a refreshed list showing the true stage (FR-5.7, XBE-3)               |
-| **EC-06** | A recruiter opens the override dialog, and a colleague moves the candidate before they submit | `409 STAGE_CONFLICT`; the dialog closes, the conflict toast shows, queries invalidate (FR-6.8)                                          |
-| **EC-07** | **Mark hired** at `SCREEN`                                                                    | The item is disabled with **"Only from Offer."** If fired anyway via the API, the `409` toast names the allowed outcomes (FR-5.4, AZ-4) |
-| **EC-08** | An override reason of ten spaces                                                              | Submit stays disabled — the check is on `trim()` (VAL-2)                                                                                |
-| **EC-09** | The API rejects a reason the client accepted                                                  | The message renders under the field and the dialog stays open with the text (FR-6.7, ERR-1)                                             |
-| **EC-10** | `?stage=BANANA&roleId=-1` from a stale bookmark                                               | The unfiltered board renders; neither parameter is sent (VAL-4)                                                                         |
-| **EC-11** | A `CLOSED` role with live applications                                                        | It appears on the board with its counts and a `CLOSED` status badge. Hiding it is how people get forgotten (backend AZ-6)               |
-| **EC-12** | The interviews feature has not shipped                                                        | No Interviews tile renders. The summary's six keys are all that are read (FR-2.3, XBE-9)                                                |
-| **EC-13** | The candidate-access feature has not shipped                                                  | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2)                            |
-| **EC-14** | A recruiter's session expires mid-move                                                        | One `401`, one refresh, one replay. On a second `401`, redirect to `/login?next=/pipeline`                                              |
-| **EC-15** | 200 roles on the board                                                                        | All render; the response is bounded by roles, not candidates, and the grid scrolls vertically (XBE-8, FR-3.9)                           |
-| **EC-16** | A move succeeds while the dashboard is in another tab                                         | That tab is stale until it refetches on focus. Accepted — the two tabs do not share a query client                                      |
-| **EC-17** | A recruiter logs in for the first time after this ships                                       | They land on `/dashboard`, not `/pipeline` (FR-1.3)                                                                                     |
+| ID            | Case                                                                                          | Behaviour                                                                                                                               |
+| ------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01**     | A role has no applications at all                                                             | Its section renders with four zero cards, each showing `—` for ageing (FR-3.5, FR-3.10)                                                 |
+| **EC-02**     | A stage has `candidateCount: 0`                                                               | Ageing renders `—`, **never "0 days"**, and the card is not a link (FR-3.5, FR-3.7, XBE-7)                                              |
+| **EC-03**     | A candidate entered a stage one minute ago                                                    | `avgDaysInStage` is `0.0` and renders **"avg 0d"**. Zero means _no time_; `—` means _no candidates_                                     |
+| **EC-04**     | `maxDaysInStage` is 35                                                                        | The ageing line renders in the destructive tone (FR-3.6, `AGEING_ALERT_DAYS`)                                                           |
+| **EC-05**     | Two recruiters advance the same candidate at the same instant                                 | One sees the success toast; the other sees the conflict toast and a refreshed list showing the true stage (FR-5.7, XBE-3)               |
+| **EC-06**     | A recruiter opens the override dialog, and a colleague moves the candidate before they submit | `409 STAGE_CONFLICT`; the dialog closes, the conflict toast shows, queries invalidate (FR-6.8)                                          |
+| **EC-07**     | **Mark hired** at `SCREEN`                                                                    | The item is disabled with **"Only from Offer."** If fired anyway via the API, the `409` toast names the allowed outcomes (FR-5.4, AZ-4) |
+| **EC-08**     | An override reason of ten spaces                                                              | Submit stays disabled — the check is on `trim()` (VAL-2)                                                                                |
+| **EC-09**     | The API rejects a reason the client accepted                                                  | The message renders under the field and the dialog stays open with the text (FR-6.7, ERR-1)                                             |
+| **EC-10**     | `?stage=BANANA&roleId=-1` from a stale bookmark                                               | The unfiltered board renders; neither parameter is sent (VAL-4)                                                                         |
+| **EC-11**     | A `CLOSED` role with live applications                                                        | It appears on the board with its counts and a `CLOSED` status badge. Hiding it is how people get forgotten (backend AZ-6)               |
+| ~~**EC-12**~~ | ~~The interviews feature has not shipped~~ — **it has**                                       | Obsolete. The summary's seven keys are read and the Interviews tile renders (interviews FR-8.1)                                         |
+| **EC-13**     | The candidate-access feature has not shipped                                                  | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2)                            |
+| **EC-14**     | A recruiter's session expires mid-move                                                        | One `401`, one refresh, one replay. On a second `401`, redirect to `/login?next=/pipeline`                                              |
+| **EC-15**     | 200 roles on the board                                                                        | All render; the response is bounded by roles, not candidates, and the grid scrolls vertically (XBE-8, FR-3.9)                           |
+| **EC-16**     | A move succeeds while the dashboard is in another tab                                         | That tab is stale until it refetches on focus. Accepted — the two tabs do not share a query client                                      |
+| **EC-17**     | A recruiter logs in for the first time after this ships                                       | They land on `/dashboard`, not `/pipeline` (FR-1.3)                                                                                     |
 
 ---
 
@@ -652,10 +657,13 @@ and a seeded database.
 
 ### Dashboard
 
-- **AC-F06** — **Given** R on a seeded database, **when** `/dashboard` loads, **then** six tiles
-  render — Open roles, Total applicants, Active, Offers, Hired, Rejected (FR-2.2).
-- **AC-F07** — **Given** the same, **when** the tiles are read, **then** there is **no Interviews
-  tile** (FR-2.3, XBE-9, EC-12).
+- **AC-F06** — **REVISED by the interviews feature.** **Given** R on a seeded database, **when**
+  `/dashboard` loads, **then** **seven** tiles render — Open roles, Total applicants, Active,
+  Offers, Hired, Rejected, **Interviews** (FR-2.2).
+- **AC-F07** — **INVERTED by the interviews feature.** **Given** the same, **when** the tiles are
+  read, **then** the **Interviews** tile is present, shows the scheduled-round count and links to
+  `/interviews`. The original form — asserting the tile's absence — no longer holds and must not be
+  re-asserted (FR-2.2, interviews FR-8.1).
 - **AC-F08** — **Given** the same, **when** the Network tab is read, **then** there are **exactly
   two** requests: `/api/pipeline/summary` and `/api/pipeline` (PERF-1).
 - **AC-F09** — **Given** the stage strip, **when** a stage is clicked, **then** the browser
