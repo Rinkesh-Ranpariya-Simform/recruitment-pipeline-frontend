@@ -1,6 +1,8 @@
 # Feedback — Rating, Notes and the Panel View (Frontend)
 
-> **Status:** Draft — awaiting approval. `plan.md` is a later artifact and does not exist yet.
+> **Status:** Approved and implemented. `plan.md` was skipped — implemented straight from this
+> spec, as the candidate, audit, pipeline and interviews features were. Deviations, and the
+> in-browser criteria still outstanding, are recorded at the foot of this document.
 > **Feature slug:** `feedback`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
 > **Counterpart:** [../../../../backend/specs/features/feedback/spec.md](../../../../backend/specs/features/feedback/spec.md)
@@ -732,3 +734,79 @@ owns the page these components mount into.
 **Cross-repo:** a change to the three endpoints, the rating bounds, the two `409` codes, or the
 `FEEDBACK_SELECT` shape must be made in **both** specs — see
 [../../../../backend/specs/features/feedback/spec.md](../../../../backend/specs/features/feedback/spec.md).
+
+---
+
+## Deviations recorded at implementation
+
+Three things in this spec do not hold exactly as written, and one criterion group could not be
+signed off in this pass. All are recorded here rather than being quietly worked around.
+
+### 1. `<FeedbackList>` fetches its own data **or** takes entries, in one component
+
+FR-1.2 has `<FeedbackList>` rendering on the recruiter's candidate detail **from the candidate
+payload**, while its own state matrix gives it loading and error states — which only a component
+that owns a query can have. Both are right, for different call sites, so the component takes an
+optional `entries` prop: supplied, it renders them and issues **no request** (PERF-4, EC-16);
+absent, it owns `useFeedbackQuery` and renders the state matrix as written.
+
+Hooks cannot be conditional, so `useFeedbackQuery` takes `null` and disables itself rather than
+being skipped — the same `enabled` arrangement the shipped detail queries use. The candidate-access
+feature therefore gets the zero-request path with no second list component to keep in step.
+
+### 2. The empty-list copy splits on `editable`, not on a role check
+
+FR-2.5 words the two empty states by **role**: "No feedback yet. Yours will be the first." for an
+interviewer, "No feedback submitted for this round yet." for a recruiter. The component splits on
+its `editable` prop instead, which is `true` only for the interviewer's section and `false` for
+every recruiter surface (FE-7).
+
+That is the same distinction stated in terms of the thing that actually makes the sentence true:
+"yours will be the first" is a promise about a form, and it should be worded by whether a form is
+below rather than by who is reading. It also keeps this feature free of a role comparison, which
+FR-6.2 and SEC-3 are trying to avoid anywhere near an authorization-shaped decision.
+
+### 3. AC-F26, AC-F27 and AC-F28's greps are over-broad
+
+All three match this feature's own **prose**. `grep -rniE "email|phone" src/features/feedback/`
+returns two doc-comment lines in `types.ts` that name the two fields **in order to say they are
+absent**; `grep -rn "dangerouslySetInnerHTML"` returns the comment in `FeedbackCard.tsx` that says
+there is none; and the `assign|permission` grep returns eight comment lines explaining that the
+scoping is the API's.
+
+**None returns a line of executable code or a word of user-facing copy**, which is what the three
+criteria actually assert. Checked by reading every match. The same over-broad-grep note is recorded
+against the interviews spec's AC-B22 and the backend feedback spec's AC-B37/AC-B38.
+
+### 4. The in-browser AC pass is not signed off
+
+`AC-F01`…`AC-F24` are driven through a browser with DevTools open, and no browser was available in
+the implementation environment. They are **not** claimed as passing. What was verified instead:
+
+- **Every structural criterion** — AC-F25 (three exported functions, no `deleteFeedback`), AC-F26,
+  AC-F27, AC-F28, AC-F29 (the `Feedback` interface declares no candidate field) — by reading the
+  files.
+- **Every cross-cutting criterion that proves a control**, by issuing the request by hand against
+  the running backend, which is what the `AC-M*` criteria ask for and is the part a browser was
+  only ever the delivery mechanism for. See the table below.
+- `npm run lint`, `npx tsc --noEmit` and `next build` clean.
+
+This matches how the candidate, audit, pipeline and interviews features are recorded in
+[CLAUDE.md](../../../CLAUDE.md): implemented, statically verified, in-browser pass outstanding.
+
+## Verification summary
+
+Against the running seeded backend on 2026-09-24. `$IV` is the round both interviewers are assigned
+to; `$IV_SOLO` is the one only I1 is on.
+
+| Criterion                       | Result                                                                                                                                                                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AC-M01** (no candidate data)  | pass — `"email"`, `"phone"`, `"candidate"` and `"candidateUserId"` appear **zero** times across a full I1 session's `GET` and `PATCH` bodies                                                                                                                                    |
+| **AC-M02** (recruiter `POST`)   | pass — **`403`**, by hand. The missing form is not what stops a recruiter writing feedback                                                                                                                                                                                      |
+| **AC-M03** (I2 `PATCH`, no row) | pass — **`404`**. Ownership is the API's `where`, not the client's "Your feedback" marker                                                                                                                                                                                       |
+| **AC-M04** (I2 on `$IV_SOLO`)   | pass — **`404`, not `403`**                                                                                                                                                                                                                                                     |
+| **AC-M05** (bypass the stars)   | pass — `rating: 0`, `4.5` **and** `"4"` are all `400` with `details.rating`. The star control is not the control                                                                                                                                                                |
+| **AC-M06** (two panellists)     | pass at the API — both `201`, two rows, verified with genuinely concurrent requests; the two-browser observation is part of the outstanding in-browser pass                                                                                                                     |
+| **AC-M07** / **AC-M08**         | outstanding — both need a browser. No storage write exists in the feature to find (`grep` for `localStorage`, `sessionStorage` and `document.cookie` in `src/features/feedback/` returns nothing), and every `catch` branch in `FeedbackForm` leaves the field values untouched |
+| **AC-F25…AC-F29** (structure)   | pass — see deviation 3 on the greps                                                                                                                                                                                                                                             |
+| **AC-F01…AC-F24**               | **not signed off** — no browser in the implementation environment (deviation 4)                                                                                                                                                                                                 |

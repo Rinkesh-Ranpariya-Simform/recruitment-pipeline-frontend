@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api';
 import { formatAbsolute, formatRelative } from '@/lib/format-date';
+import { FeedbackSection } from '@/features/feedback/components/FeedbackSection';
 import { PIPELINE_STAGE_LABELS } from '@/features/pipeline/labels';
 import { interviewTypeLabel } from '../labels';
 import { parseInterviewId, useInterviewerInterviewQuery } from '../hooks/useInterviewsQuery';
@@ -152,10 +153,19 @@ export const InterviewerInterviewDetail: React.FC<InterviewerInterviewDetailProp
       </dl>
 
       {/*
-        The feedback form and list mount here, and belong to the feedback
-        feature. Left as a named boundary rather than a placeholder component so
-        that adding them is one import rather than a re-layout.
+        The panel's assessments, then this interviewer's own form — the feedback
+        feature's half of this page.
+
+        It is mounted unconditionally, and that is safe for the same reason the
+        rest of this component is: an interviewer who is not on this round never
+        gets here, because the query above already answered `404` and the
+        not-found view returned instead. There is no assignment check in the
+        feedback feature and there must not be one.
+
+        `status` is passed so the form can hide itself on a cancelled round. That
+        is UX — `409 INTERVIEW_CANCELLED` is the control.
       */}
+      <FeedbackSection interviewId={interview.id} status={interview.status} />
     </article>
   );
 };

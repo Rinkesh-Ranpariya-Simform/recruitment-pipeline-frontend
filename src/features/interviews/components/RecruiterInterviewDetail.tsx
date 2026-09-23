@@ -24,6 +24,7 @@ import { interviewTypeLabel } from '../labels';
 import { parseInterviewId, useRecruiterInterviewQuery } from '../hooks/useInterviewsQuery';
 import { useUpdateInterviewStatus } from '../hooks/useInterviewMutations';
 import { InterviewNotFound } from './InterviewNotFound';
+import { FeedbackList } from '@/features/feedback/components/FeedbackList';
 import { InterviewPanel } from './InterviewPanel';
 import { InterviewStatusBadge } from './InterviewStatusBadge';
 import { ScheduleInterviewDialog } from './ScheduleInterviewDialog';
@@ -248,7 +249,20 @@ export const RecruiterInterviewDetail: React.FC<RecruiterInterviewDetailProps> =
         <InterviewPanel interviewId={interview.id} assignments={interview.assignments} />
       </div>
 
-      {/* The feedback list mounts here, and belongs to the feedback feature. */}
+      {/*
+        Every panellist's assessment, read-only.
+
+        `editable={false}` is explicit rather than implied by the fact that a
+        recruiter's id never matches an author's: two independent reasons the
+        Edit button cannot render here, and **neither is what makes it safe.**
+        `POST` and `PATCH` are interviewer-only at the API, so a recruiter firing
+        either by hand gets a `403` — that is the control, and the missing form
+        is only an affordance.
+      */}
+      <section className="flex flex-col gap-4 border-t pt-6">
+        <h2 className="text-lg font-semibold tracking-tight">Feedback</h2>
+        <FeedbackList interviewId={interview.id} editable={false} />
+      </section>
 
       <Dialog
         open={confirmCancel}
