@@ -21,7 +21,7 @@ before the next begins.
 | [pipeline](features/pipeline/spec.md)                 | ✅ approved | ⬜ skipped                                      | ✅ implemented |
 | [interviews](features/interviews/spec.md)             | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
 | [feedback](features/feedback/spec.md)                 | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
-| [candidate-access](features/candidate-access/spec.md) | 🟡 draft    | ⬜ not started                                  | ⬜ not started |
+| [candidate-access](features/candidate-access/spec.md) | ✅ approved | ⬜ skipped (implemented straight from the spec) | ✅ implemented |
 
 ---
 
@@ -46,14 +46,14 @@ scoping depends on a table three features away.
 
 ## What each feature adds to this client
 
-| Feature            | Routes                                                                                                     | Nav                                                            |
-| ------------------ | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `audit`            | `/audit` **NEW**                                                                                           | Recruiter → Audit                                              |
-| `pipeline`         | `/dashboard` **NEW** · `/pipeline` **fills the existing stub**                                             | Recruiter → Dashboard; recruiter landing moves to `/dashboard` |
-| `interviews`       | `/interviews` **NEW** · `/interviews/[interviewId]` **NEW** · `/my-interviews` **fills the existing stub** | Recruiter → Interviews; interviewer unchanged                  |
-| `applications`     | `/applications` **MOD** (recruiter projection) · `/interviews/[applicationId]` **NEW** · `/interviews/[applicationId]/[interviewId]` **MOD from `/interviews/[interviewId]`** · `/my-interviews/[interviewId]` **NEW** | Recruiter → Applications, before Interviews |
-| `feedback`         | none — components on `/interviews/[interviewId]` and `/candidates/[candidateId]`                           | none                                                           |
-| `candidate-access` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD**                    | Recruiter → Candidates; interviewer → Candidates               |
+| Feature            | Routes                                                                                                                                                                                                                 | Nav                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `audit`            | `/audit` **NEW**                                                                                                                                                                                                       | Recruiter → Audit                                              |
+| `pipeline`         | `/dashboard` **NEW** · `/pipeline` **fills the existing stub**                                                                                                                                                         | Recruiter → Dashboard; recruiter landing moves to `/dashboard` |
+| `interviews`       | `/interviews` **NEW** · `/interviews/[interviewId]` **NEW** · `/my-interviews` **fills the existing stub**                                                                                                             | Recruiter → Interviews; interviewer unchanged                  |
+| `applications`     | `/applications` **MOD** (recruiter projection) · `/interviews/[applicationId]` **NEW** · `/interviews/[applicationId]/[interviewId]` **MOD from `/interviews/[interviewId]`** · `/my-interviews/[interviewId]` **NEW** | Recruiter → Applications, before Interviews                    |
+| `feedback`         | none — components on `/interviews/[interviewId]` and `/candidates/[candidateId]`                                                                                                                                       | none                                                           |
+| `candidate-access` | `/candidates` **NEW** · `/candidates/[candidateId]` **NEW** · `/roles/[roleId]` **MOD**                                                                                                                                | Recruiter → Candidates; interviewer → Candidates               |
 
 The `applications` row **supersedes the `interviews` row above it.** The recruiter's surfaces were
 rearranged into three levels — the list of processes, one candidate's process, one round — and the

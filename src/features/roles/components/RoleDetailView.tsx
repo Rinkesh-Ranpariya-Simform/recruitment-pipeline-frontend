@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon } from 'lucide-react';
@@ -7,6 +8,7 @@ import { ArrowLeftIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { RoleApplicants } from '@/features/candidates/components/RoleApplicants';
 import { ApiError } from '@/lib/api';
 import { formatAbsolute, formatRelative } from '@/lib/format-date';
 import { parseRoleId, useRoleQuery } from '../hooks/useRoleQuery';
@@ -144,6 +146,26 @@ export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
         */}
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{role.description}</p>
       </section>
+
+      {/*
+        The walkthrough's job → applicants step (candidate-access FR-9). It owns
+        its own request, its own `applicantsPage` parameter and its own error
+        state, so a failure here leaves the role above it rendered — a recruiter
+        came to this page for the requisition too (candidate-access ERR-3).
+
+        It renders for recruiters only and asks that question itself rather than
+        inheriting this route's guard, because the API's roles reads are open to
+        any authenticated user (candidate-access FR-9.6, AZ-5).
+
+        Wrapped in `<Suspense>` because it reads `useSearchParams()` for its own
+        page parameter — **without a boundary `next build` fails**, though
+        `next dev` does not (candidate-access FE-1). The fallback is `null`
+        rather than a skeleton: the section renders its own skeleton once it
+        mounts, and a second one underneath would flash.
+      */}
+      <Suspense fallback={null}>
+        <RoleApplicants roleId={role.id} />
+      </Suspense>
 
       <dl className="grid gap-4 border-t pt-6 text-sm sm:grid-cols-2">
         <div className="space-y-1">

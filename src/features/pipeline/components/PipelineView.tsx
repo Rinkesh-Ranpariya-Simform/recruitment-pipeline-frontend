@@ -4,8 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
+import { PipelineDrillDown } from '@/features/candidates/components/PipelineDrillDown';
 import { usePipelineQuery } from '../hooks/usePipelineQuery';
-import { pipelineStageLabel } from '../labels';
 import {
   buildPipelineHref,
   hasActivePipelineFilters,
@@ -17,16 +17,18 @@ import { PipelineBoardSkeleton, PipelineRoleSection } from './PipelineRoleSectio
 /**
  * Whether `GET /api/candidates` exists yet (FR-4.2, EC-13).
  *
- * **It does not**: that endpoint belongs to the candidate-access feature, which
- * is built after this one. Until it ships there is no way to list the people in
- * a cell, so the stage cards do not link and the drill-down area says so
- * plainly rather than offering a navigation that would dead-end.
+ * **It does now.** This was `false` while the drill-down waited on the
+ * candidate-access feature, and that feature is the one flipping it — along
+ * with rendering the list itself, below. Stage cards with a non-zero count are
+ * links again; **a zero-count card is still not one** (FR-3.7, AC-F13 in the
+ * pipeline spec, which remains true), because offering to show a recruiter an
+ * empty list is an invitation to a dead end.
  *
- * This constant is the single switch that feature flips, along with rendering
- * the list itself. It is stated here rather than left to be discovered — the
- * one place this feature is knowingly incomplete.
+ * The constant stays rather than being deleted: it is what
+ * `PipelineStageCard` takes, and one named switch is clearer than four call
+ * sites each deciding for themselves.
  */
-const DRILL_DOWN_AVAILABLE = false;
+const DRILL_DOWN_AVAILABLE = true;
 
 interface EmptyStateProps {
   message: string;
@@ -147,15 +149,16 @@ export const PipelineView: React.FC = () => {
         </div>
       )}
 
-      {/* The drill-down slot. With both filters set a recruiter has asked "who
-          is in this cell?", and until the candidate-access feature ships there
-          is no endpoint that can answer (FR-4.2, EC-13). Saying so is better
-          than a card that silently shows nothing. */}
-      {params.roleId !== undefined && params.stage !== undefined && !DRILL_DOWN_AVAILABLE && (
-        <EmptyState
-          message="Candidate detail is not available yet."
-          hint={`The list of candidates at ${pipelineStageLabel(params.stage)} arrives with the candidates feature. The counts and ageing above are live.`}
-        />
+      {/* The drill-down. With both filters set a recruiter has asked "who is in
+          this cell?", and `GET /api/candidates` now answers (candidate-access
+          FR-10.1, and the Revision at the head of its spec, which replaces the
+          "Candidate detail is not available yet." placeholder that stood here).
+
+          **One request when a cell is opened, and none while no cell is open**
+          (candidate-access PERF-6, AC-F30): with either filter unset this
+          renders nothing, so there is no query to disable. */}
+      {params.roleId !== undefined && params.stage !== undefined && (
+        <PipelineDrillDown roleId={params.roleId} stage={params.stage} />
       )}
     </section>
   );

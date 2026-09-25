@@ -1,12 +1,14 @@
 # Candidate Access — Two Views of One Person (Frontend)
 
-> **Status:** Draft — awaiting approval. `plan.md` is a later artifact and does not exist yet.
+> **Status:** ✅ Implemented. `plan.md` was skipped — implemented straight from the spec, as the five
+> features before it were. Deviations are recorded at the foot of this file.
 > **Feature slug:** `candidate-access`
 > **Scope:** `frontend/` — Next.js 16 App Router, React 19, TanStack Query
 > **Counterpart:** [../../../../backend/specs/features/candidate-access/spec.md](../../../../backend/specs/features/candidate-access/spec.md)
 > **Depends on:** [../pipeline/spec.md](../pipeline/spec.md) · [../interviews/spec.md](../interviews/spec.md) · [../feedback/spec.md](../feedback/spec.md) — all must ship first
 > **Revises:** [../pipeline/spec.md](../pipeline/spec.md) FR-4.2 — the drill-down becomes real
-> **Blocked by:** the backend counterpart. **Nothing here can be verified until that ships.**
+> **Blocked by:** the backend counterpart — **shipped**, and every `AC-M*` control criterion below
+> was verified against it by hand.
 > **Parent brief:** [../../../../recruitment-pipeline.md](../../../../recruitment-pipeline.md) §3.2, §3.6, §4
 
 ---
@@ -946,3 +948,128 @@ are globally generated and are the types the new files use.
 **Cross-repo:** a change to the three endpoints, the two projections, the `?q=` role restriction,
 the `PATCH` field list, or the `404`-not-`403` rule must be made in **both** specs — see
 [../../../../backend/specs/features/candidate-access/spec.md](../../../../backend/specs/features/candidate-access/spec.md).
+
+---
+
+## Deviations recorded at implementation
+
+Six things in this spec do not hold exactly as written. Each is recorded here rather than being
+quietly "fixed" in code or quietly ignored.
+
+### 1. `candidates.api.ts` exports **five** functions, not FE-2's three
+
+**What FE-2 and AC-F35 say.** Three exported functions - `listCandidates`, `getCandidate`,
+`updateCandidateContact` - and no `createCandidate`.
+
+**What shipped.** Five: `listRecruiterCandidates`, `listInterviewerCandidates`,
+`getRecruiterCandidate`, `getInterviewerCandidate`, `updateCandidateContact`, sharing one path
+builder so the URL is still constructed in exactly one place.
+
+**Why.** Three functions counts endpoints, but this endpoint returns **two different shapes chosen
+by the caller's role** (XBE-1), which is the premise of FE-3's four interfaces and FE-4's two
+components. A single `listCandidates<T>()` would let a caller name whichever type it felt like and
+get no complaint from the compiler - and the shipped `interviews.api.ts`, facing exactly this,
+already records that as "the one mistake the two-shape design exists to make impossible". Following
+FE-2's count literally would have meant a union return type that no role check can narrow, and
+therefore a cast at the component boundary - the one unsafe thing this feature exists to avoid.
+
+**What AC-F35 actually protects is untouched.** There is **no `createCandidate` wrapper** and there
+will not be, because there is no `POST /api/candidates` (XBE-10, SEC-7, FR-11.4) - and no
+`deleteCandidate` either.
+
+### 2. The interviewer's list has no round count (FR-3.1)
+
+FR-3.1 asks for **one column, Name - plus the count of that interviewer's rounds with each
+person**. **The count is not rendered**, because the interviewer's list payload is `{ id, name }`
+and nothing else (backend FR-3.7, contract invariants 1-3). Asking the API for a count would widen
+the very projection this feature exists to narrow.
+
+**AC-F05, which is what the criterion actually checks, passes**: the table has one data column,
+Name, and there is no search input on the page. The count of an interviewer's rounds with someone
+is on that person's own page, where their rounds are.
+
+### 3. Round links point at the routes that exist (FR-6.4, FR-7.2)
+
+Both requirements write the round link as `/interviews/{id}`. **There is no such route.** The
+interviews feature nests a recruiter's round page under the application it belongs to, and gives an
+interviewer their own:
+
+- The recruiter's application card links to **`/interviews/:applicationId/:interviewId`** - it has
+  the application id in hand, since that is the card it is on.
+- The interviewer's detail links to **`/my-interviews/:interviewId`**. `/interviews` is
+  recruiter-only, and an interviewer's payload carries no application id, so they could not build a
+  URL in that tree even if the route admitted them. `/my-interviews/:id` renders the interviewer
+  projection of the very same endpoint.
+
+**AC-F38's job -> applicants -> candidate path is unaffected** - that is the Applicants section's
+`View` link to `/candidates/:id`, which is exactly as specified.
+
+### 4. `InterviewerCandidateInterview.scheduledAt` is `string | null`, not FE-3's `string`
+
+A round a recruiter started from the applications table has no date until they set one - ordinary
+rather than an error, and the same nullability `InterviewerInterview.scheduledAt` already carries.
+Typing it `string` would have been a lie the renderer then had to work around. The detail renders
+**"No date set"** for a null.
+
+### 5. The filter bar costs one `GET /api/roles`, which PERF-1 does not count
+
+FR-2.3 and FR-3.2 require `roleId` to be a `<Select>`. A select needs a list of roles, and unlike
+`/pipeline` - whose board response already names every role - this page has no free source for one.
+`<CandidatesFilters>` therefore reads `GET /api/roles` through the shipped `useRolesQuery`.
+
+**PERF-1's subject is unaffected**: `/candidates` still issues exactly one **candidates** request on
+mount and exactly one per filter or page change, and searching is still one request per typed word.
+The roles lookup is cached for the session, so it costs one call on the first visit and none
+afterwards. It is recorded rather than hidden because PERF-1 says "exactly one request", and this is
+a second one. The select shows the first page of roles - 20 - which is the accepted ceiling at this
+scale.
+
+### 6. AC-F34 vs FR-3.3 - one phrase matches the grep, and FR-3.3 asked for it
+
+AC-F34 runs `grep -rniE "not assigned|no access|permission"` over the feature and expects **no
+user-facing copy** to match. Exactly one string does: **"You are not assigned to any candidates
+yet."**, which is the empty state **FR-3.3 specifies word for word**.
+
+FR-3.3 wins, and the criterion's purpose is untouched. What ERR-2, SEC-3 and FR-7.5 forbid is
+explaining a **`404`** - telling someone that a candidate they named exists but is not theirs, which
+is precisely what the API's byte-identical `404` withholds. That path says only
+`<CandidateNotFound />`'s "This candidate doesn't exist, or the link that brought you here is out of
+date." FR-3.3's line is about an interviewer having **no assignments at all**, which they can
+already see from the empty list, and it tells them what will change it.
+
+Every other match the grep finds is a code comment or the `canManageCandidateContacts` import name.
+
+---
+
+## Verification status
+
+**Lint, type-check and `next build` are clean**, and the structural criteria were run as written:
+
+| Criterion | Check                                                                        | Result                                                                                                                                                          |
+| --------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AC-F31    | `InterviewerCandidate` declares exactly `id` and `name`                      | OK - two fields, no `email`/`phone`/`applications`/`stageHistory`/`feedback`, optional or otherwise                                                             |
+| AC-F32    | `candidate.(email or phone)` / `role === 'RECRUITER'`                        | OK - every match is a recruiter-only component reading a recruiter payload, or one of the two role **dispatches**; none is a conditional around a contact field |
+| AC-F33    | `[candidateId]/page.tsx` and `CandidatesListView` dispatch to two components | OK - and neither component accepts the other's props type, so a mistaken dispatch is a compile error                                                            |
+| AC-F34    | no user-facing "not assigned / no access / permission" copy                  | One match, which FR-3.3 specifies - see deviation 6                                                                                                             |
+| AC-F35    | the api module exports no `createCandidate`                                  | OK - and no `deleteCandidate`; five functions rather than three, see deviation 1                                                                                |
+| AC-F36    | no `dangerouslySetInnerHTML`                                                 | OK - nothing                                                                                                                                                    |
+
+Additionally: a grep of the feature for `localStorage`, `sessionStorage` and `document.cookie`
+returns **nothing** (DM-1, DM-2, DM-3, SEC-4, and the client half of AC-M07).
+
+**The `AC-M*` control criteria were verified against the running seeded backend by hand** - they are
+assertions about the API, and every one of them held when fired directly:
+
+| Criterion       | Assertion                                                                                                                                     | Result                                                                                                                 |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| AC-M01 / AC-M02 | no `"email"`, `"phone"`, `"applications"`, `"stageHistory"` or `"feedback"`, and no recorded phone string, in any interviewer-facing response | OK - zero occurrences across the candidates list, a candidate detail, the rounds list, a round detail and its feedback |
+| AC-M03          | interviewer: `GET` an unassigned candidate is `404`; `PATCH` an assigned one is `403`                                                         | OK - the `404` is byte-identical to `/api/candidates/999999`'s                                                         |
+| AC-M04          | interviewer `?q=` is `400`                                                                                                                    | OK - `400 VALIDATION_ERROR` keyed `q`                                                                                  |
+| AC-M05          | recruiter `PATCH` carrying `email`/`name` is `200` and changes neither                                                                        | OK - `200`, with email, name and role unchanged                                                                        |
+| AC-M06          | candidate `GET /api/candidates` is `403`                                                                                                      | OK - and `403` on their own record too                                                                                 |
+| AC-M08          | `POST /api/candidates` is `404`                                                                                                               | OK - for every role, and anonymously                                                                                   |
+
+**The in-browser AC pass (AC-F01 to AC-F30, AC-F37 to AC-F42, AC-M07, AC-M09) is not signed off** -
+no browser was available when this was built. Every route compiles and serves - `/candidates`,
+`/candidates/[candidateId]`, `/roles/[roleId]` with its Applicants section, and `/pipeline` with its
+drill-down - and the dev server reports no errors.

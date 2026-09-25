@@ -12,6 +12,7 @@ import {
   LogOutIcon,
   ScrollTextIcon,
   UserIcon,
+  UsersIcon,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -77,6 +78,14 @@ const MY_APPLICATIONS: NavLink = {
 // Recruiter-only, and the one nav entry whose route the API also refuses:
 // `GET /api/audit` is a 403 for an interviewer or a candidate. Omitting the
 // link is still only an affordance (audit spec FR-1.3, FR-1.4).
+// Offered to BOTH privileged roles, and the only entry in this table that is
+// (candidate-access FR-1.3, D-5). It is not one list seen from two sides the
+// way Applications/My applications are: it is ONE endpoint serving two
+// different payloads, chosen by the server from the verified token. A recruiter
+// gets every candidate with contact details; an interviewer gets the two or
+// three people they are assigned to, by name. A list of two names is still the
+// answer to "who am I interviewing".
+const CANDIDATES: NavLink = { href: '/candidates', label: 'Candidates', icon: UsersIcon };
 const AUDIT: NavLink = { href: '/audit', label: 'Audit', icon: ScrollTextIcon };
 const PROFILE: NavLink = { href: '/profile', label: 'Profile', icon: UserIcon };
 
@@ -94,6 +103,9 @@ const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
  *
  * `Roles` is **recruiter-only** — browsing the full requisition list is not an
  * interviewer's job, even though the API would serve them the open ones.
+ * `Candidates` is offered to **both** privileged roles, which is new: its route
+ * genuinely serves an interviewer, with a payload the server narrows to the
+ * people they are assigned to (candidate-access FR-1.1, AZ-2).
  * `Jobs` is the candidate's reading of the same endpoint. The route layouts'
  * guards, not this table, are what make those routes safe to leave unlinked.
  */
@@ -104,14 +116,14 @@ const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
     // Applications (everyone who applied), starts a phone screen, and the
     // candidate appears under Interviews (everyone in process). Applications
     // therefore sits immediately before it.
-    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES, APPLICATIONS, INTERVIEWS] },
+    { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES, CANDIDATES, APPLICATIONS, INTERVIEWS] },
     { label: 'Records', links: [AUDIT] },
     ACCOUNT_SECTION,
   ],
   // Unchanged by the interviews feature: an interviewer's entry point stays My
   // interviews, and they are NOT offered `/interviews` — that route is the
   // recruiter's whole-board view and its page turns them away.
-  INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS] }, ACCOUNT_SECTION],
+  INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS, CANDIDATES] }, ACCOUNT_SECTION],
   CANDIDATE: [{ label: 'Jobs', links: [JOBS, MY_APPLICATIONS] }, ACCOUNT_SECTION],
 };
 

@@ -198,13 +198,21 @@ and a partial board would imply a scope they do not have. There is no hiring-man
 
 - **FR-4.1** With `roleId` **and** `stage` both set, `/pipeline` renders — below the board — a list
   of the candidates in that cell, from `GET /api/candidates?roleId=…&stage=…&status=ACTIVE`.
-- **FR-4.2** **That endpoint belongs to the candidate-access feature** and does not exist until it ships.
-  Until then, the drill-down renders **"Candidate detail is not available yet."** and the stage
-  cards do not link. This is the one place where this feature is knowingly incomplete, and it is
-  stated rather than left to be discovered (Out of Scope).
+- ~~**FR-4.2** **That endpoint belongs to the candidate-access feature** and does not exist until it
+  ships. Until then, the drill-down renders **"Candidate detail is not available yet."** and the
+  stage cards do not link.~~ — **SUPERSEDED by the candidate-access feature, which shipped
+  `GET /api/candidates` and its own FR-10.** The placeholder is gone,
+  `DRILL_DOWN_AVAILABLE` in `PipelineView.tsx` is `true`, and stage cards with a non-zero count are
+  links. **FR-3.7's second sentence still holds exactly**: a zero-count card is still not a link,
+  and AC-F13 below is still true.
 - **FR-4.3** Each drill-down row shows the candidate's name, their time at the current stage, and a
-  **Move** control.
-- **FR-4.4** The list is paginated, since `GET /api/candidates` is (candidates XBE-9).
+  **Move** control. **Live** as of candidate-access, in
+  `features/candidates/components/PipelineDrillDown.tsx` — which imports this feature's own
+  `<StageMoveMenu>` rather than declaring a second one.
+- **FR-4.4** The list is paginated, since `GET /api/candidates` is (candidates XBE-9). **Live**, on
+  the shipped `{ page, pageSize, total, totalPages }` envelope. The drill-down renders the first
+  page of an `ACTIVE`-filtered cell; a cell deep enough to need a second page has a bigger problem
+  than a pager.
 
 ### FR-5 — Moving a candidate
 
@@ -335,16 +343,16 @@ Primitives reused: `Card`, `Badge`, `Button`, `Dialog`, `DropdownMenu`, `Select`
 
 ### State matrix — `/pipeline`
 
-| State                  | Trigger                              | Renders                                                                               |
-| ---------------------- | ------------------------------------ | ------------------------------------------------------------------------------------- |
-| Loading                | first fetch                          | Three role-section skeletons, each with four card placeholders                        |
-| Loaded                 | `200` with roles                     | Filters + one section per role                                                        |
-| Empty, no filters      | `roles: []`                          | **"No roles yet."** with a **Create a role** link to `/roles`                         |
-| Empty, filtered        | `roles: []`, a filter set            | **"No candidates match these filters."** plus **Clear filters**                       |
-| Filtered to one role   | `?roleId=3`                          | Only that section; the filter select shows the role title                             |
-| Drill-down open        | `?roleId=3&stage=SCREEN`             | The board, then a candidate list below it, with the cell highlighted                  |
-| Drill-down unavailable | candidate-access feature not shipped | **"Candidate detail is not available yet."** and the stage cards do not link (FR-4.2) |
-| Error                  | non-2xx other than 401/403           | Inline error card: **"Could not load the pipeline."** with **Try again**              |
+| State                      | Trigger                                               | Renders                                                                                                            |
+| -------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Loading                    | first fetch                                           | Three role-section skeletons, each with four card placeholders                                                     |
+| Loaded                     | `200` with roles                                      | Filters + one section per role                                                                                     |
+| Empty, no filters          | `roles: []`                                           | **"No roles yet."** with a **Create a role** link to `/roles`                                                      |
+| Empty, filtered            | `roles: []`, a filter set                             | **"No candidates match these filters."** plus **Clear filters**                                                    |
+| Filtered to one role       | `?roleId=3`                                           | Only that section; the filter select shows the role title                                                          |
+| Drill-down open            | `?roleId=3&stage=SCREEN`                              | The board, then a candidate list below it, with the cell highlighted                                               |
+| ~~Drill-down unavailable~~ | ~~candidate-access feature not shipped~~ — **it has** | Obsolete. The drill-down renders a real candidate list and non-zero stage cards are links (candidate-access FR-10) |
+| Error                      | non-2xx other than 401/403                            | Inline error card: **"Could not load the pipeline."** with **Try again**                                           |
 
 ### State matrix — the Move menu
 
@@ -579,7 +587,7 @@ every request behind it.
 | **EC-10**     | `?stage=BANANA&roleId=-1` from a stale bookmark                                               | The unfiltered board renders; neither parameter is sent (VAL-4)                                                                         |
 | **EC-11**     | A `CLOSED` role with live applications                                                        | It appears on the board with its counts and a `CLOSED` status badge. Hiding it is how people get forgotten (backend AZ-6)               |
 | ~~**EC-12**~~ | ~~The interviews feature has not shipped~~ — **it has**                                       | Obsolete. The summary's seven keys are read and the Interviews tile renders (interviews FR-8.1)                                         |
-| **EC-13**     | The candidate-access feature has not shipped                                                  | Stage cards do not link, and the drill-down area shows **"Candidate detail is not available yet."** (FR-4.2)                            |
+| ~~**EC-13**~~ | ~~The candidate-access feature has not shipped~~ — **it has**                                 | Obsolete. Non-zero stage cards link and the drill-down renders a real candidate list (candidate-access FR-10)                           |
 | **EC-14**     | A recruiter's session expires mid-move                                                        | One `401`, one refresh, one replay. On a second `401`, redirect to `/login?next=/pipeline`                                              |
 | **EC-15**     | 200 roles on the board                                                                        | All render; the response is bounded by roles, not candidates, and the grid scrolls vertically (XBE-8, FR-3.9)                           |
 | **EC-16**     | A move succeeds while the dashboard is in another tab                                         | That tab is stale until it refetches on focus. Accepted — the two tabs do not share a query client                                      |
@@ -679,7 +687,8 @@ and a seeded database.
 - **AC-F12** — **Given** a role with no applications, **when** its section renders, **then** four
   cards show `0` and their ageing lines read **`—`** (EC-01, EC-02).
 - **AC-F13** — **Given** a stage card with `candidateCount: 0`, **when** it is clicked, **then**
-  nothing navigates — it is not a link (FR-3.7).
+  nothing navigates — it is not a link (FR-3.7). **Unchanged by the candidate-access feature and
+  still true**: that feature made non-zero cards link, and deliberately left this one alone.
 - **AC-F14** — **Given** a cell whose `maxDaysInStage` exceeds 30 (backdate one via `psql`), **when**
   the card renders, **then** its ageing line is in the destructive tone (FR-3.6, EC-04).
 - **AC-F15** — **Given** the board, **when** the DOM is inspected, **then** **no** candidate name
@@ -772,18 +781,18 @@ and a seeded database.
 
 ## Out of Scope
 
-| Excluded                                    | Why                                                                                                                                                             |
-| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Candidate names on the board                | The API sends none, deliberately — the board's payload is bounded by roles, not people (XBE-8, D-3). Names are one click away on `/candidates`                  |
-| **The drill-down candidate list itself**    | It calls `GET /api/candidates`, owned by the candidate-access feature. Until that ships, FR-4.2's placeholder renders. Stated here rather than discovered later |
-| Drag-and-drop between columns               | D-4. No DnD library is vendored, and a drag that can fail three ways is a worse interaction than a menu                                                         |
-| Bulk moves                                  | Multiplies the conflict surface for a convenience nobody asked for                                                                                              |
-| An Interviews dashboard tile                | The API does not send the field yet; the interviews feature adds it (FR-2.3)                                                                                    |
-| A "stuck beyond N days" alert view          | Brief §8 optional work. `maxDaysInStage` is the input such a view would need, and it is already rendered                                                        |
-| Un-rejecting or reopening a candidate       | The API has no such path — terminal is terminal                                                                                                                 |
-| Charts or trend lines                       | The brief asks for counts and ageing. A chart is a different question                                                                                           |
-| Per-role ownership or a hiring-manager view | Optional in the brief (§2) and absent from the requirements this pass covers                                                                                    |
-| Polling or live board updates               | PERF-5. The conflict toast handles the case that matters — two people acting at once                                                                            |
+| Excluded                                     | Why                                                                                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Candidate names on the board                 | The API sends none, deliberately — the board's payload is bounded by roles, not people (XBE-8, D-3). Names are one click away on `/candidates`                      |
+| ~~**The drill-down candidate list itself**~~ | ~~It calls `GET /api/candidates`, owned by the candidate-access feature.~~ — **shipped by that feature**, as `features/candidates/components/PipelineDrillDown.tsx` |
+| Drag-and-drop between columns                | D-4. No DnD library is vendored, and a drag that can fail three ways is a worse interaction than a menu                                                             |
+| Bulk moves                                   | Multiplies the conflict surface for a convenience nobody asked for                                                                                                  |
+| An Interviews dashboard tile                 | The API does not send the field yet; the interviews feature adds it (FR-2.3)                                                                                        |
+| A "stuck beyond N days" alert view           | Brief §8 optional work. `maxDaysInStage` is the input such a view would need, and it is already rendered                                                            |
+| Un-rejecting or reopening a candidate        | The API has no such path — terminal is terminal                                                                                                                     |
+| Charts or trend lines                        | The brief asks for counts and ageing. A chart is a different question                                                                                               |
+| Per-role ownership or a hiring-manager view  | Optional in the brief (§2) and absent from the requirements this pass covers                                                                                        |
+| Polling or live board updates                | PERF-5. The conflict toast handles the case that matters — two people acting at once                                                                                |
 
 ---
 
