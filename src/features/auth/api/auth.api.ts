@@ -58,5 +58,5 @@ export const getMe = async (): Promise<User> => {
 
 /** Revokes the session server-side. Responds 204 even without a valid cookie. */
 export const logout = async (): Promise<void> => {
-  await apiFetch<unknown>('/api/auth/logout', { method: 'POST' });
+  await apiFetch<unknown>('/api/auth/session/logout', { method: 'POST' });
 };

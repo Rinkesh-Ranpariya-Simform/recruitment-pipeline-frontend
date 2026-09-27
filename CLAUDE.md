@@ -446,7 +446,7 @@ are written up under "Deviations recorded at implementation" in
 [the interviews spec](specs/features/interviews/spec.md). **Don't re-derive them.**
 
 **There is no `middleware.ts` / `proxy.ts`, and that is deliberate** (spec FE-6, revised during
-implementation). The backend scopes the refresh cookie `Path=/api/auth`, so a frontend route request
+implementation). The backend scopes the refresh cookie `Path=/api/auth/session`, so a frontend route request
 never carries it and a cookie-presence gate would read "signed out" for everyone. Route protection is
 entirely client-side: `<RequireAuth>` for guarded routes, `LoginForm` for redirecting an
 already-authenticated visitor away from `/login`. Neither was ever the security control — the backend

@@ -930,7 +930,7 @@ Both a recruiter and an interviewer session are needed, and the backend must be 
   _This is the criterion that proves neither the hidden buttons nor the route guard is what is protecting the
   endpoint_ (SEC-1, SEC-2a, AZ-4).
 - **AC-M04** — **Given** an authenticated session idle past the access token's expiry, **when** a role edit is
-  submitted, **then** it succeeds after **exactly one** `/api/auth/refresh`, and the dialog's contents are
+  submitted, **then** it succeeds after **exactly one** `/api/auth/session/refresh`, and the dialog's contents are
   intact throughout (EC-12).
 - **AC-M05** — **Given** two browser windows on the same role, **when** one closes it and the other then
   edits the title, **then** the second window's view shows **both** the new title and `CLOSED` — it rendered

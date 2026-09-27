@@ -602,7 +602,7 @@ live feed.
   **then** the request carries neither parameter and the response is `200` — the client never
   produces the `400` the API would return (VAL-1, VAL-3, XBE-7).
 - **AC-M05** — **Given** R with an expired access token, **when** Refresh is pressed, **then** the
-  Network tab shows one `401`, one `POST /api/auth/refresh`, and one successful replay — **exactly
+  Network tab shows one `401`, one `POST /api/auth/session/refresh`, and one successful replay — **exactly
   one** refresh per expiry event (EC-12).
 
 ---

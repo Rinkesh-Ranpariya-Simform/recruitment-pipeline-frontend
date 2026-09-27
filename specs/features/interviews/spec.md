@@ -828,7 +828,7 @@ and a seeded database.
   `document.cookie` are read in the console at the end, **then** none contains a token, a candidate
   name, or an email (DM-1, DM-2, SEC-6).
 - **AC-M06** — **Given** an R session with an expired access token, **when** an assignment is fired,
-  **then** the Network tab shows one `401`, one `POST /api/auth/refresh`, and one successful replay
+  **then** the Network tab shows one `401`, one `POST /api/auth/session/refresh`, and one successful replay
   (EC-17).
 
 ---

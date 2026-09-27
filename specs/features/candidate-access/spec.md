@@ -883,7 +883,7 @@ and a seeded database.
   issued **by hand from the console**, **then** the response is **`404`** — the endpoint does not
   exist (XBE-10, SEC-7).
 - **AC-M09** — **Given** an R session with an expired access token, **when** a contact edit is
-  saved, **then** the Network tab shows one `401`, one `POST /api/auth/refresh`, and one successful
+  saved, **then** the Network tab shows one `401`, one `POST /api/auth/session/refresh`, and one successful
   replay, and the dialog keeps its values throughout (EC-24).
 
 ---

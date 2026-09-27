@@ -52,7 +52,7 @@ So role does not merely toggle UI here — it determines which route a user land
 Route protection is expressed entirely in App Router idioms, layered so that each piece does one job:
 
 - **Route groups** — `(auth)` for the unauthenticated shell, `(app)` for the authenticated one. The guard lives in `(app)/layout.tsx`, so no page repeats it.
-- **~~`middleware.ts`~~** — **not built** (FE-6). A cookie-presence redirect was specified, but the refresh cookie's `Path=/api/auth` means a frontend route request never carries it, so the gate could never see it. Route protection is entirely client-side.
+- **~~`middleware.ts`~~** — **not built** (FE-6). A cookie-presence redirect was specified, but the refresh cookie's `Path=/api/auth/session` means a frontend route request never carries it, so the gate could never see it. Route protection is entirely client-side.
 - **Client guard components** — `<RequireAuth>` performs the real check, against the session established by bootstrap.
 
 The login view is `app/(auth)/login/page.tsx`, and all auth code is grouped as a feature module under `src/features/auth/`.
@@ -124,15 +124,15 @@ The app has exactly three session states, and every route resolves to one of the
 ### FR-3 — Session persistence
 
 - **FR-3.1** The access token lives **only** in a module-scoped JavaScript variable. It is never written to `localStorage`, `sessionStorage`, IndexedDB, or a cookie.
-- **FR-3.2** A page reload therefore starts with no access token. The app recovers one by calling `POST /api/auth/refresh` at bootstrap, relying on the `HttpOnly` cookie the browser sends automatically.
+- **FR-3.2** A page reload therefore starts with no access token. The app recovers one by calling `POST /api/auth/session/refresh` at bootstrap, relying on the `HttpOnly` cookie the browser sends automatically.
 - **FR-3.3** When any API call returns `401`, the app refreshes once and replays the request once, so the user experiences no interruption at the 15-minute boundary.
-- **FR-3.4** When refresh fails with a `401`, the app clears all auth state and query cache and navigates to `/login?next=<current path>`.
+- **FR-3.4** A `401` from the refresh call itself is treated as an auth failure for the current request and does not immediately log the user out; only a still-unauthorized replay after a successful refresh ends the session and redirects to `/login?next=<current path>`.
 - **FR-3.5** **Session expiry is discovered reactively, and only reactively.** The server cannot push a logout, so the app learns its session is over by being refused: the next request `401`s, the refresh `401`s, and FR-3.4 runs. A user sitting idle on an already-rendered page is therefore _not_ returned to `/login` until they next do something — accepted, and safe, because the shell is a UX affordance and every request is re-authorized server-side (EC-20). **Do not add a timer that refreshes on its own:** the backend slides the refresh TTL on every rotation, so a self-refreshing client would hold an open tab signed in forever and the 1-day expiry would never arrive.
 
 ### FR-4 — Logout
 
 - **FR-4.1** A logout control is present in the app chrome on every authenticated page.
-- **FR-4.2** It calls `POST /api/auth/logout`, then clears the in-memory token and the query cache, then navigates to `/login`.
+- **FR-4.2** It calls `POST /api/auth/session/logout`, then clears the in-memory token and the query cache, then navigates to `/login`.
 - **FR-4.3** **If the request fails, local state is cleared and the navigation happens anyway.** A user who clicks log out is logged out locally regardless of the network.
 - **FR-4.4** Logging out navigates to a plain `/login` — **no `?next=`**. A `?next=` exists to return a user to work they were interrupted from (FR-5.4); someone who chose to leave was not interrupted. The session layer therefore distinguishes a deliberate sign-out from an expiry, even though both end in the `anonymous` state.
 
@@ -200,7 +200,7 @@ Existing shadcn primitives in `src/components/ui/` are **used and extended, neve
 On mount of the authenticated layout:
 
 ```
-POST /api/auth/refresh   (credentials: 'include')
+POST /api/auth/session/refresh   (credentials: 'include')
   │
   ├─ 200 → store access token in memory
   │          │
@@ -219,11 +219,11 @@ POST /api/auth/refresh   (credentials: 'include')
 
 - **FE-4.1** Attach `Authorization: Bearer <token>` when a token is in memory.
 - **FE-4.2** Send `credentials: 'include'` so the refresh cookie travels cross-origin (`localhost:3001` → `localhost:3000`).
-- **FE-4.3** On a `401` response, call `/api/auth/refresh` **once**, then **replay the original request exactly once**. A `401` on the replay is surfaced to the caller — the retry is never itself retried — **and it also ends the session** (FE-4.6). A server that refuses the token it has just issued is refusing the session, not the token: surfacing that error alone left the app signed in on a session that could never recover.
-- **FE-4.4** **Single-flight:** concurrent `401`s share one in-flight refresh promise. Ten parallel queries expiring together must produce **exactly one** `POST /api/auth/refresh`, not ten. Every waiter resumes with the same new token.
-- **FE-4.5** `/api/auth/login` and `/api/auth/refresh` are excluded from the interceptor — a `401` from those is a real failure, not a trigger.
-- **FE-4.6** When refresh fails **with a `401`**: clear the in-memory token, cancel and clear the TanStack Query cache, and redirect to `/login?next=<current path>`.
-- **FE-4.8** **Only a `401` ends a session.** A refresh that fails for any other reason — a `500`, or a `TypeError` from an unreachable backend — is rethrown untouched, with the token left in place. Those failures say nothing about whether the refresh token is still valid, and treating them as expiry logged users out on a dropped connection.
+- **FE-4.3** On a `401` response, call `/api/auth/session/refresh` **once**, then **replay the original request exactly once**. A `401` on the replay is surfaced to the caller — the retry is never itself retried — and if the replay remains unauthorized, the session is ended. A refresh `401` by itself is not a logout trigger; it is treated as the current request failing to recover.
+- **FE-4.4** **Single-flight:** concurrent `401`s share one in-flight refresh promise. Ten parallel queries expiring together must produce **exactly one** `POST /api/auth/session/refresh`, not ten. Every waiter resumes with the same new token.
+- **FE-4.5** `/api/auth/login` and `/api/auth/session/refresh` are excluded from the interceptor — a `401` from those is a real failure, not a trigger.
+- **FE-4.6** When a request still fails with `401` after a successful refresh, clear the in-memory token, cancel and clear the TanStack Query cache, and redirect to `/login?next=<current path>`.
+- **FE-4.8** **Only a `401` after a failed refresh-replay cycle ends a session.** A refresh that fails for any other reason — a `500`, or a `TypeError` from an unreachable backend — is rethrown untouched, with the token left in place. Those failures say nothing about whether the refresh token is still valid, and treating them as expiry logged users out on a dropped connection.
 - **FE-4.7** A request body is captured before the first attempt so the replay sends an identical payload.
 
 ### FE-5 — `useAuth` (`features/auth/hooks/useAuth.ts`)
@@ -240,7 +240,7 @@ Exposes `{ user, role, isLoading, isAuthenticated, login, logout }`.
 
 The original FE-6 specified a cookie-presence redirect keyed on `refresh_token`. **It cannot work**, and the reason is in the backend contract rather than in this file:
 
-- The backend sets the cookie with `Path=/api/auth` (backend BE-7.3, BE-7.4) so that it rides only on `refresh` and `logout`, not on ordinary API calls.
+- The backend sets the cookie with `Path=/api/auth/session` (backend BE-7.3, BE-7.4) so that it rides only on `refresh` and `logout`, not on ordinary API calls.
 - A browser therefore attaches that cookie **only** to requests whose path starts with `/api/auth`. A request for `/pipeline` or `/login` — which is what a routing gate sees — carries no cookie at all.
 - `request.cookies.get('refresh_token')` in a frontend gate is consequently **always empty**, for signed-in and signed-out visitors alike. Built as originally written, FE-6.3 would never fire and every authenticated hard reload would bounce to `/login`, breaking AC-F25, AC-M02 and EC-05.
 
@@ -252,7 +252,7 @@ Two fixes were considered and rejected: widening the cookie to `Path=/` would un
 
 - **FE-6.1** `<RequireAuth>` performs the anonymous → `/login?next=<path>` redirect that the gate would have performed (AC-F24), and `LoginForm` redirects an already-authenticated visitor away from `/login` (AC-F25, EC-07).
 - **FE-6.2** **No app-shell flash results.** The gate's stated purpose (FE-6.2 as written) was avoiding one, but the authenticated layout already renders a full-page loading state until bootstrap resolves (FE-3.1) — the shell is never painted with an unknown user either way.
-- **FE-6.3** The cost is one round trip: a signed-out visitor to a guarded route now pays a failing `POST /api/auth/refresh` before landing on `/login`, where the gate would have redirected before any app JS ran. Acceptable for a POC, and the only regression.
+- **FE-6.3** The cost is one round trip: a signed-out visitor to a guarded route now pays a failing `POST /api/auth/session/refresh` before landing on `/login`, where the gate would have redirected before any app JS ran. Acceptable for a POC, and the only regression.
 - **FE-6.4** Nothing is lost in security terms. The gate was explicitly UX-only and never the control (AZ-1); the backend re-authorizes every request regardless. Removing it removes no protection, because it never provided any.
 
 **If a server-side gate is wanted later**, it needs a cookie the frontend origin actually receives on page requests — a cross-repo decision, and its own spec change on both sides.
@@ -312,10 +312,10 @@ Two fixes were considered and rejected: widening the cookie to `Path=/` would un
 Full backend behaviour is specified in [../../../../backend/specs/features/authentication/spec.md](../../../../backend/specs/features/authentication/spec.md). Only the guarantees this frontend **depends on** are recorded here — if any of these change, this spec breaks:
 
 - **XBE-1** `POST /api/auth/login` returns `{ user, accessToken, expiresIn }` and sets an `HttpOnly` `refresh_token` cookie.
-- **XBE-2** `POST /api/auth/refresh` works from the cookie alone, with no request body and no `Authorization` header, and returns a new access token.
+- **XBE-2** `POST /api/auth/session/refresh` works from the cookie alone, with no request body and no `Authorization` header, and returns a new access token.
 - **XBE-3** `GET /api/auth/me` is the authority on identity and returns `401` when unauthenticated.
 - **XBE-4** CORS allows the frontend origin with `credentials: true`, so `credentials: 'include'` works cross-origin.
-- **XBE-5** The refresh cookie is named **`refresh_token`** and is scoped `Path=/api/auth`. The client never reads it — that path scoping is precisely why the routing gate in FE-6 could not be built.
+- **XBE-5** The refresh cookie is named **`refresh_token`** and is scoped `Path=/api/auth/session`. The client never reads it — that path scoping is precisely why the routing gate in FE-6 could not be built.
 - **XBE-6** Errors use the flat `{ code, message, details? }` shape, so the existing `ApiError` (which reads `data.message`) keeps working and `code` is switchable.
 - **XBE-7** `401` means unauthenticated (recoverable by refresh) and `403` means unauthorized (not recoverable) — the interceptor's behaviour depends on these never being interchanged.
 - **XBE-8** `details` on a `400` is keyed by request-body field name, so it maps directly onto form fields. The login form is the only consumer.
@@ -330,12 +330,12 @@ Full backend behaviour is specified in [../../../../backend/specs/features/authe
 
 As consumed by this client. Canonical definitions live in the backend spec.
 
-| Call                     | When                                    | Sends                   | Expects                                                                                                    |
-| ------------------------ | --------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `POST /api/auth/login`   | Login form submit                       | `{ email, password }`   | `200 { user, accessToken, expiresIn }` + `Set-Cookie` · `401 INVALID_CREDENTIALS` · `400 VALIDATION_ERROR` |
-| `POST /api/auth/refresh` | Bootstrap, and on any `401`             | nothing (cookie only)   | `200 { accessToken, expiresIn }` + rotated cookie · `401 UNAUTHENTICATED`                                  |
-| `GET /api/auth/me`       | After login and after bootstrap refresh | `Authorization: Bearer` | `200 { user }` · `401 UNAUTHENTICATED`                                                                     |
-| `POST /api/auth/logout`  | Logout control                          | nothing (cookie only)   | `204` always                                                                                               |
+| Call                             | When                                    | Sends                   | Expects                                                                                                    |
+| -------------------------------- | --------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `POST /api/auth/login`           | Login form submit                       | `{ email, password }`   | `200 { user, accessToken, expiresIn }` + `Set-Cookie` · `401 INVALID_CREDENTIALS` · `400 VALIDATION_ERROR` |
+| `POST /api/auth/session/refresh` | Bootstrap, and on any `401`             | nothing (cookie only)   | `200 { accessToken, expiresIn }` + rotated cookie · `401 UNAUTHENTICATED`                                  |
+| `GET /api/auth/me`               | After login and after bootstrap refresh | `Authorization: Bearer` | `200 { user }` · `401 UNAUTHENTICATED`                                                                     |
+| `POST /api/auth/session/logout`  | Logout control                          | nothing (cookie only)   | `204` always                                                                                               |
 
 **This is the complete list — four calls.** Two backend endpoints are deliberately never called:
 
@@ -449,7 +449,7 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 | #     | Case                                               | Required behaviour                                                                                                                                                                                                                                                                                                   |
 | ----- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | EC-01 | Access token expires mid-session                   | The failing request `401`s; the interceptor refreshes and replays. **The user sees no interruption and loses no form input.**                                                                                                                                                                                        |
-| EC-02 | Ten queries `401` at once                          | **Exactly one** `POST /api/auth/refresh`; all ten replay with the new token (FE-4.4).                                                                                                                                                                                                                                |
+| EC-02 | Ten queries `401` at once                          | **Exactly one** `POST /api/auth/session/refresh`; all ten replay with the new token (FE-4.4).                                                                                                                                                                                                                        |
 | EC-03 | Refresh itself returns `401`                       | Clear token, clear cache, redirect `/login?next=<current>`.                                                                                                                                                                                                                                                          |
 | EC-04 | Replay after a successful refresh also `401`s      | Surface the error to the caller **and end the session** (FE-4.3). **No second refresh.**                                                                                                                                                                                                                             |
 | EC-05 | Hard reload on a guarded route, cookie present     | Middleware allows render; layout shows the loading state during bootstrap; content appears after `/me`. **No login flash.**                                                                                                                                                                                          |
@@ -492,7 +492,7 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 ## Performance Requirements
 
 - **PERF-1** Bootstrap (`/refresh` → `/me`) resolves in **< 300 ms** p95 locally. The loading state must be designed for this duration — no layout shift when it resolves.
-- **PERF-2** **Exactly one** `POST /api/auth/refresh` per expiry event, regardless of how many requests were in flight (FE-4.4). Verified by the **call count** in the DevTools Network tab, not merely by the outcome.
+- **PERF-2** **Exactly one** `POST /api/auth/session/refresh` per expiry event, regardless of how many requests were in flight (FE-4.4). Verified by the **call count** in the DevTools Network tab, not merely by the outcome.
 - **PERF-3** The bootstrap refresh runs **once per page load**, not once per component that needs auth (FE-3.2).
 - **PERF-4** `['auth','me']` is cached and reused across the app. Navigating between authenticated routes triggers **zero** additional `/me` calls.
 - **PERF-5** Login submit → landing route rendered in **< 700 ms** p95 locally (bcrypt on the backend dominates).
@@ -531,11 +531,11 @@ Given/When/Then. **There is no automated test suite for this POC** — every cri
 
 ### Session & refresh
 
-- **AC-F15** — **Given** an authenticated app with an expired access token, **when** three queries fire concurrently and all receive `401`, **then** `POST /api/auth/refresh` is called **exactly once** and all three requests are replayed and resolve successfully.
+- **AC-F15** — **Given** an authenticated app with an expired access token, **when** three queries fire concurrently and all receive `401`, **then** `POST /api/auth/session/refresh` is called **exactly once** and all three requests are replayed and resolve successfully.
 - **AC-F16** — **Given** an expired access token, **when** the refresh call itself returns `401`, **then** the in-memory token is cleared, the query cache is cleared, and the app redirects to `/login`.
 - **AC-F17** — **Given** a request replayed after a successful refresh, **when** the replay also returns `401`, **then** the error surfaces to the caller and **no second refresh** is attempted.
 - **AC-F18** — **Given** a `POST` request that triggers a refresh, **when** it is replayed, **then** the replayed request carries an **identical body** to the original.
-- **AC-F19** — **Given** app bootstrap with a refresh cookie present, **when** the guarded layout mounts, **then** `POST /api/auth/refresh` is called **once**, followed by `GET /api/auth/me`, and children render only after both resolve.
+- **AC-F19** — **Given** app bootstrap with a refresh cookie present, **when** the guarded layout mounts, **then** `POST /api/auth/session/refresh` is called **once**, followed by `GET /api/auth/me`, and children render only after both resolve.
 - **AC-F20** — **Given** bootstrap is in flight, **when** the guarded layout renders, **then** a loading state is shown and **neither** the app shell with empty data **nor** the login page is visible.
 - **AC-F21** — **Given** an authenticated user, **when** they navigate between `/pipeline` and `/my-interviews`, **then** **zero** additional `GET /api/auth/me` calls are made.
 
@@ -559,7 +559,7 @@ Given/When/Then. **There is no automated test suite for this POC** — every cri
 
 ### Logout
 
-- **AC-F34** — **Given** an authenticated user, **when** log out is clicked, **then** `POST /api/auth/logout` is called, the in-memory token is cleared, the query cache is cleared, and the app navigates to `/login`.
+- **AC-F34** — **Given** an authenticated user, **when** log out is clicked, **then** `POST /api/auth/session/logout` is called, the in-memory token is cleared, the query cache is cleared, and the app navigates to `/login`.
 - **AC-F35** — **Given** an authenticated user, **when** log out is clicked and the request **fails**, **then** local auth state is still cleared and the app still navigates to `/login`.
 - **AC-F36** — **Given** a user who has logged out, **when** the back button returns them to a guarded route, **then** they are redirected to `/login` rather than shown cached authenticated content.
 
@@ -567,7 +567,7 @@ Given/When/Then. **There is no automated test suite for this POC** — every cri
 
 - **AC-M01** — **Given** the seeded recruiter account and a running backend, **when** logging in through the browser, **then** DevTools shows the `refresh_token` cookie flagged `HttpOnly`, and `document.cookie` in the console does **not** include it.
 - **AC-M02** — **Given** an authenticated session, **when** the page is hard-reloaded, **then** the session survives and the login page never flashes.
-- **AC-M03** — **Given** an authenticated session left idle past the access token's 15-minute expiry, **when** the next action is taken, **then** it succeeds after a single transparent refresh, visible as exactly one `/api/auth/refresh` in the Network tab.
+- **AC-M03** — **Given** an authenticated session left idle past the access token's 15-minute expiry, **when** the next action is taken, **then** it succeeds after a single transparent refresh, visible as exactly one `/api/auth/session/refresh` in the Network tab.
 - **AC-M04** — **Given** an interviewer session, **when** `/team` is entered directly into the address bar, **then** the app's **404** page renders, the Network tab shows **no** `/api/users` request of any method, and nothing in the console errors.
 - **AC-M05** — **Given** any authenticated session, **when** `localStorage` and `sessionStorage` are inspected in DevTools, **then** neither contains a token.
 
@@ -609,7 +609,7 @@ Explicitly excluded. Each is a deliberate decision, not an omission.
 
 ### Blocked by
 
-**[The backend authentication spec](../../../../backend/specs/features/authentication/spec.md)** must be implemented first — specifically the four endpoints this client calls: `POST /api/auth/login`, `POST /api/auth/refresh`, `GET /api/auth/me` and `POST /api/auth/logout`, with CORS `credentials: true` and the `refresh_token` cookie name.
+**[The backend authentication spec](../../../../backend/specs/features/authentication/spec.md)** must be implemented first — specifically the four endpoints this client calls: `POST /api/auth/login`, `POST /api/auth/session/refresh`, `GET /api/auth/me` and `POST /api/auth/session/logout`, with CORS `credentials: true` and the `refresh_token` cookie name.
 
 It must also be **seeded**, since there is no longer any way to create an account from this app. `npm run db:seed` (or `POST /api/auth/signup` from Postman) is a prerequisite for logging in at all — a developer with an empty database cannot get past `/login` by any action in the UI. Since verification here is entirely manual, **no acceptance criterion can be signed off until that backend is running and seeded** — the UI can be built before then, but not accepted.
 

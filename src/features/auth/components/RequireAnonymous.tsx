@@ -19,7 +19,7 @@ interface RequireAnonymousProps {
  *
  * The ordering is the whole point. Every page load starts at `bootstrapping`
  * with no access token, and resolving the session costs two sequential requests
- * — `POST /api/auth/refresh`, then `GET /api/auth/me` for the role that decides
+ * — `POST /api/auth/session/refresh`, then `GET /api/auth/me` for the role that decides
  * where the user belongs. Rendering the form during that window and redirecting
  * afterwards is what produced the visible flash; holding the screen until the
  * answer is known is what removes it.

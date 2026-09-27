@@ -20,7 +20,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 /** Paths that should not trigger a token refresh on 401 (login/refresh failures are real errors). */
-const REFRESH_EXEMPT_PATHS = ['/api/auth/login', '/api/auth/refresh'];
+const REFRESH_EXEMPT_PATHS = ['/api/auth/login', '/api/auth/session/refresh'];
 
 /** Auth callbacks registered by AuthProvider (kept outside React). */
 interface AuthHandlers {
@@ -37,12 +37,17 @@ export const registerAuthHandlers = (handlers: AuthHandlers): void => {
 /** Deduplicates concurrent refresh attempts — multiple 401s share a single refresh request. */
 let refreshPromise: Promise<void> | null = null;
 
-/** Refreshes the access token. A 401 ends the session; other errors are rethrown. */
+/** Refreshes the access token. A 401 is surfaced to the caller so the caller
+ * decides whether the session is actually gone; a bootstrap refresh may simply
+ * mean “no valid cookie” and should resolve to anonymous, not a forced logout.
+ */
 export const refreshAccessToken = (): Promise<void> => {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const data = await apiFetch<RefreshResponse>('/api/auth/refresh', { method: 'POST' });
+        const data = await apiFetch<RefreshResponse>('/api/auth/session/refresh', {
+          method: 'POST',
+        });
         setAccessToken(data.accessToken);
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {

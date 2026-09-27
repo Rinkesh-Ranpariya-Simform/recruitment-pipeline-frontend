@@ -433,7 +433,7 @@ Primitives are reused from `components/ui/`: `Card`, `Button`, `Input`, `Label`,
 - **FE-8** Style from theme tokens only (`bg-background`, `text-muted-foreground`, …). The app is dark-only
   and **no color is hardcoded**.
 - **FE-9** There is still **no `middleware.ts` / `proxy.ts`**, and `/signup` does not change that. The refresh
-  cookie is scoped `Path=/api/auth`, so a frontend route request never carries it and a cookie-presence gate
+  cookie is scoped `Path=/api/auth/session`, so a frontend route request never carries it and a cookie-presence gate
   would read "signed out" for everyone.
 
 ---
@@ -474,7 +474,7 @@ The guarantees this client depends on. If any changes, this spec breaks. Source:
 - **XBE-15** The error body stays `{ code, message, details? }` with `details: Record<string, string[]>`, and
   `code` stays the stable contract. The client branches on `code`, never on `message`.
 - **XBE-16** CORS stays `origin: FRONTEND_ORIGIN, credentials: true`, and the refresh cookie stays
-  `Path=/api/auth`. FE-9 depends on the path.
+  `Path=/api/auth/session`. FE-9 depends on the path.
 
 ---
 
@@ -625,28 +625,28 @@ request behind it.
 
 ## Edge Cases
 
-| ID        | Case                                                           | Behaviour                                                                                                                       |
-| --------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **EC-01** | Signed-in user opens `/signup` directly                        | Immediate redirect to `ROLE_LANDING[role]`. The form never flashes (FR-2.7)                                                     |
-| **EC-02** | Signup succeeds, user hits Back                                | `/signup` renders again, empty. There is no session, so EC-01 does not apply and this is correct                                |
-| **EC-03** | Signup submitted twice by double-click                         | The button is disabled while in flight; the second click does nothing                                                           |
-| **EC-04** | Two tabs, one signs up, the other is on `/login`               | No shared state to desync — the signup tab holds no session                                                                     |
-| **EC-05** | Candidate reloads `/jobs?q=engineer&page=2`                    | Renders that exact search and page. The URL is the source of truth (FR-4.3)                                                     |
-| **EC-06** | Candidate types fast, then clears the search box               | One request after the debounce settles; the cleared box produces the same result as no `q` (XBE-7)                              |
-| **EC-07** | Candidate opens `/jobs/abc`                                    | `JobNotFound` panel, **no request sent** (FR-5.8, VAL-6)                                                                        |
-| **EC-08** | Candidate opens `/jobs/999999`                                 | One request, `404`, `JobNotFound` panel                                                                                         |
-| **EC-09** | Recruiter closes a requisition while a candidate has it open   | The page still renders from cache; **Apply** answers `404`, the toast fires and the page switches to the panel (FR-6.4)         |
-| **EC-10** | Candidate applies twice to the same job                        | Both succeed. The FR-5.5 line changes to the "{n} times" form. **The button stays enabled** (D-6, FR-5.7)                       |
-| **EC-11** | Candidate applies in one tab, reads `/applications` in another | The second tab is up to 30 s stale, then refetches on focus. Acceptable; an application is not time-critical to the second      |
-| **EC-12** | Access token expires mid-apply                                 | `apiFetch`'s single-flight refresh runs; the apply retries once. Exactly one `POST /api/auth/refresh`, not one per query        |
-| **EC-13** | Candidate signs out, then hits Back into `/applications`       | `RequireAuth` finds no user and redirects to `/login`. The query cache was cleared by `onAuthFailure`, so nothing renders first |
-| **EC-14** | Recruiter types `/jobs`                                        | The app's 404 (FR-3.4) — not `/forbidden`, and not a redirect                                                                   |
-| **EC-15** | Candidate types `/pipeline`                                    | The app's 404 (FR-3.6). Before this feature it rendered                                                                         |
-| **EC-16** | A job's description is 5,000 characters                        | Clamped to two lines on the card; rendered in full on the detail page, wrapping, never truncated there                          |
-| **EC-17** | Candidate has 200 applications                                 | All render — there is no pager (XBE-10). Slow but correct; PERF-5 states when to revisit                                        |
-| **EC-18** | Application whose requisition was deleted                      | Cannot happen: the API refuses to delete a requisition with applications (backend FR-8.2)                                       |
-| **EC-19** | An application row arrives with an unknown `currentStage`      | The raw value renders. No crash, no blank (FR-7.6)                                                                              |
-| **EC-20** | Offline                                                        | `apiFetch` throws; queries show their error state with **Try again**, mutations toast. No spinner is left hanging               |
+| ID        | Case                                                           | Behaviour                                                                                                                        |
+| --------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **EC-01** | Signed-in user opens `/signup` directly                        | Immediate redirect to `ROLE_LANDING[role]`. The form never flashes (FR-2.7)                                                      |
+| **EC-02** | Signup succeeds, user hits Back                                | `/signup` renders again, empty. There is no session, so EC-01 does not apply and this is correct                                 |
+| **EC-03** | Signup submitted twice by double-click                         | The button is disabled while in flight; the second click does nothing                                                            |
+| **EC-04** | Two tabs, one signs up, the other is on `/login`               | No shared state to desync — the signup tab holds no session                                                                      |
+| **EC-05** | Candidate reloads `/jobs?q=engineer&page=2`                    | Renders that exact search and page. The URL is the source of truth (FR-4.3)                                                      |
+| **EC-06** | Candidate types fast, then clears the search box               | One request after the debounce settles; the cleared box produces the same result as no `q` (XBE-7)                               |
+| **EC-07** | Candidate opens `/jobs/abc`                                    | `JobNotFound` panel, **no request sent** (FR-5.8, VAL-6)                                                                         |
+| **EC-08** | Candidate opens `/jobs/999999`                                 | One request, `404`, `JobNotFound` panel                                                                                          |
+| **EC-09** | Recruiter closes a requisition while a candidate has it open   | The page still renders from cache; **Apply** answers `404`, the toast fires and the page switches to the panel (FR-6.4)          |
+| **EC-10** | Candidate applies twice to the same job                        | Both succeed. The FR-5.5 line changes to the "{n} times" form. **The button stays enabled** (D-6, FR-5.7)                        |
+| **EC-11** | Candidate applies in one tab, reads `/applications` in another | The second tab is up to 30 s stale, then refetches on focus. Acceptable; an application is not time-critical to the second       |
+| **EC-12** | Access token expires mid-apply                                 | `apiFetch`'s single-flight refresh runs; the apply retries once. Exactly one `POST /api/auth/session/refresh`, not one per query |
+| **EC-13** | Candidate signs out, then hits Back into `/applications`       | `RequireAuth` finds no user and redirects to `/login`. The query cache was cleared by `onAuthFailure`, so nothing renders first  |
+| **EC-14** | Recruiter types `/jobs`                                        | The app's 404 (FR-3.4) — not `/forbidden`, and not a redirect                                                                    |
+| **EC-15** | Candidate types `/pipeline`                                    | The app's 404 (FR-3.6). Before this feature it rendered                                                                          |
+| **EC-16** | A job's description is 5,000 characters                        | Clamped to two lines on the card; rendered in full on the detail page, wrapping, never truncated there                           |
+| **EC-17** | Candidate has 200 applications                                 | All render — there is no pager (XBE-10). Slow but correct; PERF-5 states when to revisit                                         |
+| **EC-18** | Application whose requisition was deleted                      | Cannot happen: the API refuses to delete a requisition with applications (backend FR-8.2)                                        |
+| **EC-19** | An application row arrives with an unknown `currentStage`      | The raw value renders. No crash, no blank (FR-7.6)                                                                               |
+| **EC-20** | Offline                                                        | `apiFetch` throws; queries show their error state with **Try again**, mutations toast. No spinner is left hanging                |
 
 ---
 
@@ -695,7 +695,7 @@ request behind it.
   exceeds ~200 applications — which requires the backend's SEC-11 gap to be exploited (EC-17).
 - **PERF-6** Applying issues **exactly two** requests: the `POST`, and the one refetch its invalidation
   triggers. No optimistic write, no manual `setQueryData` (FR-6.7).
-- **PERF-7** Exactly **one** `POST /api/auth/refresh` per expiry event, however many queries are in flight —
+- **PERF-7** Exactly **one** `POST /api/auth/session/refresh` per expiry event, however many queries are in flight —
   guaranteed by the existing single-flight promise in `lib/api.ts`, which this feature does not touch.
 - **PERF-8** p95, warm cache, local backend: `/jobs` interactive under 400 ms; `/applications` under 300 ms;
   Apply feedback (toast) under 500 ms of the click.
@@ -839,11 +839,11 @@ Verified by hand, in the browser, with DevTools open. There is no test suite. Ro
 - **AC-F55** — **Given** the same, **when** each payload is searched, **then** none of `feedback`, `rating`,
   `notes`, `interviewer`, `overrideReason`, `stageHistory` appears as a key (SEC-4).
 - **AC-F56** — **Given** the whole session, **when** the Network tab is filtered to `/api/`, **then** exactly
-  these paths appear and no others: `/api/auth/signup`, `/api/auth/login`, `/api/auth/refresh`,
-  `/api/auth/me`, `/api/auth/logout`, `/api/roles`, `/api/roles/:id`, `/api/applications`. **No
+  these paths appear and no others: `/api/auth/signup`, `/api/auth/login`, `/api/auth/session/refresh`,
+  `/api/auth/me`, `/api/auth/session/logout`, `/api/roles`, `/api/roles/:id`, `/api/applications`. **No
   `/api/users`** (API-5).
 - **AC-F57** — **Given** the access token is expired and three queries mount at once, **then** exactly
-  **one** `POST /api/auth/refresh` is sent (PERF-7, EC-12).
+  **one** `POST /api/auth/session/refresh` is sent (PERF-7, EC-12).
 - **AC-F58** — **Given** the whole session, **then** no network request repeats on a timer — there is no
   polling anywhere (PERF-4).
 - **AC-F59** — **Given** `npm run lint` and `npm run typecheck`, **when** both are run, **then** both pass
@@ -855,21 +855,21 @@ Verified by hand, in the browser, with DevTools open. There is no test suite. Ro
 
 ## Out of Scope
 
-| Excluded                                                  | Why                                                                                                      |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Editing any profile field                                 | D-12 — no backend endpoint writes a `User` row, so an edit form would have nowhere to send               |
-| Phone, resume upload, cover letter                        | D-2/D-12 — no `CandidateProfile` model exists; apply takes `roleId` and nothing else                     |
-| Withdrawing an application                                | D-8 — `WITHDRAWN` is not in the backend enum, and no endpoint writes one                                 |
-| A stage timeline or "days at stage"                       | D-13 — the payload is flat by design; showing ageing to an applicant is a product decision not taken     |
-| Disabling Apply after applying                            | D-6/FR-5.7 — a client rule the server does not have is a lie the UI tells                                |
-| Description, location or department filters               | D-11 — `Role` has no such columns and adding them changes the recruiter's shipped forms                  |
-| Pagination on `/applications`                             | XBE-10 — the API has no pager; adding one client-side would page a list it already returned in full      |
-| Interviewer or recruiter application views                | Backend defers them to the pipeline feature, which owns the aggregates and ageing                        |
-| A `/team` page, interviewer provisioning UI, `/api/users` | This repo's existing rule, and **only the signup half of it is being reversed**                          |
-| Password reset, email verification, "remember me"         | No backend contract exists for any of them (backend SEC-12)                                              |
-| A `middleware.ts` route gate                              | FE-9 — the refresh cookie is `Path=/api/auth`, so a cookie-presence gate reads "signed out" for everyone |
-| Light mode / a theme toggle                               | The app is dark-only by design; this feature does not change that                                        |
-| Automated tests                                           | Repo-wide decision — verification is manual, in-browser (CLAUDE.md)                                      |
+| Excluded                                                  | Why                                                                                                              |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Editing any profile field                                 | D-12 — no backend endpoint writes a `User` row, so an edit form would have nowhere to send                       |
+| Phone, resume upload, cover letter                        | D-2/D-12 — no `CandidateProfile` model exists; apply takes `roleId` and nothing else                             |
+| Withdrawing an application                                | D-8 — `WITHDRAWN` is not in the backend enum, and no endpoint writes one                                         |
+| A stage timeline or "days at stage"                       | D-13 — the payload is flat by design; showing ageing to an applicant is a product decision not taken             |
+| Disabling Apply after applying                            | D-6/FR-5.7 — a client rule the server does not have is a lie the UI tells                                        |
+| Description, location or department filters               | D-11 — `Role` has no such columns and adding them changes the recruiter's shipped forms                          |
+| Pagination on `/applications`                             | XBE-10 — the API has no pager; adding one client-side would page a list it already returned in full              |
+| Interviewer or recruiter application views                | Backend defers them to the pipeline feature, which owns the aggregates and ageing                                |
+| A `/team` page, interviewer provisioning UI, `/api/users` | This repo's existing rule, and **only the signup half of it is being reversed**                                  |
+| Password reset, email verification, "remember me"         | No backend contract exists for any of them (backend SEC-12)                                                      |
+| A `middleware.ts` route gate                              | FE-9 — the refresh cookie is `Path=/api/auth/session`, so a cookie-presence gate reads "signed out" for everyone |
+| Light mode / a theme toggle                               | The app is dark-only by design; this feature does not change that                                                |
+| Automated tests                                           | Repo-wide decision — verification is manual, in-browser (CLAUDE.md)                                              |
 
 ---
 
