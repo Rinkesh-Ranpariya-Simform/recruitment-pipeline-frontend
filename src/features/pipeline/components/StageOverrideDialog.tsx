@@ -30,7 +30,7 @@ import { pipelineStageLabel } from '../labels';
 import { PIPELINE_STAGES } from '../search-params';
 import type { PipelineStage } from '../types';
 
-/** Mirrors the API's minimum, and the counter counts up to it (FR-6.3, D-7). */
+/** Minimum required character length for an override reason. */
 const REASON_MINIMUM = 10;
 
 interface StageOverrideDialogProps {
@@ -41,31 +41,7 @@ interface StageOverrideDialogProps {
 }
 
 /**
- * The deliberate skip (FR-6, brief §3.3).
- *
- * Three things about it are not decoration:
- *
- * - **The target select never offers the current stage** (FR-6.2, VAL-3). It
- *   offers every *other* stage, forwards and backwards, because the override is
- *   the escape hatch from the stage graph and the API accepts any of them
- *   (XBE-10). A recruiter who advanced someone by mistake needs a recorded way
- *   back, and the reason field is what makes that accountable rather than quiet.
- * - **Submit is disabled until the reason reaches ten characters after trim**
- *   (FR-6.3), with a live counter. **This is UX. The API's `400` is the
- *   control** (AZ-5, SEC-5) — AC-M03 proves it by firing a one-character reason
- *   from the console and getting a `400` back.
- * - **The standing line is always visible, not a tooltip** (FR-6.4). The brief
- *   requires the override be genuinely recorded, and a recruiter should know
- *   that before they type rather than discover it in an audit feed afterwards.
- *
- * A failed request **never discards what was typed** (FR-6.7, ERR-1): a `400`
- * renders under the field with the text intact. Only a conflict closes the
- * dialog, because the target stage the recruiter chose may no longer make sense
- * once someone else has moved the candidate (FR-6.8).
- *
- * Nothing here is drafted to storage, not even as an unsent reason (DM-2,
- * SEC-3): it is a recruiter's statement about a person's process, and it
- * belongs on the server or nowhere.
+ * Modal dialog for overriding an application's stage, requiring an explanation reason.
  */
 export const StageOverrideDialog: React.FC<StageOverrideDialogProps> = ({
   applicationId,
@@ -77,7 +53,7 @@ export const StageOverrideDialog: React.FC<StageOverrideDialogProps> = ({
   const overrideMutation = useOverrideStage();
   const isSubmitting = overrideMutation.isPending;
 
-  // Every stage but the one it is already at (FR-6.2).
+  // Exclude current stage from selectable targets.
   const targetStages = PIPELINE_STAGES.filter((stage) => stage !== currentStage);
 
   const {
@@ -138,7 +114,7 @@ export const StageOverrideDialog: React.FC<StageOverrideDialogProps> = ({
 
       // `details` is keyed by request-body field name, so a rule the client
       // missed still lands on the right input — and the dialog stays open with
-      // the typed text (FR-6.7).
+      // Retain entered reason on validation errors.
       if (body?.code === 'VALIDATION_ERROR') {
         const message = fieldMessage(body.details, 'reason');
         const stageMessage = fieldMessage(body.details, 'toStage');
@@ -159,14 +135,14 @@ export const StageOverrideDialog: React.FC<StageOverrideDialogProps> = ({
 
       // The candidate moved, or the application closed, while this was open.
       // The chosen target may no longer make sense, so the dialog closes and
-      // the toast the mutation already raised is the whole message (FR-6.8).
+      // Close on conflict since the candidate state changed.
       if (body?.code === 'STAGE_CONFLICT' || body?.code === 'APPLICATION_NOT_ACTIVE') {
         onOpenChange(false);
         return;
       }
 
       // A 500 and a network failure look the same to a recruiter. The dialog
-      // stays open with everything they typed still in it (ERR-1).
+      // Keep dialog open on submission error.
       setFormError('Something went wrong. Please try again.');
     }
   };
@@ -248,7 +224,7 @@ export const StageOverrideDialog: React.FC<StageOverrideDialogProps> = ({
               />
             </Field>
 
-            {/* Always visible, never a tooltip (FR-6.4). */}
+            {/* Persistent reminder about audit tracking */}
             <p className="rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
               This is recorded against your name and appears in the audit trail.
             </p>

@@ -12,25 +12,7 @@ interface Tile {
   href: string;
 }
 
-/**
- * The seven tiles, in reading order (FR-2.2, revised by the interviews
- * feature).
- *
- * **The Interviews tile is the seventh**, added once the API began sending
- * `summary.interviews` — the count of SCHEDULED rounds. It reverses the note
- * that used to stand here: the field's absence was a build-order fact, not a
- * product decision, and the walkthrough's dashboard has always shown this tile.
- * It links to `/interviews`, the recruiter's list, rather than into the board —
- * the rounds it counts are not a board column.
- *
- * Every tile links into the board (FR-2.5): a number nobody can act on is
- * decoration. `Offers` deep-links to the Offer column, since that is the one
- * tile with an exact board equivalent; the rest land on the unfiltered board,
- * because "hired" and "rejected" are not stages and the board shows live
- * candidates only.
- *
- * A module-level constant, built once rather than per render (PERF-8).
- */
+/** Tile definitions mapping summary keys to labels and target route links. */
 const TILES: ReadonlyArray<Tile> = [
   { key: 'openRoles', label: 'Open roles', href: '/roles?status=OPEN' },
   { key: 'totalApplicants', label: 'Total applicants', href: buildPipelineHref({}) },
@@ -45,7 +27,7 @@ interface DashboardTilesProps {
   summary: PipelineSummary;
 }
 
-/** The headline row. Seven numbers, each a link to what it summarises. */
+/** Renders headline metric tiles linking directly to filtered views. */
 export const DashboardTiles: React.FC<DashboardTilesProps> = ({ summary }) => {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">

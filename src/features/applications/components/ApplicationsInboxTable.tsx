@@ -12,24 +12,7 @@ import { formatAbsolute, formatRelative } from '@/lib/format-date';
 import type { RecruiterApplication } from '../types';
 import { StartPhoneScreenButton } from './StartPhoneScreenButton';
 
-/**
- * **Candidate · Role · Applied · action** — the whole of `/applications`
- * (applications FR-1.3).
- *
- * This is the recruiter's inbox, and an inbox answers one question: who has
- * applied, and do I want to talk to them? So there is no stage, no status and
- * no round count here — those are facts about a process that has started, and
- * a process that has started belongs on `/interviews`.
- *
- * **Nothing in a row navigates except the button.** The row is not clickable
- * and the candidate's name is not a link, deliberately: `/applications` is the
- * head of exactly one path — press the button, the candidate moves to
- * `/interviews` — and a second way out of the row would fork that path before
- * the recruiter has made the only decision this page asks for.
- *
- * There is no email column and no contact detail of any kind: the payload
- * carries none, because the backend's list projection selects none.
- */
+/** Table component displaying newly applied candidates in the recruiter inbox. */
 
 interface ApplicationsInboxTableProps {
   applications: Array<RecruiterApplication>;

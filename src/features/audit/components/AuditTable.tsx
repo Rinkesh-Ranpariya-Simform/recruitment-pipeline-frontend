@@ -15,7 +15,7 @@ import { AuditMetadata } from './AuditMetadata';
 import { entityLabel } from '../labels';
 import type { AuditEntry } from '../types';
 
-/** Placeholder rows shown while the first page loads. */
+/** Placeholder skeleton rows for table loading state. */
 const SKELETON_ROWS = 8;
 
 const AuditTableHead: React.FC = () => {
@@ -32,10 +32,7 @@ const AuditTableHead: React.FC = () => {
   );
 };
 
-/**
- * The loading state: same header, columns and row height as the real table, so
- * nothing shifts when the data lands.
- */
+/** Skeleton loader matching audit table layout to prevent content shift. */
 export const AuditTableSkeleton: React.FC = () => {
   return (
     <Table>
@@ -69,22 +66,7 @@ interface AuditTableProps {
   entries: Array<AuditEntry>;
 }
 
-/**
- * When · Action · Entity · Actor · Details (FR-2.2).
- *
- * **The rows render in the order the API returned them.** The server orders
- * `createdAt desc, id desc`, and the client does not re-sort and has no
- * tiebreak of its own — a second sort here would be a second source of truth,
- * and two entries written in one transaction share a `createdAt` to the
- * millisecond often enough for it to matter (FR-2.1, XBE-3, EC-11).
- *
- * **No row is clickable and no row has an action.** Unlike `RolesTable` there
- * is nowhere to navigate: an audit entry is not a resource with a page, its
- * `entityId` deliberately has no referential integrity and may name a deleted
- * row, and there is no endpoint that edits or deletes one (XBE-11, FE-6).
- * Entity links arrive with the candidate-access feature (D-6); until then the
- * entity renders as text.
- */
+/** Renders the audit log entries table with timestamp, action badge, entity, actor, and details. */
 export const AuditTable: React.FC<AuditTableProps> = ({ entries }) => {
   return (
     <Table>
@@ -93,7 +75,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ entries }) => {
         {entries.map((entry) => (
           <TableRow key={entry.id} className="hover:bg-transparent">
             {/* Relative for scanning, absolute UTC in the tooltip for
-                disputing. A trace needs both (FR-2.3). */}
+                disputing. Displays both timestamp and relative time */}
             <TableCell className="py-3 align-top whitespace-nowrap text-muted-foreground">
               <time dateTime={entry.createdAt} title={formatAbsoluteUtc(entry.createdAt)}>
                 {formatRelative(entry.createdAt)}
@@ -109,9 +91,7 @@ export const AuditTable: React.FC<AuditTableProps> = ({ entries }) => {
               <span className="font-mono text-muted-foreground">#{entry.entityId}</span>
             </TableCell>
 
-            {/* Never blank: the API guarantees `actor` is present, because the
-                actor foreign key is `onDelete: Restrict` (FR-2.6, XBE-5).
-                There is no email here — the API sends none (XBE-6). */}
+            {/* Actor name and role */}
             <TableCell className="py-3 align-top whitespace-nowrap">
               <span className="font-medium">{entry.actor.name}</span>{' '}
               <span className="text-xs text-muted-foreground">{entry.actor.role}</span>

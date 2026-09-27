@@ -25,28 +25,8 @@ interface PipelineDrillDownProps {
 }
 
 /**
- * Who is in one cell of the pipeline board (FR-10, and the Revision at the top
- * of this feature's spec).
- *
- * **This replaces the pipeline feature's "Candidate detail is not available
- * yet." placeholder**, which was a stated placeholder from the start waiting on
- * `GET /api/candidates`. That endpoint exists now, so the board's stage cards
- * become links and this renders the real list (FR-10.1, AC-F41).
- *
- * It calls `?roleId=&stage=&status=ACTIVE` — **the same `listCandidates`
- * wrapper** the `/candidates` page and the Applicants section use, with
- * different parameters (API-7). `status: 'ACTIVE'` is the point of a board
- * cell: a candidate the board counts is one still in flight, and the API ANDs
- * all three filters inside one application predicate, so a row here has an
- * application to **that** role at **that** stage that is still live.
- *
- * **One request when a cell is opened, and none while no cell is open**
- * (PERF-6, AC-F30) — `/pipeline` renders this only when both filters are set,
- * so there is nothing to disable here.
- *
- * Each row carries the pipeline feature's own **Move menu** (FR-10.2, FE-6).
- * No second copy: moving someone from the drill-down and moving them from
- * anywhere else must behave identically, including their error handling.
+ * Detailed list of candidates currently in an active pipeline stage for a specific role.
+ * Includes candidate name, time in stage, and stage transition menu.
  */
 export const PipelineDrillDown: React.FC<PipelineDrillDownProps> = ({ roleId, stage }) => {
   const candidatesQuery = useRecruiterCandidatesQuery({ roleId, stage, status: 'ACTIVE' });

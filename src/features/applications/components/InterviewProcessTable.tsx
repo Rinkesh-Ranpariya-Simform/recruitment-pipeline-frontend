@@ -16,20 +16,7 @@ import { PIPELINE_STAGE_LABELS, pipelineStatusLabel } from '@/features/pipeline/
 import { formatAbsolute, formatRelative } from '@/lib/format-date';
 import type { RecruiterApplication } from '../types';
 
-/**
- * **Candidate · Role · Stage · Status · Rounds · Applied** — `/interviews`, one
- * row per candidate in an interview process (applications FR-6.1).
- *
- * **There is no action column, and that is the change.** A row here is a whole
- * process, and a process has no single action: the things a recruiter does —
- * set a date, assign a panel, record a verdict — all belong to one round inside
- * it. So the row's only job is to open the process at
- * `/interviews/:applicationId`, and the whole row is the target.
- *
- * The **recruiter's** stage and status vocabulary, from
- * `features/pipeline/labels.ts`, not the candidate's: this table says
- * "Rejected", not "Not selected". Two audiences, two vocabularies.
- */
+/** Table component listing candidates active in interview processes. */
 
 interface InterviewProcessTableProps {
   applications: Array<RecruiterApplication>;
@@ -38,11 +25,7 @@ interface InterviewProcessTableProps {
 export const InterviewProcessTable: React.FC<InterviewProcessTableProps> = ({ applications }) => {
   const router = useRouter();
 
-  /**
-   * The whole row is clickable and the first cell is also a real `<Link>`: the
-   * row is what a mouse expects, and the link is what makes the destination
-   * keyboard-reachable, middle-clickable and copyable. Matches `RolesTable`.
-   */
+  /** Interactive table row that navigates to the application interview detail. */
   const onRowClick = (applicationId: number) => (event: React.MouseEvent<HTMLTableRowElement>) => {
     // Let the name link handle its own clicks, so middle-click and ⌘-click
     // still open a new tab.

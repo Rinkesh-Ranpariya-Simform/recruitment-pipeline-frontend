@@ -31,10 +31,7 @@ const RolesTableHead: React.FC = () => {
   );
 };
 
-/**
- * The loading state: same header, columns and row height as the real table, so
- * nothing shifts when the data lands.
- */
+/** Skeleton placeholder matching the real table layout to prevent layout shift. */
 export const RolesTableSkeleton: React.FC = () => {
   return (
     <Table>
@@ -62,14 +59,7 @@ interface RolesTableProps {
   roles: Array<Role>;
 }
 
-/**
- * Title · Status · Created. The description is left out — it's a paragraph, and
- * a table row isn't where you read one.
- *
- * The whole row is clickable and the title is also a real `<Link>`: the row is
- * what a mouse expects, and the link is what makes the destination
- * keyboard-reachable, middle-clickable and copyable.
- */
+/** Roles table with clickable rows. Title column also has a Link for keyboard/middle-click. */
 export const RolesTable: React.FC<RolesTableProps> = ({ roles }) => {
   const router = useRouter();
 
@@ -82,8 +72,7 @@ export const RolesTable: React.FC<RolesTableProps> = ({ roles }) => {
             key={role.id}
             className="cursor-pointer"
             onClick={(event) => {
-              // Let the title link handle its own clicks, so middle-click and
-              // ⌘-click still open a new tab.
+              // Skip row-click if the user clicked the title link directly.
               if ((event.target as HTMLElement).closest('a')) {
                 return;
               }
@@ -91,10 +80,7 @@ export const RolesTable: React.FC<RolesTableProps> = ({ roles }) => {
               router.push(`/roles/${role.id}`);
             }}
           >
-            {/* `max-w-0` with `w-full` lets this cell take the leftover width
-                and truncate inside it. Without the truncation a long title
-                would scroll the whole table sideways, since the table primitive
-                sits in an `overflow-x-auto` container. */}
+            {/* Takes remaining width and truncates long titles. */}
             <TableCell className="w-full max-w-0 py-3">
               <Link
                 href={`/roles/${role.id}`}

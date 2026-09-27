@@ -46,36 +46,11 @@ export const InterviewerCandidatesTableSkeleton: React.FC = () => {
 };
 
 interface InterviewerCandidatesTableProps {
-  /**
-   * **`Array<InterviewerCandidate>` — a type with exactly `id` and `name`**
-   * (FR-3.4, FE-3, FE-4).
-   *
-   * This component does not accept `Array<RecruiterCandidateRow>`, so handing
-   * it the recruiter's rows is a **compile error** rather than a leak nobody
-   * notices. That is the whole of why there are two tables instead of one with
-   * a role check (FR-11.2, AZ-3, AC-F33).
-   */
   candidates: Array<InterviewerCandidate>;
 }
 
 /**
- * The interviewer's candidate list: **one column, Name** (FR-3.1, AC-F05).
- *
- * **There is no email column, no phone column, and no conditional that could
- * add one** (SEC-1, SEC-2, AC-F06). Not because they are hidden — because the
- * prop type has no such field and the payload behind it carries none. A grep of
- * this feature for a contact field on a candidate returns nothing (AC-F32).
- *
- * **There is no search box on this page either** (FR-3.2, D-6, EC-02). A search
- * over people is precisely the affordance this feature exists to deny an
- * interviewer, and the API answers their `?q=` with a `400` regardless — the
- * missing input is not the control (XBE-8, SEC-6, AC-M04).
- *
- * FR-3.1 also asks for a count of this interviewer's rounds with each person.
- * **The list payload carries two fields and no such count**, and asking the API
- * to add one would widen the very projection this feature narrows, so the
- * column is not rendered. The count is on each candidate's own page, where
- * their rounds are.
+ * Candidate table for interviewers, displaying only the candidate name.
  */
 export const InterviewerCandidatesTable: React.FC<InterviewerCandidatesTableProps> = ({
   candidates,

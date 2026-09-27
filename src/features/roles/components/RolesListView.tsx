@@ -33,24 +33,13 @@ const FILTERED_EMPTY_MESSAGE: Record<RoleStatus, string> = {
   CLOSED: 'No closed roles.',
 };
 
-/**
- * The `/roles` list: filter, table, pager, and every state they can be in.
- *
- * A client component because the filter and page come from `useSearchParams()`
- * — which is why the route above it supplies the Suspense boundary.
- *
- * Only recruiters get here: `(app)/roles/layout.tsx` shows an interviewer the
- * 404 before this mounts. The `canManage` check on New role is therefore always
- * true today; it stays so the control asks its own question rather than relying
- * on a guard in another file.
- */
+/** Roles list page with status filter, table, and pagination. */
 export const RolesListView: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
-  // Sanitised before anything is requested, so `?status=BANANA&page=-2` renders
-  // the unfiltered first page instead of an error.
+  // Sanitize URL params before making the request.
   const { status, page } = parseRolesSearchParams(searchParams);
 
   const rolesQuery = useRolesQuery({ status, page });
@@ -91,9 +80,7 @@ export const RolesListView: React.FC = () => {
           </Button>
         </EmptyState>
       ) : roles.length === 0 ? (
-        // Three different empty states: a page past the end, a filter that
-        // matched nothing, and no roles at all. Showing "No roles yet." to
-        // someone filtered to Closed would be wrong.
+        // Show the appropriate empty state based on context.
         page > 1 ? (
           <EmptyState message={status ? FILTERED_EMPTY_MESSAGE[status] : 'No roles on this page.'}>
             <Button

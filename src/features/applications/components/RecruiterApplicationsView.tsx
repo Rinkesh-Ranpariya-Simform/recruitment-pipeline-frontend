@@ -15,30 +15,7 @@ import { ApplicationsRoleFilter } from './ApplicationsRoleFilter';
 import { ApplicationsStatusFilter } from './ApplicationsStatusFilter';
 import { ApplicationsTableSkeleton } from './ApplicationsTableSkeleton';
 
-/**
- * The recruiter's applications table — **one component serving two tabs**
- * (applications FR-1.1, FR-6.1).
- *
- * | Route           | `defaults`                | `table`                  | Reads as                    |
- * | --------------- | ------------------------- | ------------------------ | --------------------------- |
- * | `/applications` | `{}`                      | `ApplicationsInboxTable` | Everyone who applied        |
- * | `/interviews`   | `{ hasInterviews: true }` | `InterviewProcessTable`  | Everyone already in process |
- *
- * They are one component because they are one query with one filter difference:
- * the same endpoint, the same parameter vocabulary, the same pager and the same
- * five empty states. What differs is the **row** — an inbox row offers an action
- * and goes nowhere, a process row is a link and offers none — so the table is a
- * prop rather than a condition in here, and each route's columns live in a file
- * of their own.
- *
- * Everything else each route supplies is its own copy, its own empty state and
- * its own pinned filter — all props, so the difference is visible at the call
- * site rather than buried in a condition here.
- *
- * `omit` stops a route writing its own pinned filter into its links:
- * `/interviews` would otherwise spell `?hasInterviews=true` into every page
- * link, stating a fact the route already carries.
- */
+/** Shared view component for recruiter applications and interviews lists with filtering and pagination. */
 
 interface EmptyStateProps {
   message: string;
@@ -62,13 +39,13 @@ interface RecruiterApplicationsViewProps {
   basePath: string;
   title: string;
   description: string;
-  /** The rows. `/applications` and `/interviews` show different columns. */
+  /** Component rendering table rows. */
   table: React.FC<{ applications: Array<RecruiterApplication> }>;
-  /** Keeps the loading state the same width as `table`. */
+  /** Skeleton loader matching table dimensions. */
   skeletonColumns: number;
-  /** Filters this route pins. Overridable from the URL, so a deep link stays honest. */
+  /** Default query filters pinned by the route. */
   defaults?: Partial<ApplicationsSearchParams>;
-  /** Shown when nothing matches and no filter is set. */
+  /** Fallback empty state message when no applications exist. */
   emptyMessage: string;
   emptyHint?: string;
 }

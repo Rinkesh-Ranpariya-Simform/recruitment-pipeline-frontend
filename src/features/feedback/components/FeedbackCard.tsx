@@ -9,38 +9,13 @@ import type { Feedback } from '../types';
 
 interface FeedbackCardProps {
   entry: Feedback;
-  /** Marks this card as the signed-in interviewer's own. **Display only** (FR-2.3). */
+  /** Indicates whether this assessment belongs to the current user. */
   isOwn: boolean;
   /** Absent for a recruiter, and for a round nobody may write on. */
   onEdit?: (() => void) | undefined;
 }
 
-/**
- * One assessment (FR-2.2).
- *
- * It names its **author** — which is the whole point of reading a panel's notes
- * and is the disclosure the interviews feature deliberately withheld from a
- * round payload so that it happens here, once, where it is specified.
- *
- * **"edited {time}" renders when `updatedAt` differs from `createdAt`.** A
- * silently revised assessment is worse than a visibly revised one: the audit
- * trail records every edit, and a reader of this card should not have to consult
- * it to learn that the rating in front of them is not the first one.
- *
- * **The notes are a text node with `whitespace-pre-wrap`** (FE-9, SEC-4). They
- * are the only free text in this app written by one user and read by another,
- * which makes this the one place where rendering HTML would be a real injection
- * path. React escapes the value; there is no `dangerouslySetInnerHTML` and no
- * markdown renderer anywhere in this feature, and `<script>alert(1)</script>`
- * renders as those characters. Line breaks and indentation survive, because that
- * is what people actually use.
- *
- * **Nothing is truncated** (FR-2.7). An assessment half-read is worse than a
- * long card, and a "show more" on somebody's judgement of a person invites
- * skipping it.
- *
- * There is no delete control, for anybody. The API has no such route.
- */
+/** Displays a single feedback assessment card with interviewer details, rating, and notes. */
 export const FeedbackCard: React.FC<FeedbackCardProps> = ({ entry, isOwn, onEdit }) => {
   const wasEdited = entry.updatedAt !== entry.createdAt;
 

@@ -24,14 +24,10 @@ import {
 } from '../search-params';
 import type { AuditSearchParams } from '../search-params';
 
-/**
- * One navigation per typed id rather than one per keystroke (VAL-2, PERF-2).
- * The spec names 400 ms; longer than the jobs search because an id is short and
- * typed in one burst.
- */
+/** Debounce delay for numeric ID filter inputs. */
 const DEBOUNCE_MS = 400;
 
-/** The selects need a value for "All"; it can't be absent. */
+/** Constant representing an unselected filter option. */
 const ALL = 'ALL';
 
 interface Option {
@@ -53,23 +49,7 @@ interface AuditFiltersProps {
   params: AuditSearchParams;
 }
 
-/**
- * Entity type · entity id · action, all written to the URL rather than held in
- * state (FR-4.1, D-3).
- *
- * `actorId` has **no control** and is not rendered here (FR-4.4). It is
- * honoured from the URL so a future "everything this person did" deep link
- * works, but an id input a recruiter has to guess at is not a filter. It is
- * threaded through every href below so choosing an action does not silently
- * drop it.
- *
- * Every change resets `page` to 1 (FR-4.5): a filter change that leaves a
- * recruiter on page 7 of a two-page result looks broken.
- *
- * `router.push`, not `replace`, for the selects — Back should return to the
- * previous filter. The debounced id input uses `replace`, matching
- * `JobsSearch`: typing three digits should not leave three history entries.
- */
+/** Filter controls for the audit trail: entity type, entity ID, and action dropdowns. */
 export const AuditFilters: React.FC<AuditFiltersProps> = ({ params }) => {
   const router = useRouter();
   const { entityType, entityId, action, actorId } = params;
@@ -125,12 +105,7 @@ export const AuditFilters: React.FC<AuditFiltersProps> = ({ params }) => {
     }, DEBOUNCE_MS);
   };
 
-  /**
-   * Choosing "All" for the entity type drops `entityType` **and `entityId`**
-   * from the URL in one navigation (FR-4.3, EC-06) — `buildAuditHref` omits
-   * the id whenever the type is absent, so this needs no special case. The
-   * input then empties via the sync above and disables itself again.
-   */
+  /** Clears entity type and associated entity ID from filter state. */
   const onEntityTypeChange = (value: string | null) => {
     const next = isAuditEntityType(value) ? value : undefined;
 
@@ -180,10 +155,7 @@ export const AuditFilters: React.FC<AuditFiltersProps> = ({ params }) => {
         </SelectContent>
       </Select>
 
-      {/* Disabled until an entity type is chosen. An id alone is ambiguous
-          across four tables and the API answers 400 (XBE-7), so the UI does
-          not let a recruiter construct a request it knows will fail
-          (FR-4.3, VAL-3). */}
+      {/* Disabled until an entity type is selected */}
       <Input
         type="text"
         inputMode="numeric"
@@ -209,7 +181,7 @@ export const AuditFilters: React.FC<AuditFiltersProps> = ({ params }) => {
       </Select>
 
       {/* Only while something is actually filtering, and it navigates to a
-          bare `/audit` — not `/audit?page=1` (FR-4.7, FR-4.8). */}
+          bare '/audit' */}
       {hasFilters && (
         <Button variant="ghost" size="sm" onClick={() => router.push(buildAuditHref({}))}>
           <XIcon aria-hidden="true" />

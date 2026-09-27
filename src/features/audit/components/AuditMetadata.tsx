@@ -2,27 +2,9 @@ import { formatAbsolute } from '@/lib/format-date';
 import { isKnownAction, stageLabel, statusLabel } from '../labels';
 import type { AuditAction } from '../types';
 
-/**
- * The Details cell (FR-3).
- *
- * **This component is written to be total** (FE-7, ERR-3). `metadata` is an
- * open object whose shape depends on `action` (XBE-4) and it arrives from the
- * network, so nothing here indexes into it without a guard, every branch ends
- * at the fallback list, and no malformed payload can crash the table.
- *
- * It renders **text nodes only**. An override's `reason` and any fallback value
- * are the only free text on this screen and the only values that originated at
- * another user's keyboard; React escapes them and there is no
- * `dangerouslySetInnerHTML` anywhere in this feature (SEC-5, SEC-4).
- *
- * It also renders **whatever it is given** — it never filters `metadata` to
- * match an expectation. The API sends no email, phone or feedback `notes`
- * (XBE-6); if one ever appeared it would show up in the fallback list below,
- * which is exactly right: **that is a backend bug to report, not a field to
- * hide here** (FR-6.1, FR-6.2, SEC-3).
- */
+/** Component rendering structured action metadata details and fallback key-value pairs. */
 
-/** Keys the per-action line above has already said. Everything else falls through. */
+/** Keys already displayed in the action summary line. */
 const FORMATTED_KEYS: Record<string, ReadonlyArray<string>> = {
   CANDIDATE_STAGE_CHANGED: ['fromStage', 'toStage'],
   STAGE_OVERRIDE_CREATED: ['fromStage', 'toStage', 'reason', 'skipped'],
@@ -35,7 +17,7 @@ const FORMATTED_KEYS: Record<string, ReadonlyArray<string>> = {
   CANDIDATE_CONTACT_UPDATED: ['fields'],
 };
 
-/** Empty details read as an em dash, never as a blank cell (EC-03). */
+/** Renders an em-dash for empty metadata. */
 const EMPTY = '—';
 
 const str = (value: unknown): string | undefined => {
@@ -46,7 +28,7 @@ const num = (value: unknown): number | undefined => {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 };
 
-/** `1 stage` / `2 stages`, or nothing at all when the count is absent. */
+/** Formats skipped stage counts into a readable string. */
 const skippedPhrase = (value: unknown): string | undefined => {
   const skipped = num(value);
 
@@ -57,14 +39,14 @@ const skippedPhrase = (value: unknown): string | undefined => {
   return `skipped ${skipped} ${skipped === 1 ? 'stage' : 'stages'}`;
 };
 
-/** Joins the parts of a summary line, dropping the ones that weren't there. */
+/** Combines text parts into a single summary line. */
 const line = (parts: ReadonlyArray<string | undefined>): string | undefined => {
   const present = parts.filter((part): part is string => part !== undefined && part !== '');
 
   return present.length > 0 ? present.join(' · ') : undefined;
 };
 
-/** `Applied → Screen`, when both ends are present. */
+/** Formats stage transition transitions (e.g. Applied → Screen). */
 const transition = (from: unknown, to: unknown, label: (value: string) => string) => {
   const a = str(from);
   const b = str(to);
@@ -76,17 +58,14 @@ const transition = (from: unknown, to: unknown, label: (value: string) => string
   return `${a ? label(a) : '?'} → ${b ? label(b) : '?'}`;
 };
 
-/**
- * The summary line for a known action, or `undefined` for one this client does
- * not know — in which case the caller renders the fallback list alone (FR-3.3).
- */
+/** Generates a human-readable summary line for standard audit actions. */
 const summaryOf = (action: AuditAction, metadata: Record<string, unknown>): string | undefined => {
   switch (action) {
     case 'CANDIDATE_STAGE_CHANGED':
       return transition(metadata.fromStage, metadata.toStage, stageLabel);
 
     case 'STAGE_OVERRIDE_CREATED':
-      // The reason is NOT on this line — it gets its own, in full (FR-3.5).
+      // The reason is rendered on its own line in full.
       return line([
         transition(metadata.fromStage, metadata.toStage, stageLabel),
         skippedPhrase(metadata.skipped),
@@ -144,7 +123,7 @@ const summaryOf = (action: AuditAction, metadata: Record<string, unknown>): stri
 
     case 'CANDIDATE_CONTACT_UPDATED': {
       // The NAMES of the changed fields, which is all the API sends — never
-      // their values (FR-3.1, XBE-6). Guarded because `fields` is an array on
+      // their values. Guarded because `fields` is an array on
       // the wire and an array is not something to trust untested.
       const fields = Array.isArray(metadata.fields)
         ? metadata.fields.filter((field): field is string => typeof field === 'string')
@@ -154,21 +133,12 @@ const summaryOf = (action: AuditAction, metadata: Record<string, unknown>): stri
     }
 
     default:
-      // Unreachable while the union and the backend agree. Reachable the day
-      // the backend ships a tenth action first, and this is what stops that
-      // being a crash (EC-01).
+      // Return undefined for unknown or unhandled action types
       return undefined;
   }
 };
 
-/**
- * A value in the fallback list.
- *
- * A nested object or array becomes `JSON.stringify` — but **only here**, never
- * as the primary render of a known action (FR-3.4, D-4). `JSON.stringify` can
- * throw on a circular structure, which JSON from the wire cannot contain; the
- * guard costs nothing and makes the claim in FE-7 true rather than nearly true.
- */
+/** Renders a single metadata value, formatting objects or primitives safely. */
 const fallbackValue = (value: unknown): string => {
   if (value === null) {
     return 'null';
@@ -204,7 +174,7 @@ export const AuditMetadata: React.FC<AuditMetadataProps> = ({ action, metadata }
   const reason = action === 'STAGE_OVERRIDE_CREATED' ? str(safe.reason) : undefined;
 
   // Everything the summary line did not already say. For an unknown action
-  // that is the whole object, which is the point (FR-3.3).
+  // render fallback representation for unknown metadata.
   const handled = known ? (FORMATTED_KEYS[action] ?? []) : [];
   const leftovers = Object.entries(safe).filter(([key]) => !handled.includes(key));
 
@@ -218,7 +188,7 @@ export const AuditMetadata: React.FC<AuditMetadataProps> = ({ action, metadata }
 
       {/* In full, wrapped, never truncated and never behind a "show more":
           it is the field the brief requires be recorded, and a trace that
-          elides it defeats the point (FR-3.5, EC-04). */}
+          render reason in full */}
       {reason !== undefined && (
         <p className="text-sm break-words whitespace-pre-wrap text-muted-foreground">“{reason}”</p>
       )}

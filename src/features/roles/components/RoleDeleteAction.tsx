@@ -18,11 +18,7 @@ import type { Role } from '../types';
 
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
-/**
- * Shown when the server refuses the delete with `409 ROLE_NOT_CLOSED` — the
- * role was reopened elsewhere after this page loaded. Retrying can't help, so
- * the copy names the remedy instead.
- */
+/** Error message when the role was reopened by someone else. */
 const REOPENED_ERROR_MESSAGE =
   'This role is open again — it must be closed before it can be deleted.';
 
@@ -32,16 +28,7 @@ interface RoleDeleteActionProps {
   onNotFound?: () => void;
 }
 
-/**
- * Delete role — the only irreversible action in the app.
- *
- * Renders only for a `CLOSED` role, mirroring the server's rule: deleting a
- * requisition takes two deliberate steps, close then delete. The server still
- * answers `DELETE` on an open role with a 409 regardless of what this renders.
- *
- * The confirmation names the role and says the action can't be undone. Unlike
- * the close dialog, there's no "you can undo this later" to offer.
- */
+/** Delete role button (only shown for closed roles). Requires confirmation. */
 export const RoleDeleteAction: React.FC<RoleDeleteActionProps> = ({
   role,
   onDeleted,
@@ -53,8 +40,7 @@ export const RoleDeleteAction: React.FC<RoleDeleteActionProps> = ({
 
   const isSubmitting = deleteMutation.isPending;
 
-  // An open role offers no delete — the recruiter closes it first, using the
-  // control next to this one.
+  // Only closed roles can be deleted.
   if (role.status !== 'CLOSED') {
     return null;
   }
@@ -67,22 +53,19 @@ export const RoleDeleteAction: React.FC<RoleDeleteActionProps> = ({
       setConfirmOpen(false);
       onDeleted();
     } catch (thrown) {
-      // `apiFetch` has already redirected to /forbidden and then rejected, so
-      // this view is unmounting — an error rendered here would only flash.
+      // 403 is handled globally — this view is already unmounting.
       if (thrown instanceof ApiError && thrown.status === 403) {
         return;
       }
 
-      // Already deleted by someone else. The user got the outcome they asked
-      // for, so close the dialog and let the detail view show not-found.
+      // Already deleted — close dialog and show not-found.
       if (thrown instanceof ApiError && thrown.status === 404) {
         setConfirmOpen(false);
         onNotFound?.();
         return;
       }
 
-      // Reopened elsewhere. The dialog stays open because the user can act on
-      // this.
+      // Role was reopened — show error, dialog stays open.
       if (thrown instanceof ApiError && thrown.status === 409) {
         setError(REOPENED_ERROR_MESSAGE);
         return;
@@ -110,8 +93,7 @@ export const RoleDeleteAction: React.FC<RoleDeleteActionProps> = ({
       <Dialog
         open={confirmOpen}
         onOpenChange={(nextOpen) => {
-          // Not dismissable mid-request: the DELETE is already on its way, and
-          // a dialog closing while it lands would read as "cancelled".
+          // Keep dialog open while delete request is in flight.
           if (!nextOpen && isSubmitting) {
             return;
           }

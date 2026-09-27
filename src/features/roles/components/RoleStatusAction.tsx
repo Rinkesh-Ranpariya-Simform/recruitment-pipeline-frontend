@@ -23,13 +23,7 @@ interface RoleStatusActionProps {
   onNotFound?: () => void;
 }
 
-/**
- * Close role / Reopen role. Sends `{ status }` and nothing else.
- *
- * Closing asks for confirmation and names the role, because it takes a
- * requisition out of circulation. Reopening doesn't — it's easily undone by
- * closing again.
- */
+/** Toggle role status (Open/Closed) with a confirmation dialog for closing. */
 export const RoleStatusAction: React.FC<RoleStatusActionProps> = ({ role, onNotFound }) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +39,7 @@ export const RoleStatusAction: React.FC<RoleStatusActionProps> = ({ role, onNotF
       await updateMutation.mutateAsync({ roleId: role.id, patch: { status } });
       setConfirmOpen(false);
     } catch (thrown) {
-      // `apiFetch` has already redirected to /forbidden and then rejected, so
-      // this view is unmounting — an error rendered here would only flash.
+      // 403 is handled globally — this view is already unmounting.
       if (thrown instanceof ApiError && thrown.status === 403) {
         return;
       }
@@ -99,8 +92,7 @@ export const RoleStatusAction: React.FC<RoleStatusActionProps> = ({ role, onNotF
       <Dialog
         open={confirmOpen}
         onOpenChange={(nextOpen) => {
-          // Not dismissable mid-request: the PATCH is already on its way, and a
-          // dialog closing while it lands would read as "cancelled".
+          // Keep dialog open while the request is in flight.
           if (!nextOpen && isSubmitting) {
             return;
           }

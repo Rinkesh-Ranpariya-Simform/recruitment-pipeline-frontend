@@ -13,22 +13,7 @@ interface StageTotal {
   maxDaysInStage: number | null;
 }
 
-/**
- * Sums each stage across every role — **from the board response the dashboard
- * already fetched** (FR-2.4, PERF-1).
- *
- * Not a third request, and emphatically not by fetching candidates: the whole
- * point of the aggregate is that a count never costs a list (FR-8.3).
- *
- * The **stage order comes from the API's own densified arrays** and is never
- * re-sorted here (FR-3.2, XBE-6). Iterating the first role's `stages` and
- * looking the same stage up in the others preserves that order without this
- * file holding an opinion about what it is.
- *
- * `maxDaysInStage` is carried through as the **maximum of the maxima**, which
- * is the honest aggregate: the oldest candidate anywhere at that stage. Summing
- * or averaging it across roles would produce a number that describes nobody.
- */
+/** Calculates aggregate candidate counts and maximum days across all roles per stage. */
 const totalByStage = (roles: Array<PipelineRole>): Array<StageTotal> => {
   const first = roles[0];
 
@@ -65,12 +50,7 @@ interface DashboardStageStripProps {
   roles: Array<PipelineRole>;
 }
 
-/**
- * Where everyone live is, in one row (FR-2.1).
- *
- * Each stage links to `/pipeline?stage=…` (FR-2.5, AC-F09), so the dashboard is
- * a way into the board rather than a picture of it.
- */
+/** Horizontal pipeline strip displaying applicant totals and oldest tenure per stage. */
 export const DashboardStageStrip: React.FC<DashboardStageStripProps> = ({ roles }) => {
   const totals = totalByStage(roles);
 
@@ -95,8 +75,7 @@ export const DashboardStageStrip: React.FC<DashboardStageStripProps> = ({ roles 
               {pipelineStageLabel(total.stage)}
             </p>
             <p className="text-xl font-semibold tabular-nums">{total.candidateCount}</p>
-            {/* `—` when the stage is empty, never "0 days" — the same rule the
-                board's cards follow, for the same reason (XBE-7). */}
+            {/* Shows a dash when the stage is empty, otherwise shows oldest candidate days. */}
             <p className="text-xs text-muted-foreground">
               {total.candidateCount === 0 || total.maxDaysInStage === null
                 ? '—'

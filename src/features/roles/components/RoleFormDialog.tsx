@@ -39,14 +39,7 @@ type RoleFormDialogProps =
   | { mode: 'create'; role?: never; onNotFound?: never }
   | { mode: 'edit'; role: Role; onNotFound?: () => void };
 
-/**
- * Create and edit in one component. The modes differ only in their default
- * values, submit label, which mutation they call, and what happens on success —
- * not enough to justify two dialogs that would drift apart.
- *
- * Neither mode has a status control: a new role is always `OPEN`, and closing
- * one is a separate action with its own confirmation.
- */
+/** Shared dialog for creating and editing roles. */
 export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNotFound }) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -69,31 +62,22 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
   } = useForm<RoleCreateValues>({
     resolver: zodResolver(isCreate ? roleCreateSchema : roleEditSchema),
     defaultValues: { title: role?.title ?? '', description: role?.description ?? '' },
-    // Validate on submit, then re-validate as the user corrects, same as the
-    // login form.
+    // Validate on submit, then re-validate on change.
     mode: 'onSubmit',
     reValidateMode: 'onChange',
   });
 
-  /**
-   * Reset on open so the form shows the role as it is now — another recruiter's
-   * edit may have landed since this component mounted. Done here rather than in
-   * an effect so the reset is part of opening the dialog.
-   */
+  /** Reset form to latest role data when dialog opens. */
   const openDialog = () => {
     reset({ title: role?.title ?? '', description: role?.description ?? '' });
     setFormError(null);
     setOpen(true);
   };
 
-  // `useWatch` rather than `watch()` — `watch()` returns a new function every
-  // render, which opts this component out of the React Compiler.
+  // useWatch is more React Compiler friendly than watch().
   const descriptionLength = useWatch({ control, name: 'description' })?.length ?? 0;
 
-  /**
-   * A close request the dialog can refuse: it stays open while a write is in
-   * flight, and asks before discarding unsaved text.
-   */
+  /** Handles close — blocks during submission, prompts if there are unsaved changes. */
   const requestClose = () => {
     if (isSubmitting) {
       return;
@@ -107,19 +91,16 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
     setOpen(false);
   };
 
-  /** Maps a failed write onto the form. Never rethrows. */
+  /** Maps API errors to form fields. */
   const handleWriteError = (error: unknown) => {
-    // 403 is handled globally: `apiFetch` has already redirected to /forbidden
-    // and then rejected, so this view is unmounting. A form error set here would
-    // flash over the 403 page.
+    // 403 is handled globally — this view is already unmounting.
     if (error instanceof ApiError && error.status === 403) {
       return;
     }
 
     const body = errorBodyOf(error);
 
-    // The role went away while the dialog was open. Close it and let the detail
-    // view show the not-found state.
+    // Role was deleted — close dialog and show not-found.
     if (error instanceof ApiError && error.status === 404) {
       setOpen(false);
       onNotFound?.();
@@ -127,8 +108,7 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
     }
 
     if (body?.code === 'VALIDATION_ERROR' && body.details) {
-      // `details` is keyed by request-body field name, so a rule the client
-      // missed still lands on the right input.
+      // Map server validation errors to the matching form fields.
       for (const field of SERVER_FIELDS) {
         const message = fieldMessage(body.details, field);
 
@@ -139,8 +119,7 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
       return;
     }
 
-    // A 500 and a network failure look the same to the user. The dialog stays
-    // open with everything they typed still in it.
+    // Show generic error — dialog stays open to preserve user input.
     setFormError(GENERIC_ERROR_MESSAGE);
   };
 
@@ -151,14 +130,12 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
       if (isCreate) {
         const { role: created } = await createMutation.mutateAsync(values);
         setOpen(false);
-        // To the new role, not back to the list — on a list filtered to Closed
-        // the new role wouldn't even appear.
+        // Navigate to the newly created role.
         router.push(`/roles/${created.id}`);
         return;
       }
 
-      // Send only what changed. `dirtyFields` decides rather than a value
-      // comparison, so typing a character and deleting it again isn't a change.
+      // Send only changed fields in the patch.
       const patch: RolePatch = {};
 
       if (dirtyFields.title) {
@@ -170,7 +147,7 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
       }
 
       if (Object.keys(patch).length === 0) {
-        // Nothing changed, and the server rejects an empty patch — just close.
+        // Nothing changed — just close the dialog.
         setOpen(false);
         return;
       }
@@ -247,8 +224,7 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
                   aria-describedby={errors.description ? 'role-description-error' : undefined}
                   {...register('description')}
                 />
-                {/* Hidden until the limit is near, so it doesn't nag someone
-                    writing two sentences. */}
+                {/* Character counter, shown only near the limit. */}
                 {descriptionLength > COUNTER_THRESHOLD && (
                   <p className="text-right text-xs text-muted-foreground" aria-live="polite">
                     {descriptionLength} / {DESCRIPTION_LIMIT}
@@ -291,7 +267,7 @@ export const RoleFormDialog: React.FC<RoleFormDialogProps> = ({ mode, role, onNo
         </DialogContent>
       </Dialog>
 
-      {/* Nothing is drafted to storage, so a discarded form is gone for good. */}
+      {/* Confirm dialog for discarding unsaved changes. */}
       <Dialog open={confirmDiscard} onOpenChange={setConfirmDiscard}>
         <DialogContent>
           <DialogHeader>

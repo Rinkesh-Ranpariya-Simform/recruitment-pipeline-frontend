@@ -17,13 +17,7 @@ import { resolveRedirect } from '../redirect';
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.';
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
-/**
- * The only form in this client.
- *
- * Client validation here is UX: it mirrors the backend's rules so the form can
- * respond without a round trip, and is never treated as a substitute for them.
- * Failures branch on the error `code`, never on message copy.
- */
+/** Login form component with client-side validation and server authentication handling. */
 export const LoginForm: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,20 +47,14 @@ export const LoginForm: React.FC = () => {
     setFocus('email');
   }, [setFocus]);
 
-  // Focus moves to the password field only once submission has settled: both
-  // inputs are disabled while a submit is in flight (AC-F03), and focusing a
-  // disabled element does nothing. Driven off the rejection itself rather than
-  // called inside the submit handler, where `isSubmitting` is still true.
+  // Move focus to password field on invalid credentials once submission settles
   useEffect(() => {
     if (formError === INVALID_CREDENTIALS_MESSAGE && !isSubmitting) {
       setFocus('password');
     }
   }, [formError, isSubmitting, setFocus]);
 
-  // No "already signed in" check here — `<RequireAnonymous>` in the (auth)
-  // layout owns that, and owns it *before* this form renders. The `?next=`
-  // handling below is this form's own: it is where a user who just
-  // authenticated is sent.
+  // Handle successful login and redirection
 
   const onSubmit = async (values: LoginValues) => {
     setFormError(null);

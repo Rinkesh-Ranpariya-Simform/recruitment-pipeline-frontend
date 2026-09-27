@@ -1,13 +1,4 @@
-/**
- * Timestamp formatting, built on `Intl` so it adds no dependency.
- *
- * A date library would be the obvious reach, but `Intl.DateTimeFormat` and
- * `Intl.RelativeTimeFormat` are in every browser this app supports and cost
- * nothing to ship.
- *
- * Both functions render in the **viewer's** locale and time zone, which is the
- * point: the server stores UTC and each reader sees their own clock.
- */
+/** Timestamp formatting using built-in Intl APIs. Renders in the viewer's locale and timezone. */
 
 const absoluteFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -16,16 +7,7 @@ const absoluteFormat = new Intl.DateTimeFormat(undefined, {
 
 const relativeFormat = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
 
-/**
- * UTC, explicitly, and labelled as such.
- *
- * The one place a local rendering is the wrong answer: an audit entry's
- * `title` attribute is what someone reads when they are disputing *when*
- * something happened (audit spec FR-2.3), and two people in two time zones
- * comparing notes need the stored instant, not each of their own clocks.
- * Everything else in this app stays local, which is why this is a second
- * formatter rather than a change to `formatAbsolute`.
- */
+/** UTC formatter for audit entries where the exact stored instant matters. */
 const utcFormat = new Intl.DateTimeFormat('en-GB', {
   dateStyle: 'medium',
   timeStyle: 'medium',
@@ -61,13 +43,7 @@ export const formatAbsoluteUtc = (iso: string): string => {
   return date ? `${utcFormat.format(date)} UTC` : INVALID;
 };
 
-/**
- * The relative form, e.g. "3 days ago" or "in 2 hours".
- *
- * Anything under a minute is "just now" rather than "in 0 seconds": a role
- * created a moment ago would otherwise read as a future event whenever the
- * client's clock sits a second ahead of the server's.
- */
+/** Relative time, e.g. "3 days ago". Anything under a minute shows "just now". */
 export const formatRelative = (iso: string): string => {
   const date = parse(iso);
 

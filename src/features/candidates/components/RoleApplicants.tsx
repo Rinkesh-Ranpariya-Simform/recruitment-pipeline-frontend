@@ -27,30 +27,8 @@ interface RoleApplicantsProps {
 }
 
 /**
- * The **Applicants** section on `/roles/[roleId]` (FR-9) — the walkthrough's
- * job → applicants step, and the link that completes job → applicants →
- * candidate (FR-9.3, AC-F37, AC-F38).
- *
- * **A section, not a nested route** (D-2). It is a filtered candidate list, and
- * a `/roles/:id/applicants` route would be a second place to scope one. It
- * calls `GET /api/candidates?roleId=` through the **same** `listCandidates`
- * wrapper as `/candidates` and the pipeline drill-down (XFE-7, API-7).
- *
- * **Rendered for recruiters only, gated explicitly on the role rather than
- * inheriting the route's guard** (FR-9.6, AZ-5, EC-18, AC-F39). `/roles` admits
- * recruiters only today, but the API's roles reads are open to any
- * authenticated user, so this section asks its own question instead of relying
- * on a guard in another file. It is still an affordance: the API answers an
- * interviewer's `?roleId=` request with their own scoped rows, not this list.
- *
- * **It pages under its own `applicantsPage` key** (FR-9.4, EC-19, AC-F40), so
- * paging applicants leaves every other parameter in the URL untouched — a
- * recruiter who came from `/roles?status=OPEN&page=2` keeps both.
- *
- * **One request when the page mounts, one per applicants-page change** (PERF-5,
- * AC-F29). It does not refetch the role detail above it, and a failure here
- * degrades **this section only** — the role still renders, because a recruiter
- * came to this page for something else too (ERR-3).
+ * Applicants section for a specific role detail page.
+ * Displays candidates applied to this role with their stage, application date, and candidate link.
  */
 export const RoleApplicants: React.FC<RoleApplicantsProps> = ({ roleId }) => {
   const { user } = useAuth();
@@ -194,7 +172,7 @@ export const RoleApplicants: React.FC<RoleApplicantsProps> = ({ roleId }) => {
   );
 };
 
-/** Candidate · Stage · Applied · View, matching the walkthrough (FR-9.2). */
+/** Table header for role applicants. */
 const ApplicantsTableHead: React.FC = () => {
   return (
     <TableHeader>

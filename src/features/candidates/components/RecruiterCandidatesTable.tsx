@@ -20,10 +20,10 @@ import type { RecruiterCandidateRow } from '../types';
 /** A full page's worth, per the list state matrix. */
 const SKELETON_ROWS = 8;
 
-/** How many application badges fit in a row before the rest become a count (FR-2.2). */
+/** Maximum number of application badges visible before showing a count. */
 const VISIBLE_APPLICATIONS = 2;
 
-/** No phone, no location, no anything: an em dash, never a blank cell (EC-06, AC-F12). */
+/** Placeholder string for empty or missing values. */
 const EMPTY = '—';
 
 const RecruiterCandidatesTableHead: React.FC = () => {
@@ -71,35 +71,11 @@ export const RecruiterCandidatesTableSkeleton: React.FC = () => {
 };
 
 interface RecruiterCandidatesTableProps {
-  /**
-   * **`Array<RecruiterCandidateRow>`**, which `InterviewerCandidatesTable` does
-   * not accept and which does not accept an interviewer's rows (FE-4, AC-F33).
-   * The two tables share no props type, so a mistaken dispatch is a compile
-   * error rather than a rendering bug nobody notices.
-   */
   candidates: Array<RecruiterCandidateRow>;
 }
 
 /**
- * The recruiter's candidate list: **Name · Email · Phone · Applications ·
- * Joined** (FR-2.1, AC-F11).
- *
- * Contact columns render here because **the payload contains them** — a
- * recruiter's projection selects `email` and joins the profile for `phone`.
- * They are not revealed by a role check in this component; there is no such
- * check, and an interviewer's rows would not type-check here at all (SEC-2,
- * FR-11.2, AZ-3).
- *
- * `phone: null` renders `—` rather than an empty cell (EC-06, AC-F12): a blank
- * cell reads as a rendering bug, and "no number recorded" is ordinary.
- *
- * Applications render as badges of role title + current stage, with the
- * remainder collapsed into a count past the second (FR-2.2) — a table row is
- * not where you read a list of five.
- *
- * The whole row is clickable and the name is also a real `<Link>`: the row is
- * what a mouse expects, and the link is what makes `/candidates/{id}`
- * keyboard-reachable, middle-clickable and copyable (FR-2.5).
+ * Candidate table for recruiters displaying candidate name, email, phone, applications, and creation date.
  */
 export const RecruiterCandidatesTable: React.FC<RecruiterCandidatesTableProps> = ({
   candidates,

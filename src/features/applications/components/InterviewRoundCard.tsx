@@ -10,29 +10,7 @@ import { cn } from 'cn';
 import { TIMELINE_TYPE_LABELS } from '../labels';
 import type { ApplicationInterview } from '../types';
 
-/**
- * One past or upcoming round, as a card on the process page
- * `/interviews/:applicationId` (applications FR-4.5).
- *
- * **The whole card is the link.** Its job is to get a recruiter to
- * `/interviews/:applicationId/:interviewId`, where the panel, the feedback and
- * the Select / Reject pair live — so there is no second click target on it and
- * no action inside it.
- *
- * `applicationId` is a prop rather than something read from the payload because
- * the round's href is nested under the process, and the card is handed one
- * round rather than the application it belongs to.
- *
- * The left border carries the verdict — green selected, red rejected, neutral
- * undecided — matching `StageTimeline` exactly, so the same round reads the same
- * way in both places on one page. The badge says it in words as well, because
- * colour alone must never carry meaning.
- *
- * **An undated round says so explicitly**, with its own icon and phrase rather
- * than a blank cell: a round created from the applications table has no date
- * until someone sets one, and "no date yet" is a thing a recruiter needs to act
- * on rather than an empty space to skim past.
- */
+/** Card component displaying interview round details, status, verdict, and date. */
 
 const OUTCOME_BORDER: Record<string, string> = {
   SELECTED: 'border-l-emerald-600',

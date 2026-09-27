@@ -26,33 +26,11 @@ const ALL = 'ALL';
 
 interface PipelineFiltersProps {
   params: PipelineSearchParams;
-  /**
-   * The roles the select offers.
-   *
-   * **Taken from the board response this page already has**, not from a second
-   * `GET /api/roles` (PERF-2). The board names every role, so a second request
-   * would fetch a list this component is already holding — and one that could
-   * disagree with the board beside it.
-   *
-   * The consequence, stated rather than hidden: while `?roleId=` is set the
-   * board returns that one role, so the select offers it and **All roles** and
-   * nothing else. Switching directly from one role to another is two clicks —
-   * clear, then choose. The alternative was a second request on every mount to
-   * populate a dropdown, which PERF-2 rules out and which would give the filter
-   * bar its own copy of the role list to disagree with the board about.
-   */
+  /** Roles available for filtering, derived from the current board response. */
   roles: Array<PipelineRole>;
 }
 
-/**
- * Role and stage, both written to the URL rather than held in state (FR-3.8).
- *
- * A board nobody can link to is a board people screenshot — the same reasoning
- * as `AuditFilters` and `RolesStatusFilter`, and it is also what makes the
- * dashboard's stage strip work by plain `<Link>` rather than by shared state.
- *
- * `router.push`, not `replace`: Back should return to the previous board.
- */
+/** Pipeline board filter controls for selecting role and stage via URL query parameters. */
 export const PipelineFilters: React.FC<PipelineFiltersProps> = ({ params, roles }) => {
   const router = useRouter();
   const { roleId, stage } = params;

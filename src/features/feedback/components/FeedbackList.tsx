@@ -19,50 +19,16 @@ const ListSkeleton: React.FC = () => {
 
 interface FeedbackListProps {
   interviewId: number;
-  /**
-   * Whether the viewer may write on this round at all.
-   *
-   * `false` for every recruiter (FE-7, FR-5.4). It is a **second, independent**
-   * reason the Edit button does not render for them — the first being that a
-   * recruiter's id never matches an author's — and neither is what makes it
-   * safe. The API's `403` is.
-   */
+  /** Whether the current user can edit feedback on this round. */
   editable: boolean;
-  /**
-   * Entries supplied by the caller, for a surface that already has them.
-   *
-   * When present, **this component issues no request** — that is what lets the
-   * recruiter's candidate detail render feedback for five rounds from the
-   * candidate payload in zero extra calls rather than six (FR-1.2, API-6,
-   * PERF-4).
-   */
+  /** Optional preloaded feedback entries; if provided, skips network fetch. */
   entries?: Array<Feedback> | undefined;
   /** Focuses the form below. Only passed where a form exists. */
   onEdit?: (() => void) | undefined;
 }
 
 /**
- * A round's panel of assessments (FR-2).
- *
- * **The API's order is the order** — newest first — and this component does not
- * re-sort (FR-2.1). Nor does it filter: an interviewer's list is complete for
- * the round they are on, because the request they made was scoped by the server.
- * If a row appears that should not have, that is a backend bug to report, not a
- * row to drop here.
- *
- * **An assigned interviewer sees their colleagues' entries, including before
- * writing their own.** That is the brief's opening complaint —
- * _"Interviewers can't see prior feedback before their round"_ — being fixed,
- * and it is why this renders **above** the form rather than below it (D-4,
- * FR-3.1). The anchoring risk it creates is an accepted, named gap rather than
- * something half-mitigated with a blind-until-submitted rule nobody asked for.
- *
- * **No candidate data reaches this component**, because none is in the payload.
- * `Feedback` declares no candidate field, so there is nothing here to hide and
- * nothing a future edit could reveal by accident (SEC-1, XBE-2).
- *
- * Unpaginated and unvirtualised: a panel is single digits, bounded by one row
- * per interviewer per round (PERF-5).
+ * Displays the list of feedback assessments submitted by interviewers for a round.
  */
 export const FeedbackList: React.FC<FeedbackListProps> = ({
   interviewId,
@@ -73,7 +39,7 @@ export const FeedbackList: React.FC<FeedbackListProps> = ({
   const { user } = useAuth();
 
   // Disabled outright when the caller supplied the entries — the hook takes
-  // `null` for exactly this, so the candidate detail costs no request (PERF-4).
+  // Avoid redundant fetch if entries are provided.
   const feedbackQuery = useFeedbackQuery(entries === undefined ? interviewId : null);
 
   if (entries === undefined) {
@@ -115,11 +81,7 @@ export const FeedbackList: React.FC<FeedbackListProps> = ({
   return (
     <div className="flex flex-col gap-3">
       {rows.map((entry) => {
-        // **A display decision, never an authorization one** (FR-2.3, FR-6.2,
-        // AZ-3). The API scopes `PATCH` by the token in its own `where`; this
-        // only decides which card wears the badge. A recruiter passes
-        // `editable={false}`, so even the coincidence of a matching id could not
-        // produce an Edit button for them.
+        // Display user's own feedback badge and controls if applicable
         const isOwn = user !== null && entry.interviewer.id === user.id;
 
         return (

@@ -19,17 +19,10 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
 }
 
-/**
- * Paths excluded from the 401 interceptor. A 401 from login or refresh is a real
- * failure, not something a refresh can recover — and refreshing in response to a
- * failed refresh would recurse.
- */
+/** Paths that should not trigger a token refresh on 401 (login/refresh failures are real errors). */
 const REFRESH_EXEMPT_PATHS = ['/api/auth/login', '/api/auth/refresh'];
 
-/**
- * Callbacks registered by AuthProvider. They live here as plain functions so
- * this module stays free of React and router imports.
- */
+/** Auth callbacks registered by AuthProvider (kept outside React). */
 interface AuthHandlers {
   onAuthFailure: () => void;
   onForbidden: () => void;
@@ -41,28 +34,10 @@ export const registerAuthHandlers = (handlers: AuthHandlers): void => {
   authHandlers = handlers;
 };
 
-/**
- * The in-flight refresh, if any. Concurrent 401s await this same promise, so ten
- * queries expiring together produce exactly one POST /api/auth/refresh rather
- * than ten. Cleared in a `finally` — leaving a settled promise cached here would
- * resolve every later 401 against a dead token.
- */
+/** Deduplicates concurrent refresh attempts — multiple 401s share a single refresh request. */
 let refreshPromise: Promise<void> | null = null;
 
-/**
- * Refreshes the access token at most once per expiry event.
- *
- * A `401` means the refresh token itself is gone — expired, revoked, or its
- * family killed by reuse detection — so the session is over: the token is
- * cleared and the auth layer is notified (it clears the query cache and
- * redirects to /login). Anything else — a 500, or a `TypeError` from an
- * unreachable backend — says nothing about whether the session is still valid,
- * so it is rethrown untouched. Ending a session on a dropped connection would
- * log out a user whose refresh token is perfectly good.
- *
- * Either way it rethrows, so the caller's request fails rather than silently
- * hanging.
- */
+/** Refreshes the access token. A 401 ends the session; other errors are rethrown. */
 export const refreshAccessToken = (): Promise<void> => {
   if (!refreshPromise) {
     refreshPromise = (async () => {
@@ -83,13 +58,7 @@ export const refreshAccessToken = (): Promise<void> => {
   return refreshPromise;
 };
 
-/**
- * Tears down the client side of a session the server has finished with.
- *
- * Both callers reach it from a `401` that no further refresh can fix, and both
- * must do the same two things — drop the token and tell the auth layer — or the
- * app keeps rendering as signed in against a session that no longer exists.
- */
+/** Clears the token and notifies the auth layer that the session is over. */
 const endSession = (): void => {
   clearAccessToken();
   authHandlers?.onAuthFailure();
@@ -100,8 +69,7 @@ const buildHeaders = (headers: HeadersInit | undefined): HeadersInit => {
 
   return {
     'Content-Type': 'application/json',
-    // Attached only when a token is in memory, and before the caller's own
-    // headers are spread so an explicit Authorization still wins.
+    // Attach token if available; caller's headers can still override Authorization.
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...headers,
   };
@@ -122,20 +90,12 @@ const parseResponse = async <T>(res: Response, path: string): Promise<T> => {
   return data as T;
 };
 
-/**
- * Thin fetch wrapper for talking to the Express backend.
- * Always sends/reads JSON and normalizes non-2xx responses into ApiError.
- *
- * It additionally carries the session: the in-memory access token is attached as
- * a Bearer header, `credentials: 'include'` lets the HttpOnly refresh cookie
- * travel cross-origin, and a 401 is recovered by refreshing once and replaying
- * the request once.
- */
+/** Fetch wrapper that sends/reads JSON, attaches auth, and auto-retries on expired tokens. */
 export const apiFetch = async <T>(
   path: string,
   { body, headers, ...init }: RequestOptions = {},
 ): Promise<T> => {
-  // Serialised once, before the first attempt, so a replay sends a byte-identical payload.
+  // Serialize body once so retries send the exact same payload.
   const serializedBody = body !== undefined ? JSON.stringify(body) : undefined;
 
   const attempt = () =>
@@ -149,28 +109,20 @@ export const apiFetch = async <T>(
   let res = await attempt();
 
   if (res.status === 401 && !REFRESH_EXEMPT_PATHS.includes(path)) {
-    // Throws if the refresh itself fails, which is the unrecoverable case.
+    // If refresh fails, the error propagates to the caller.
     await refreshAccessToken();
 
-    // Exactly one replay. It is never itself retried, or a genuinely revoked
-    // session would loop.
+    // Retry the original request exactly once after refresh.
     res = await attempt();
 
     if (res.status === 401) {
-      // The refresh succeeded and the server still refuses the token it just
-      // issued, so the session is over even though the refresh was fine — a
-      // deleted user row, or a token revoked between the two calls. Surfacing
-      // this to the caller and stopping there (as this did) left the app signed
-      // in on a session that can never recover: `<RequireAuth>` rendered its
-      // retryable error, and every retry took this same path. Not retried, but
-      // it must end the session.
+      // Still 401 after a successful refresh — the session is unrecoverable.
       endSession();
     }
   }
 
   if (res.status === 403) {
-    // 403 is terminal: the server refused this account, and no refresh can help.
-    // It renders the 403 view rather than a toast, so the refusal is visible.
+    // 403 — access denied. Redirect to the forbidden page.
     authHandlers?.onForbidden();
   }
 

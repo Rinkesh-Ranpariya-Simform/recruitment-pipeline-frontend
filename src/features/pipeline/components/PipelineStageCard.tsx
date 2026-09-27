@@ -14,31 +14,11 @@ interface PipelineStageCardProps {
   cell: PipelineStageCell;
   /** Whether this is the cell the URL is currently drilled into. */
   active: boolean;
-  /**
-   * Whether the drill-down list exists yet.
-   *
-   * `false` until the candidate-access feature ships `GET /api/candidates`
-   * (FR-4.2, EC-13). A card that navigates to a list that cannot load is worse
-   * than one that does not navigate, so the link is withheld rather than
-   * offered and broken.
-   */
+  /** Indicates whether the candidates drill-down view is available. */
   drillDownAvailable: boolean;
 }
 
-/**
- * One cell of the board: a stage, how many are in it, and how long they have
- * been there (FR-3.4).
- *
- * **There are no candidate names on it**, because the API sends none (XBE-8,
- * D-3). That is not a field being hidden here — the payload has no array of
- * people in it at all, which is what keeps the board's size bounded by roles
- * rather than by the twenty thousand candidates behind them. Names live one
- * click away, on the drill-down.
- *
- * A card with a count is a link into that drill-down; **a zero card is not**
- * (FR-3.7, EC-02). Offering to show a recruiter an empty list is an invitation
- * to a dead end.
- */
+/** Card displaying candidate counts and ageing duration for a role stage, with drill-down link. */
 export const PipelineStageCard: React.FC<PipelineStageCardProps> = ({
   roleId,
   cell,

@@ -27,25 +27,16 @@ interface RolesStatusFilterProps {
   status: RoleStatus | undefined;
 }
 
-/**
- * All · Open · Closed, stored in the URL as `?status=OPEN|CLOSED` and omitted
- * for All.
- *
- * Uses `router.push` rather than `replace`, so Back returns to the previous
- * filter. Changing the filter resets to page 1 — page 3 of "all roles" is
- * rarely page 3 of "closed roles".
- */
+/** Role status filter dropdown. Stored in URL params, resets to page 1 on change. */
 export const RolesStatusFilter: React.FC<RolesStatusFilterProps> = ({ status }) => {
   const router = useRouter();
 
   return (
     <Select
-      // Without `items`, base-ui's `SelectValue` renders the raw value, so the
-      // trigger would read "ALL" instead of "All roles".
+      // Provide items so the trigger shows the label, not the raw value.
       items={OPTIONS}
       value={status ?? ALL}
-      // base-ui hands back a widened `string | null`, so narrow it rather than
-      // asserting the type.
+      // Narrow the value to a valid status type.
       onValueChange={(value) => {
         router.push(buildRolesHref({ status: isRoleStatus(value) ? value : undefined, page: 1 }));
       }}

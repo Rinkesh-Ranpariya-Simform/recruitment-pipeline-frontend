@@ -5,10 +5,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { UserRole } from '@/features/auth/types';
 import { formatAbsolute } from '@/lib/format-date';
 
-/**
- * A `Record<UserRole, …>` like every other role-keyed map here, so a new role is
- * a compile error rather than a blank field.
- */
+/** Human-readable labels for user roles. */
 const ROLE_LABELS: Record<UserRole, string> = {
   CANDIDATE: 'Candidate',
   INTERVIEWER: 'Interviewer',
@@ -29,24 +26,11 @@ const Row: React.FC<RowProps> = ({ label, value }) => {
   );
 };
 
-/**
- * Who you are signed in as — for **every** role, not just candidates.
- *
- * Reads the already-cached user from `useAuth`, so this page issues **no
- * request** of its own. `getMe` owns that data and there is no profile endpoint;
- * adding a second query for the same fact would be a second thing to keep in
- * step.
- *
- * **There is no Edit button, and deliberately not a disabled one either.** No
- * endpoint writes a `User` row after creation, so an affordance would promise
- * something that does not exist — the absence is the honest rendering, and it
- * means "a candidate cannot edit their profile" needs no check to enforce it.
- */
+/** Read-only profile page showing the signed-in user's info. */
 export const ProfileView: React.FC = () => {
   const { user } = useAuth();
 
-  // `RequireAuth` guarantees a user by the time this renders; this is type
-  // narrowing, not a loading state.
+  // Type narrowing — user is guaranteed by RequireAuth.
   if (!user) {
     return null;
   }

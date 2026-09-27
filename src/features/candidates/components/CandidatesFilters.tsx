@@ -24,9 +24,7 @@ import {
 import type { ApplicationStatus, PipelineStage } from '../types';
 
 /**
- * Long enough that a typed word is one request, short enough to feel live
- * (FR-2.3, PERF-1, AC-F13). The spec's figure, and slightly longer than
- * `JobsSearch`'s 300 ms because this search reaches a bigger table.
+ * Debounce delay in milliseconds for candidate search input.
  */
 const DEBOUNCE_MS = 400;
 
@@ -35,33 +33,13 @@ const ANY = '__any__';
 
 interface CandidatesFiltersProps {
   params: RecruiterCandidatesSearchParams;
-  /**
-   * Whether to render the search box (FR-2.4, FR-3.2, D-6).
-   *
-   * **False for an interviewer, and its absence is not what protects
-   * anything** (SEC-6, AC-M04). Their parser never produces a `q`, so this
-   * client cannot send one even from a hand-edited URL (VAL-5, API-4) — and the
-   * API answers an interviewer's `?q=` with a `400` regardless (XBE-8). Three
-   * independent reasons, and the third is the only one that is a control.
-   */
+  /** Whether to render the candidate search input (recruiter view only). */
   showSearch: boolean;
 }
 
 /**
- * The `/candidates` filter bar: search, role, stage and status (FR-2.3).
- *
- * Every one of them lives **in the URL** rather than in state, so a list a
- * recruiter is looking at is a list they can send to someone, and Back works
- * with no cache handling. This component holds only the in-flight search text
- * until the debounce fires — **nothing is written to browser storage, and the
- * search term in particular is not**, because it may be a candidate's email
- * address (DM-3, SEC-4, EC-20).
- *
- * The role options come from `GET /api/roles`, which is the one request this
- * feature makes that is not for candidates. It is cached for the session by
- * TanStack Query, so it costs one call on the first visit and none afterwards;
- * `/pipeline` avoids the equivalent only because its board response already
- * names every role, and there is no such free source here.
+ * Candidate filter bar providing controls for text search, role, pipeline stage, and application status.
+ * Filters are stored in URL search parameters to support bookmarking and link sharing.
  */
 export const CandidatesFilters: React.FC<CandidatesFiltersProps> = ({ params, showSearch }) => {
   const router = useRouter();
@@ -166,16 +144,7 @@ interface CandidatesSearchProps {
 }
 
 /**
- * Name-and-email search, written to the URL rather than held in state
- * (FR-2.4, XBE-7).
- *
- * The placeholder says what it searches, because "Search" alone would leave a
- * recruiter guessing whether an email fragment will match — and it is the field
- * they actually search by.
- *
- * Mirrors the shipped `JobsSearch`, including the reset-state-during-render
- * pattern that keeps the box in step when the URL changes from outside this
- * component (Back, or the empty state's Clear filters).
+ * Debounced search input for querying candidates by name or email.
  */
 const CandidatesSearch: React.FC<CandidatesSearchProps> = ({ value, params }) => {
   const router = useRouter();

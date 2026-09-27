@@ -38,8 +38,7 @@ interface NavSection {
   links: Array<NavLink>;
 }
 
-// The recruiter's landing route as of the pipeline feature, and the first
-// entry in Hiring (FR-1.3, FR-1.4).
+// Navigation link definitions
 const DASHBOARD: NavLink = { href: '/dashboard', label: 'Dashboard', icon: GaugeIcon };
 const PIPELINE: NavLink = { href: '/pipeline', label: 'Pipeline', icon: GitBranchIcon };
 const ROLES: NavLink = { href: '/roles', label: 'Roles', icon: BriefcaseIcon };
@@ -48,95 +47,44 @@ const MY_INTERVIEWS: NavLink = {
   label: 'My interviews',
   icon: ClipboardListIcon,
 };
-// The recruiter's view of every candidate already in an interview process,
-// reshaped by the applications feature — it used to list rounds. A DIFFERENT
-// icon from MY_INTERVIEWS deliberately: the two are not the same list seen from
-// two sides — one is a personal schedule, the other is the whole board — and no
-// user is ever offered both.
 const INTERVIEWS: NavLink = { href: '/interviews', label: 'Interviews', icon: CalendarDaysIcon };
-// The recruiter's view of every application, added by the applications feature.
-// The same icon as MY_APPLICATIONS below but a DIFFERENT href: the two used to
-// be one route with two projections behind it, and are now two routes, exactly
-// as `/interviews` and `/my-interviews` are. The labels differ because the two
-// audiences are asking different questions of the same rows — "who applied to
-// us?" against "where did my applications get to?" — and no user is ever
-// offered both.
 const APPLICATIONS: NavLink = {
   href: '/applications',
   label: 'Applications',
   icon: FileTextIcon,
 };
-// Deliberately the same icon as ROLES: a candidate's "job" and a recruiter's
-// "requisition" are the same object seen from opposite sides, and they are
-// served by the same endpoint.
 const JOBS: NavLink = { href: '/jobs', label: 'Jobs', icon: BriefcaseIcon };
 const MY_APPLICATIONS: NavLink = {
   href: '/my-applications',
   label: 'My applications',
   icon: FileTextIcon,
 };
-// Recruiter-only, and the one nav entry whose route the API also refuses:
-// `GET /api/audit` is a 403 for an interviewer or a candidate. Omitting the
-// link is still only an affordance (audit spec FR-1.3, FR-1.4).
-// Offered to BOTH privileged roles, and the only entry in this table that is
-// (candidate-access FR-1.3, D-5). It is not one list seen from two sides the
-// way Applications/My applications are: it is ONE endpoint serving two
-// different payloads, chosen by the server from the verified token. A recruiter
-// gets every candidate with contact details; an interviewer gets the two or
-// three people they are assigned to, by name. A list of two names is still the
-// answer to "who am I interviewing".
 const CANDIDATES: NavLink = { href: '/candidates', label: 'Candidates', icon: UsersIcon };
 const AUDIT: NavLink = { href: '/audit', label: 'Audit', icon: ScrollTextIcon };
 const PROFILE: NavLink = { href: '/profile', label: 'Profile', icon: UserIcon };
 
-/** Offered to every role — `/profile` renders for all three. */
+/** Common account nav section for all roles. */
 const ACCOUNT_SECTION: NavSection = { label: 'Account', links: [PROFILE] };
 
-/**
- * What each role is *offered* in the sidebar.
- *
- * This is a **lookup table, not a permission check**: there is no comparison
- * here, and it gates nothing. `/pipeline` is still reachable by an interviewer
- * who types the URL — it has no `<RequireRole>` of its own yet — and the backend
- * re-authorizes every request it serves regardless. What this changes is what a
- * user is invited to.
- *
- * `Roles` is **recruiter-only** — browsing the full requisition list is not an
- * interviewer's job, even though the API would serve them the open ones.
- * `Candidates` is offered to **both** privileged roles, which is new: its route
- * genuinely serves an interviewer, with a payload the server narrows to the
- * people they are assigned to (candidate-access FR-1.1, AZ-2).
- * `Jobs` is the candidate's reading of the same endpoint. The route layouts'
- * guards, not this table, are what make those routes safe to leave unlinked.
- */
+/** Navigation sections and routes available for each user role in the sidebar. */
 const NAV_SECTIONS: Record<UserRole, Array<NavSection>> = {
   RECRUITER: [
-    // Dashboard, Pipeline, Roles, Applications, Interviews — in that order, and
-    // the order is the workflow rather than an alphabet: a recruiter starts at
-    // Applications (everyone who applied), starts a phone screen, and the
-    // candidate appears under Interviews (everyone in process). Applications
-    // therefore sits immediately before it.
+    // Recruiter hiring workflow navigation
     { label: 'Hiring', links: [DASHBOARD, PIPELINE, ROLES, CANDIDATES, APPLICATIONS, INTERVIEWS] },
     { label: 'Records', links: [AUDIT] },
     ACCOUNT_SECTION,
   ],
-  // Unchanged by the interviews feature: an interviewer's entry point stays My
-  // interviews, and they are NOT offered `/interviews` — that route is the
-  // recruiter's whole-board view and its page turns them away.
+  // Interviewer navigation
   INTERVIEWER: [{ label: 'Interviews', links: [MY_INTERVIEWS, CANDIDATES] }, ACCOUNT_SECTION],
   CANDIDATE: [{ label: 'Jobs', links: [JOBS, MY_APPLICATIONS] }, ACCOUNT_SECTION],
 };
 
-/**
- * A nav link is active on its own route **and everything under it**, so
- * `/roles/123` keeps `Roles` highlighted. Exact equality left a detail page
- * looking like it belonged to no section at all.
- */
+/** Determines if a navigation link matches the current active route or subroute. */
 const isActive = (pathname: string, href: string): boolean => {
   return pathname === href || pathname.startsWith(`${href}/`);
 };
 
-/** Up to two initials, for the avatar. Falls back to a single letter. */
+/** Extracts user initials for avatar display. */
 const initialsOf = (name: string): string => {
   const parts = name.trim().split(/\s+/).filter(Boolean);
 
@@ -273,10 +221,7 @@ interface AppChromeProps {
   children: React.ReactNode;
 }
 
-/**
- * The authenticated shell: a role-aware sidebar, and the signed-in account at
- * the top right. Neither is a security boundary.
- */
+/** Authenticated layout shell containing sidebar navigation and header controls. */
 const AppChrome: React.FC<AppChromeProps> = ({ children }) => {
   const { user } = useAuth();
 

@@ -1,35 +1,4 @@
-/**
- * The client's copy of the backend feedback contract
- * (backend/specs/features/feedback/spec.md § API Contract).
- *
- * Nothing is shared by import between the two repos — only by agreement — so a
- * change to the payload, the rating bounds or either `409` code has to be made
- * here as well.
- */
-
-/**
- * One interviewer's assessment of one round, exactly as all three endpoints
- * return it.
- *
- * **These are all the fields there are, and that is the point.** There is no
- * candidate field here — not a name, not an id, and certainly not an `email` or
- * a `phone` — because the API's projection never selects one. The brief's §3.6
- * names a feedback-submission endpoint specifically as the leak path to worry
- * about, and the answer on this side is that **there is nothing in the shape to
- * hide**.
- *
- * **Do not add an optional candidate field to this interface**, for the same
- * reason `InterviewerInterview` must not gain an optional `assignments`: a shape
- * with `candidate?` is one `&&` away from rendering what the API deliberately
- * withheld. The candidate's name on this screen comes from the **interview**
- * payload, which is the interviews feature's contract.
- *
- * If such a field ever turns up in a response, **that is a backend bug to
- * report, not a field to hide here** — per [frontend/CLAUDE.md](../../../CLAUDE.md).
- *
- * There is no raw `interviewerId` either: the expanded `interviewer` object
- * replaces it, so a client has a name to render rather than an id to guess with.
- */
+/** Represents a feedback assessment submitted by an interviewer. */
 export interface Feedback {
   id: number;
   interviewId: number;

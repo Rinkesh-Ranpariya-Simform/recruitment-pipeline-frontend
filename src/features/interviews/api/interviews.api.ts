@@ -125,21 +125,8 @@ export const createInterview = (
 };
 
 /**
- * Starts the FIRST round on an application, from the applications table
- * (applications FR-2.2).
- *
- * One click, no dialog and **no date** — which is the whole point. A recruiter
- * moving somebody out of the raw applied pile has decided to phone them, not
- * agreed a time with them; the date arrives later through `updateInterview`.
- *
- * `PHONE_SCREEN` at `SCREEN` are literals rather than parameters: this is a
- * named action ("start the phone screen"), not a scheduler with its inputs
- * hidden. Anything else goes through the dialog, where the recruiter can see
- * what they are choosing.
- *
- * **It does not move the candidate's stage**, and that is deliberate: they are
- * still at Applied until the phone screen is passed. The move happens when the
- * recruiter records a verdict on this round — see `recordInterviewDecision`.
+ * Starts the initial phone screen round on an application.
+ * Creates an undated phone screen interview round in the screening stage.
  */
 export const startPhoneScreen = (applicationId: number): Promise<RecruiterInterviewResponse> => {
   return createInterview(applicationId, {
@@ -179,26 +166,8 @@ export const updateInterview = (
 };
 
 /**
- * Records the verdict at one round — **Select or Reject** (applications FR-3).
- *
- * One request, and the server does the rest in one transaction: it closes the
- * round, and either advances the candidate to the round's stage or closes their
- * application as rejected. The response carries the application's new
- * `currentStage` and `status`, so nothing has to be guessed or refetched to
- * render the result.
- *
- * Four refusals are expected rather than exceptional:
- *
- * - **`409 DECISION_ALREADY_RECORDED`** — somebody decided this round first. A
- *   decision cannot be edited; undoing one is a stage override, with a reason.
- * - **`409 INVALID_STAGE_TRANSITION`** — selecting here would skip a stage. The
- *   recruiter's path is an override, which records why.
- * - **`409 APPLICATION_NOT_ACTIVE`** — the application is already closed.
- * - **`409 INTERVIEW_CANCELLED`** — a cancelled round did not happen, so there
- *   is nothing to decide about it.
- *
- * Hiding the buttons in each of those cases is a convenience. **The 409s are the
- * check**, and they hold for two recruiters clicking at the same instant.
+ * Records the decision (SELECT or REJECT) for an interview round.
+ * Advances the candidate stage or marks the application as rejected.
  */
 export const recordInterviewDecision = (
   interviewId: number,

@@ -4,19 +4,7 @@ import { ApplicationsInboxTable } from '@/features/applications/components/Appli
 import { ApplicationsTableSkeleton } from '@/features/applications/components/ApplicationsTableSkeleton';
 import { RecruiterApplicationsView } from '@/features/applications/components/RecruiterApplicationsView';
 
-/**
- * `/applications` — **everyone who has applied**, across every requisition
- * (applications FR-1.1).
- *
- * The recruiter's entry point into a hire: a row here is someone who applied
- * and has not been called yet, and its action starts the phone screen that
- * moves them into `/interviews`. Which is why this is the same component
- * `/interviews` renders, with a different table and no pinned filter — the two
- * lists are one query with one filter between them.
- *
- * The candidate's own list is no longer this route; it is `/my-applications`,
- * and the two no longer share a dispatch.
- */
+/** Recruiter applications list page displaying candidates who have applied across all roles. */
 export default function ApplicationsPage() {
   return (
     // `useSearchParams()` requires a Suspense boundary — without one

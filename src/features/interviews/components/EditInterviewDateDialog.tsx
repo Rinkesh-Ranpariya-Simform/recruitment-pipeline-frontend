@@ -35,27 +35,7 @@ interface EditInterviewDateDialogProps {
   scheduledAt: string | null;
 }
 
-/**
- * **Set date** / **Edit date** — the other half of creating a round without one
- * (applications FR-2.4).
- *
- * A round started from the applications table has no date: the recruiter decided
- * to phone somebody, they did not agree a time. This is where the time arrives,
- * and where it changes when the slot falls through.
- *
- * **Blank clears the date**, back to undated, and the dialog says so. That is
- * the honest answer to "we cancelled Tuesday and have not rebooked" — better
- * than leaving a date in the column that everybody can see is wrong, and better
- * than cancelling a round that is still going to happen.
- *
- * The trigger reads "Set date" when there is none and "Edit date" when there is,
- * so the button says what it will do rather than making the recruiter open it to
- * find out.
- *
- * **No client-side minimum on the input.** Backfilling a round that already
- * happened is normal, the API has no floor either, and a client-side one the
- * server does not share would block a legitimate action with no way to see why.
- */
+/** Dialog for setting or rescheduling an interview round date and time. */
 export const EditInterviewDateDialog: React.FC<EditInterviewDateDialogProps> = ({
   interviewId,
   scheduledAt,

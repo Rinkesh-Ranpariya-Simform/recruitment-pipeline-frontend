@@ -22,29 +22,7 @@ import type { RecruiterInterview } from '../types';
 
 const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
-/**
- * **Select / Reject** — the verdict at one round, at the top of its page
- * (applications FR-3).
- *
- * Green for select, red for reject, and both behind a confirmation, because
- * **neither can be undone**: a decision is written once and a second attempt is
- * `409 DECISION_ALREADY_RECORDED`. Undoing one is a stage override, with a
- * recorded reason — which is deliberately a heavier action than clicking the
- * other button would be.
- *
- * The confirmation copy says what each does to the *application*, not to the
- * round, because that is the part a recruiter cannot see from here and the part
- * they would regret: Select advances the candidate to this round's stage, and
- * Reject closes their application outright.
- *
- * ## What is offered, and what actually decides
- *
- * The pair renders only while the round is `SCHEDULED`, has no verdict, and sits
- * on a live application. **That is an affordance.** The API refuses each of
- * those cases with its own `409` — `DECISION_ALREADY_RECORDED`,
- * `INTERVIEW_CANCELLED`, `APPLICATION_NOT_ACTIVE` — and each is handled below,
- * because the row can go stale in another tab between render and click.
- */
+/** Select and Reject decision buttons with confirmation dialogs for an interview round. */
 
 interface InterviewDecisionActionsProps {
   interview: RecruiterInterview;

@@ -28,24 +28,7 @@ interface OutcomeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/**
- * Closing an application, hired or rejected (FR-5.3).
- *
- * **The reason is optional and has no minimum**, unlike the override's
- * (VAL-3, VAL-5). Rejecting at the defined end of a stage is not an exception
- * to the process — skipping one is, which is why only the override demands an
- * explanation. The label says **Optional** rather than leaving a recruiter to
- * work out whether Submit will let them through.
- *
- * Hiring gets the same dialog rather than firing straight from the menu: the
- * API takes an optional reason on both, and a confirmation step on a terminal,
- * irreversible action is worth one extra click. There is no un-hiring and no
- * un-rejecting in this POC.
- *
- * It does **not** move the stage, and says so: the API leaves `currentStage`
- * where it was on purpose, because "rejected at Screen" and "rejected at Offer"
- * are different outcomes.
- */
+/** Confirmation dialog for closing an application as Hired or Rejected with an optional note. */
 export const OutcomeDialog: React.FC<OutcomeDialogProps> = ({
   applicationId,
   status,
@@ -90,8 +73,7 @@ export const OutcomeDialog: React.FC<OutcomeDialogProps> = ({
     setFormError(null);
 
     try {
-      // An empty reason is not a reason: the api module omits the key rather
-      // than sending `""`, so the audit metadata carries a reason or nothing.
+      // Only send reason if non-empty.
       await outcomeMutation.mutateAsync({ applicationId, values: { ...values, status } });
       onOpenChange(false);
     } catch (error) {
@@ -113,10 +95,7 @@ export const OutcomeDialog: React.FC<OutcomeDialogProps> = ({
         return;
       }
 
-      // Every other failure has already raised its own toast from the mutation
-      // — including `409 INVALID_STAGE_TRANSITION`, which is what a **Mark
-      // hired** outside Offer earns if it is fired anyway (EC-07). Closing is
-      // right for all of them: none is fixable by editing this form.
+      // Non-validation errors are reported via toast from the mutation.
       onOpenChange(false);
     }
   };

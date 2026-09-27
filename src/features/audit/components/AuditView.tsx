@@ -18,7 +18,7 @@ interface EmptyStateProps {
   children?: React.ReactNode;
 }
 
-/** The shared frame for every empty and error state below. */
+/** Container card for empty and error states. */
 const EmptyState: React.FC<EmptyStateProps> = ({ message, hint, children }) => {
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-16 text-center">
@@ -31,22 +31,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message, hint, children }) => {
   );
 };
 
-/**
- * The `/audit` screen: filters, table, pager, and every state they can be in.
- *
- * **The only component in this feature that reads `useSearchParams()`** (FE-1)
- * — which is why the route above it supplies the Suspense boundary, without
- * which `next build` fails.
- *
- * Only recruiters get here: `(app)/audit/layout.tsx` shows everyone else the
- * app's 404 before this mounts. **That guard is not what protects the data** —
- * `GET /api/audit` answers a non-recruiter `403` whether or not this component
- * ever runs (AZ-1, SEC-1).
- *
- * There is no mutation anywhere in this feature and nothing on this screen
- * writes, so there are no toasts: a query failure renders inline, with the
- * filter bar intact (ERR-1, ERR-2, FE-6).
- */
+/** Audit log view component containing filter toolbar, audit table, and pagination. */
 export const AuditView: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -54,7 +39,7 @@ export const AuditView: React.FC = () => {
 
   // Sanitised before anything is requested, so `?action=BANANA&page=-2`
   // renders the unfiltered first page instead of an error, and `?entityId=12`
-  // with no type never becomes the 400 the API would answer (FR-4.6, VAL-1).
+  // drop entityId if entityType is missing.
   const params = parseAuditSearchParams(searchParams);
 
   const auditQuery = useAuditQuery(params);
@@ -85,7 +70,7 @@ export const AuditView: React.FC = () => {
         {/* Manual only. There is no polling and no interval — nothing on this
             screen changes while a recruiter reads it, and polling an
             append-only table nobody is watching is wasted requests (D-5,
-            PERF-3). */}
+            refresh data */}
         <Button
           variant="outline"
           size="sm"
@@ -102,7 +87,7 @@ export const AuditView: React.FC = () => {
 
       {/* Always rendered, in every state below — including the error ones. A
           recruiter whose request failed should not also lose what they typed
-          (ERR-2), and the filters stay usable while the first page loads. */}
+          filters stay usable while loading */}
       <AuditFilters params={params} />
 
       {auditQuery.isPending ? (
@@ -127,11 +112,7 @@ export const AuditView: React.FC = () => {
           </EmptyState>
         )
       ) : entries.length === 0 ? (
-        // Three empty states, and they are not interchangeable. Telling a
-        // recruiter "no activity matches these filters" when they have set
-        // none — or "nothing recorded yet" when they are simply past the last
-        // page — is how an empty feed becomes indistinguishable from a broken
-        // one (EC-07, EC-10).
+        // Display contextual empty state based on pagination and active filters
         params.page > 1 ? (
           <EmptyState message="Nothing on this page.">
             <Button
@@ -158,7 +139,7 @@ export const AuditView: React.FC = () => {
         <div className="flex flex-col gap-4">
           {/* Scrolls sideways below `md` rather than collapsing to cards: five
               columns of short values read fine in a scroll container, and a
-              card layout would separate the action from its details (FE-9). */}
+              renders as a responsive table */}
           <div className="overflow-x-auto">
             <AuditTable entries={entries} />
           </div>

@@ -11,42 +11,14 @@ import { formatAbsolute } from '@/lib/format-date';
 import type { InterviewerCandidate, InterviewerCandidateInterview } from '../types';
 
 interface InterviewerCandidateDetailProps {
-  /**
-   * **Two fields, and there is no third** (FE-3, FR-7.3).
-   *
-   * This component does not accept a `RecruiterCandidate`, so a mistaken
-   * dispatch in `[candidateId]/page.tsx` is a **compile error** rather than a
-   * recruiter's payload reaching a component written for an interviewer
-   * (FE-4, AC-F33). The dispatch protects nothing on its own — the API picks
-   * its projection from the verified token, so an interviewer cannot obtain the
-   * other shape by any route (AZ-2, AZ-3).
-   */
+  /** The candidate profile data available to interviewers. */
   candidate: InterviewerCandidate;
-  /** This interviewer's own rounds with this candidate, and no one else's. */
+  /** Interview rounds assigned to the current interviewer for this candidate. */
   interviews: Array<InterviewerCandidateInterview>;
 }
 
 /**
- * What an interviewer sees of a candidate: **a name, and their own rounds**
- * (FR-7.1, FR-7.2).
- *
- * **It renders nothing else, because there is nothing else** (FR-7.3, XBE-3,
- * AC-F08). No email. No phone. No other applications, no stage timeline, no
- * override reason, no panel, no feedback — **not hidden, absent**. The props
- * above name every field this component can reach, and the payload behind them
- * carries no more. **There is no field to hide, because there is no field.**
- *
- * A candidate interviewed by two panels shows this interviewer only their own
- * rounds; the API's second query is scoped by the same assignment predicate as
- * the first, so the other panel is not in the response to be filtered out
- * (FR-7.2, EC-05, AC-F09).
- *
- * Rounds link to **`/my-interviews/:id`**, not to `/interviews/:id` as FR-7.2
- * wrote it: the `/interviews` tree is the recruiter's, nested under the
- * application a round belongs to, and an interviewer's payload carries no
- * application id — so they could not build a URL in that tree even if the route
- * admitted them. `/my-interviews/:id` is their own round page and renders the
- * interviewer projection of the same endpoint.
+ * Interviewer candidate detail view displaying candidate name and their assigned interview rounds.
  */
 export const InterviewerCandidateDetail: React.FC<InterviewerCandidateDetailProps> = ({
   candidate,

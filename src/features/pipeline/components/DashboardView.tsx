@@ -13,14 +13,7 @@ interface PanelErrorProps {
   retrying: boolean;
 }
 
-/**
- * One panel's failure, inline and retryable.
- *
- * Deliberately **not** a page-level error: the tiles and the strip are two
- * queries, and one failing must degrade one panel rather than blanking the
- * screen (ERR-4, AC-F10). A recruiter whose summary request failed can still
- * read where everyone is.
- */
+/** Inline error state with retry button (one panel can fail without breaking the whole page). */
 const PanelError: React.FC<PanelErrorProps> = ({ message, onRetry, retrying }) => {
   return (
     <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed py-10 text-center">
@@ -32,22 +25,7 @@ const PanelError: React.FC<PanelErrorProps> = ({ message, onRetry, retrying }) =
   );
 };
 
-/**
- * The recruiter's landing page (FR-2), and the reason `ROLE_LANDING.RECRUITER`
- * moved here from `/pipeline` (FR-1.3, D-1): logging in should tell you
- * something, and `/pipeline` is a destination rather than a doorway.
- *
- * **Exactly two requests on mount** (PERF-1): the summary for the tiles, and
- * the board for the stage strip. The strip is computed from the second — never
- * from a third call and never by fetching candidates, which is what the whole
- * aggregate exists to avoid (FR-2.4, FR-8.3).
- *
- * Two queries rather than one on purpose. It is what lets a failure degrade
- * half the page instead of all of it, and it is why both are invalidated
- * together after every write (FE-4) — a move changes a stage count here and an
- * outcome count in the tiles, and refreshing one without the other leaves the
- * two halves of one screen disagreeing.
- */
+/** Recruiter dashboard with summary tiles and stage breakdown (two independent queries). */
 export const DashboardView: React.FC = () => {
   const summaryQuery = usePipelineSummaryQuery();
   const boardQuery = usePipelineQuery({ roleId: undefined, stage: undefined });
@@ -55,9 +33,7 @@ export const DashboardView: React.FC = () => {
   const summary = summaryQuery.data?.summary;
   const roles = boardQuery.data?.roles ?? [];
 
-  // A fresh database renders zeros and an explanatory line, not a broken
-  // layout (FR-2.6). The tiles still render — "0 open roles" is a fact, and
-  // hiding it would make an empty system look like a failed request.
+  // Detect empty system (no roles/applicants) to show onboarding guidance.
   const empty = summary !== undefined && summary.openRoles === 0 && summary.totalApplicants === 0;
 
   return (

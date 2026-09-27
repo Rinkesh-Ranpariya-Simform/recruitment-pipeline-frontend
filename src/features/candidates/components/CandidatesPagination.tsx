@@ -9,19 +9,12 @@ import type { Pagination } from '../types';
 
 interface CandidatesPaginationProps {
   pagination: Pagination;
-  /** Carried into every href, so paging preserves the filters (FR-2.3). */
+  /** Active search and filter parameters preserved across page changes. */
   params: Partial<RecruiterCandidatesSearchParams>;
 }
 
 /**
- * Previous / next, plus the current position (XBE-13, FE's reuse of the shipped
- * pager shape).
- *
- * `totalPages` comes from the server rather than being recomputed from `total`
- * and `pageSize` — duplicating that arithmetic is how a pager ends up offering
- * a page that does not exist. Byte-identical in behaviour to
- * `RolesPagination`; a separate component only because the hrefs it builds
- * point at `/candidates` and carry four filters rather than one.
+ * Pagination controls (previous, next, current page) for candidates lists.
  */
 export const CandidatesPagination: React.FC<CandidatesPaginationProps> = ({
   pagination,

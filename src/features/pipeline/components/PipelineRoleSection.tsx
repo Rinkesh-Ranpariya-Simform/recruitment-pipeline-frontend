@@ -13,25 +13,7 @@ interface PipelineRoleSectionProps {
   drillDownAvailable: boolean;
 }
 
-/**
- * One role's row of the board: its title, its status, its live total, and its
- * stage cards (FR-3.1).
- *
- * **The cards are rendered in the order the API gave them and are never
- * sorted** (FR-3.2, XBE-6). The backend densifies the array — every role
- * carries all four stages in `STAGE_ORDER`, including the zero-count ones — so
- * this component neither invents a missing stage nor decides what order the
- * board reads in. Sorting here would be a second opinion about the pipeline,
- * and `APPLIED, INTERVIEW, OFFER, SCREEN` is a board nobody can read.
- *
- * A `CLOSED` role with live applications still appears, with its badge and its
- * counts (EC-11, backend AZ-6). Hiding it is how people get forgotten in a
- * requisition someone tidied up.
- *
- * **The grid is four columns at `lg`, two at `md`, one below** (FE-10) — so a
- * phone scrolls vertically and never sideways, which is the layout rule this
- * app follows everywhere.
- */
+/** Displays a single role row with title, status badge, active count, and stage cards. */
 export const PipelineRoleSection: React.FC<PipelineRoleSectionProps> = ({
   role,
   activeStage,
@@ -41,8 +23,7 @@ export const PipelineRoleSection: React.FC<PipelineRoleSectionProps> = ({
     <section className="flex flex-col gap-3" aria-labelledby={`pipeline-role-${role.id}`}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <h2 id={`pipeline-role-${role.id}`} className="text-base font-semibold">
-          {/* To the requisition itself, so a recruiter reading the board can
-              get to the description without going through the roles list. */}
+          {/* Link directly to the role detail page. */}
           <Link href={`/roles/${role.id}`} className="hover:underline">
             {role.title}
           </Link>

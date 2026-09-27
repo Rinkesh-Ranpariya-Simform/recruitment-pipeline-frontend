@@ -13,21 +13,7 @@ interface AuditPaginationProps {
   params: AuditSearchParams;
 }
 
-/**
- * Previous / next, plus the current position (FR-2.8).
- *
- * A third pager rather than a reuse of `RolesPagination`: the props shape is
- * identical, as the contract promises (XBE-2), but each pager builds its own
- * feature's href and `buildRolesHref` produces `/roles?…`. The shipped pagers
- * are one-per-feature for exactly this reason.
- *
- * Every filter is threaded through the href, so paging keeps the trace a
- * recruiter is reading rather than dropping them back into the full feed.
- *
- * `totalPages` comes from the server rather than being recomputed from `total`
- * and `pageSize` — duplicating that arithmetic is how a pager ends up offering
- * a page that doesn't exist.
- */
+/** Pagination controls for the audit trail table preserving active filter parameters. */
 export const AuditPagination: React.FC<AuditPaginationProps> = ({ pagination, params }) => {
   const { page, totalPages } = pagination;
 

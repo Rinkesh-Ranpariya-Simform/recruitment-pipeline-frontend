@@ -11,28 +11,9 @@ import { pipelineStageLabel } from '../labels';
 import type { PipelineStage } from '../types';
 import { PIPELINE_BOARD_KEY, PIPELINE_SUMMARY_KEY } from './usePipelineQuery';
 
-/**
- * The three pipeline mutations, sharing one cache policy and one error policy.
- *
- * **No optimistic updates** (FE-6), matching every shipped mutation in this
- * app. A stage move can fail three distinct ways — not allowed, someone else
- * moved first, already closed — and an optimistic board would render all three
- * as a flicker, which is worse than a half-second wait.
- *
- * **Invalidation is `onSettled`, not `onSuccess`** (FE-5), matching
- * `useApplyMutation`. A `409` means this client's view is behind the server's,
- * which is precisely the case where refetching is the remedy: the recruiter
- * gets told *and* shown the truth rather than told and left looking at a lie.
- */
+/** Pipeline mutations — no optimistic updates, cache invalidated on settle (success or error). */
 
-/**
- * What a failed write does to the cache, and what it does not.
- *
- * Both keys, on every write (FE-4): a move changes a stage count on the board
- * **and** an outcome count on the dashboard, and refreshing one without the
- * other leaves two screens disagreeing. The candidates list key joins this list
- * once the candidate-access feature ships.
- */
+/** Invalidates both the pipeline board and dashboard summary after any write. */
 const useInvalidateBoard = () => {
   const queryClient = useQueryClient();
 
@@ -44,25 +25,7 @@ const useInvalidateBoard = () => {
   };
 };
 
-/**
- * The toast copy for a failed write, or `null` when the caller should render
- * the failure itself.
- *
- * **Codes are read from `errorBodyOf(error)?.code`, never from the message
- * string** (ERR-3, API-4) — copy is allowed to change without being a breaking
- * change, and matching on it would make this silently wrong the first time it
- * did.
- *
- * The three `409`s get three distinct messages because they have three distinct
- * remedies — *this move is not allowed*, *refetch and look again*, *this is
- * over* (ERR-2). Collapsing them would make the message wrong two times in
- * three.
- *
- * `null` for a `400`: that one belongs under the field that caused it, and a
- * toast would say it twice in two places. `null` for a `403` too — `apiFetch`
- * has already redirected to `/forbidden` and this view is unmounting, so a
- * toast would flash over the page the recruiter is being sent to.
- */
+/** Returns a user-facing error message for pipeline writes, or null if the caller handles it. */
 export const pipelineWriteErrorMessage = (error: unknown): string | null => {
   if (error instanceof ApiError && error.status === 403) {
     return null;
@@ -74,9 +37,7 @@ export const pipelineWriteErrorMessage = (error: unknown): string | null => {
     case 'VALIDATION_ERROR':
       return null;
 
-    // The API's message already names both ends of the refused move — "A
-    // candidate at Applied cannot move to Offer without an override" — so it is
-    // shown rather than replaced by a generic line that says less.
+    // Use the API's descriptive message directly.
     case 'INVALID_STAGE_TRANSITION':
       return body.message;
 
@@ -94,7 +55,7 @@ export const pipelineWriteErrorMessage = (error: unknown): string | null => {
   }
 };
 
-/** Raises the toast above, when there is one. Shared by all three mutations. */
+/** Shows an error toast for pipeline write failures. */
 const toastWriteError = (error: unknown): void => {
   const message = pipelineWriteErrorMessage(error);
 
@@ -108,12 +69,7 @@ interface MoveStageVariables {
   toStage: PipelineStage;
 }
 
-/**
- * Advances an application one stage (FR-5.2).
- *
- * The success toast names the stage the recruiter landed on, in **recruiter**
- * copy — "Moved to Screen." — rather than echoing the enum value back at them.
- */
+/** Advances an application to the next pipeline stage. */
 export const useMoveStage = () => {
   const invalidate = useInvalidateBoard();
 
@@ -133,17 +89,7 @@ interface OverrideStageVariables {
   values: OverrideValues;
 }
 
-/**
- * Skips a stage, on the record (FR-6).
- *
- * The success toast says **"Reason recorded."** as well as "Stage overridden.",
- * because the record is the point of the action — the brief's §3.3 is about the
- * row, not the move, and a recruiter should be told the row exists.
- *
- * A `400` raises **no toast** (see `pipelineWriteErrorMessage`): the dialog
- * catches it and renders `details.reason` under the field, keeping the typed
- * text (FR-6.7).
- */
+/** Overrides the pipeline stage with a recorded reason. */
 export const useOverrideStage = () => {
   const invalidate = useInvalidateBoard();
 
@@ -163,7 +109,7 @@ interface SetOutcomeVariables {
   values: OutcomeValues;
 }
 
-/** Closes an application as hired or rejected (FR-5.3). */
+/** Closes an application as hired or rejected. */
 export const useSetOutcome = () => {
   const invalidate = useInvalidateBoard();
 

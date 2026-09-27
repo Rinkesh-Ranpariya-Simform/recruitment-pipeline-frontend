@@ -54,36 +54,13 @@ interface CandidateDetailViewProps {
 }
 
 /**
- * `/candidates/[candidateId]` — **the role picks the component before anything
- * renders** (FE-4, FR-4.1, FR-7.1, AC-F33).
- *
- * The two views below take different props types and call different queries.
- * `RecruiterCandidateDetail` does not accept an `InterviewerCandidate` and
- * `InterviewerCandidateDetail` does not accept a `RecruiterCandidate`, so a
- * mistaken dispatch here is a **compile error** rather than a payload reaching
- * a component written for the other reader (FR-11.2, SEC-2, AZ-3).
- *
- * This is the second and last role comparison in the feature, and it is a
- * dispatch rather than a conditional around a contact field (AC-F32). It
- * protects nothing on its own: the API picks its projection from the verified
- * token, so an interviewer cannot obtain the recruiter shape by any route
- * (AZ-1, AZ-2).
- *
- * **Every `404` renders `<CandidateNotFound />` and says nothing about why**
- * (FR-7.4, FR-7.5, ERR-2, EC-01, AC-F01). For an interviewer it covers three
- * causes the API deliberately makes indistinguishable, so the client genuinely
- * cannot tell which it is and must not guess. It is **not retried** (FE-8,
- * PERF-9, AC-F02) — a `404` will not change on a second ask, and here it is
- * also how the API says "outside your scope".
- *
- * A client component because the route above has to `await params` — in Next 16
- * `params` is a Promise, so the page cannot also run the query.
+ * Candidate detail view page component.
+ * Renders either the recruiter view with full history and contact details,
+ * or the interviewer view with assigned rounds only.
  */
 export const CandidateDetailView: React.FC<CandidateDetailViewProps> = ({ candidateId }) => {
   const { user } = useAuth();
 
-  // `<RequireAuth>` above guarantees a user, and `<RequireRole>` guarantees one
-  // of the two privileged roles. This is narrowing, not a loading state.
   if (!user) {
     return null;
   }
@@ -100,8 +77,7 @@ interface RoleViewProps {
 }
 
 const RecruiterView: React.FC<RoleViewProps> = ({ candidateId }) => {
-  // `/candidates/abc` never reaches the network — the id is visibly wrong, so
-  // the not-found state renders straight away (FE-9).
+  // Reject non-numeric candidate IDs early and show not found
   const parsedId = parseCandidateId(candidateId);
   const candidateQuery = useRecruiterCandidateQuery(parsedId);
 
@@ -114,8 +90,6 @@ const RecruiterView: React.FC<RoleViewProps> = ({ candidateId }) => {
   }
 
   if (candidateQuery.isError) {
-    // A 404 means there is no such candidate; anything else means we could not
-    // ask, which is a different thing to tell a recruiter.
     if (candidateQuery.error instanceof ApiError && candidateQuery.error.status === 404) {
       return <CandidateNotFound />;
     }
@@ -144,9 +118,6 @@ const InterviewerView: React.FC<RoleViewProps> = ({ candidateId }) => {
   }
 
   if (candidateQuery.isError) {
-    // **Three causes, one rendering** (XBE-9, EC-01, EC-04). "No such
-    // candidate", "that id is a recruiter's" and "you are not assigned to them"
-    // arrive byte-identically, and nothing here tries to tell them apart.
     if (candidateQuery.error instanceof ApiError && candidateQuery.error.status === 404) {
       return <CandidateNotFound />;
     }

@@ -3,25 +3,7 @@ import { FileQuestionIcon } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 
-/**
- * The app's one **route** 404 — "this URL is not a page you can open".
- *
- * Two surfaces render it and they must stay identical, which is why it is a
- * component and not markup copied twice: `app/not-found.tsx` for a URL that
- * matches no route at all, and `<RequireRole>` for a route that exists but not
- * for this user. A user who is not allowed somewhere learns the same thing as a
- * user who mistyped, and neither is told that the other case is possible — that
- * is the whole point of answering a forbidden route with a 404 rather than a
- * 403 (FE-10.2, FE-10.5).
- *
- * Do not confuse it with `features/roles/components/RoleNotFound.tsx`, which is
- * a **data** 404: `/roles/999` is a real route, reached by a real recruiter, for
- * a requisition that does not exist. That one keeps the nav and offers a way
- * back to the list; this one is the end of the road and offers only `/`.
- *
- * The way back is `/` and never a role-specific path, so this renders correctly
- * for an anonymous visitor too.
- */
+/** Shared 404 view for unmatched routes and unauthorized access attempts. */
 export const NotFoundView: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">

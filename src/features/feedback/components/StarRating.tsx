@@ -5,46 +5,20 @@ import { StarIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
-/** 1–5, the API's bounds, as the array the control renders from. */
+/** Available star values (1 to 5). */
 const STARS = [1, 2, 3, 4, 5] as const;
 
 interface StarRatingProps {
-  /** `0` means unselected. The form never submits it — the schema's `min(1)` refuses. */
+  /** Current rating value (0 represents unselected). */
   value: number;
   onChange: (value: number) => void;
   disabled?: boolean;
-  /** Wired to the field's label, so the group announces what it is rating. */
+  /** Accessibility label ID for the rating group. */
   'aria-labelledby'?: string;
   'aria-describedby'?: string;
 }
 
-/**
- * The rating control: five buttons, hand-rolled, **emitting integers 1–5**
- * (FR-3.3, D-2).
- *
- * `onChange` is typed `(value: number) => void`, so **this control cannot emit a
- * string, a `0` from a click, or a `4.5`** (FE-5, XBE-3). That is the point of
- * building it rather than taking a rating library: the API refuses a coerced
- * `"4"`, and a control that could produce one would turn a contract into a
- * runtime surprise. It is still not the control — AC-M05 fires `0` and `4.5`
- * from the console and gets a `400` either way (AZ-4).
- *
- * **A real `radiogroup`, not five buttons that look like one.** Arrow keys move
- * the selection within 1–5, `Space`/`Enter` select, each star carries
- * `aria-checked`, and the group's value is announced as "{n} of 5" — so the
- * rating is reachable and legible without a pointer or a screen (EC-17).
- * Roving `tabIndex`: one stop for the whole group, as a radio group should be,
- * rather than five stops on the way to the notes field.
- *
- * **Hover is a preview and never a value** (state matrix). Moving the pointer
- * across the stars and leaving without clicking changes nothing, which matters
- * because the alternative is a rating nobody chose. The preview is local state
- * and does not re-render the form (PERF-7).
- *
- * The read-only rendering is `<RatingDisplay>`, a **separate** component —
- * this one is never rendered disabled on a recruiter's screen. A disabled
- * control is still a control, and their screen should contain none (FE-6).
- */
+/** Interactive star rating input supporting keyboard navigation and hover preview. */
 export const StarRating: React.FC<StarRatingProps> = ({
   value,
   onChange,

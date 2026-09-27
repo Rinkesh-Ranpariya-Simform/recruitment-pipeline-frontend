@@ -15,7 +15,7 @@ import { useSubmitFeedback, useUpdateFeedback } from '../hooks/useFeedbackMutati
 import { StarRating } from './StarRating';
 import type { Feedback, FeedbackPatch } from '../types';
 
-/** The counter appears only past this, so a normal note has no countdown (VAL-5). */
+/** Character threshold above which the character count indicator is displayed. */
 const COUNTER_THRESHOLD = 4500;
 const NOTES_MAXIMUM = 5000;
 
@@ -23,50 +23,14 @@ const GENERIC_ERROR_MESSAGE = 'Something went wrong. Please try again.';
 
 interface FeedbackFormProps {
   interviewId: number;
-  /**
-   * The signed-in interviewer's existing entry, or `null`.
-   *
-   * **Derived by the caller from the fetched list, never stored** (DM-3): a
-   * refetch that reveals an entry flips this form into edit mode with no second
-   * source of truth to keep in step — which is exactly what makes the `409`
-   * recovery work without a mode flag to set.
-   */
+  /** Existing feedback entry if editing, or null if creating new feedback. */
   existing: Feedback | null;
-  /** Called when the round turns out to be cancelled mid-flight (FR-3.10, EC-08). */
+  /** Callback invoked if the interview round is cancelled during form submission. */
   onCancelled: () => void;
 }
 
 /**
- * Rating and notes — **one component that creates or edits, from the start**
- * (FR-3, D-3).
- *
- * It is not a create form that later grew an edit branch, and the reason is the
- * API's concurrency policy: a second `POST` from the same interviewer is a
- * `409`, whose documented remedy is a `PATCH` on the same path. A form that
- * treated "you already submitted" as an error would be a dead end exactly where
- * the person has just written a considered assessment (FR-4.4).
- *
- * Three behaviours are worth reading before changing anything here:
- *
- * - **A failed request never discards what was typed** (ERR-1, FR-3.8, FR-4.3).
- *   This is the single most important thing this file does. An interviewer has
- *   just written their judgement of a person; losing it to a `400`, a `409` or a
- *   dropped connection is the worst outcome this screen can produce. Every
- *   branch below leaves the field values alone.
- * - **The `409` is a state transition, not a failure** (FR-4.2). The mutation
- *   invalidates `onSettled`, so the list has already refetched by the time the
- *   toast is read; `existing` then arrives, the form is in edit mode, and the
- *   text typed **here** is still in the field — the prefill effect deliberately
- *   does not overwrite a form somebody has touched.
- * - **Submit being disabled is UX; the API's `400` is the control** (AZ-4).
- *   AC-M05 fires `rating: 0` and `rating: 4.5` from the console and gets a `400`
- *   both times, which is the criterion that proves the star control is not what
- *   is enforcing the bounds.
- *
- * Nothing here is drafted to browser storage, not even an unsent assessment
- * (DM-2, SEC-5). It is one person's judgement of another, and a shared machine
- * should not keep it. The cost — a lost draft on an accidental reload — is
- * accepted rather than traded away.
+ * Form component for submitting or editing interview feedback (rating and notes).
  */
 export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   interviewId,
@@ -117,11 +81,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
       return;
     }
 
-    // **The prefill never overwrites a form somebody has touched** (FR-4.3).
-    // After a `409` the refetch brings the older entry back, and replacing the
-    // words this interviewer just typed with it would be the exact data loss
-    // ERR-1 exists to prevent. The prefill supplies only what they did not
-    // change — which here means: nothing, if they changed anything.
+    // Do not overwrite form with prefill if user has started editing
     if (isDirty) {
       syncedFrom.current = existing.id;
       return;
@@ -131,12 +91,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     reset({ rating: existing.rating, notes: existing.notes });
   }, [existing, isDirty, reset]);
 
-  // Client-side validity, for the disabled state only. The schema is what the
-  // resolver enforces; this mirrors it so the button can respond without a
-  // submit attempt.
+  // Client-side validity check for submit button state
   const isValid = rating >= 1 && rating <= 5 && trimmedNotes.length > 0;
 
-  // In edit mode, unchanged means nothing to save (FR-3.6, AC-F11).
+  // In edit mode, check if any fields were modified
   const isUnchanged =
     existing !== null && rating === existing.rating && trimmedNotes === existing.notes;
 
@@ -148,13 +106,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     return isEditing ? 'Save changes' : 'Submit feedback';
   };
 
-  /**
-   * Only what changed (API-3).
-   *
-   * Sending both fields every time would record a `fromRating` equal to
-   * `toRating` on a notes-only edit, which makes the audit trail's one useful
-   * pair say nothing.
-   */
+  /** Builds payload containing only modified fields for PATCH request. */
   const buildPatch = (values: FeedbackValues, current: Feedback): FeedbackPatch => {
     const patch: FeedbackPatch = {};
 
@@ -181,9 +133,6 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
       await submitMutation.mutateAsync(values);
       toast.success('Feedback submitted.');
-      // No mode flag to set: the invalidation above refetches the list, the
-      // caller derives `existing` from it, and this form is in edit mode on the
-      // next render (DM-3).
       return;
     } catch (error) {
       // 403 is handled globally — `apiFetch` has already redirected to
@@ -198,7 +147,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
       // `details` is keyed by request-body field name, so a rule the client
       // missed still lands on the right input — **and every character stays in
-      // the field** (FR-3.8, ERR-1).
+      // keep entered text in field.
       if (body?.code === 'VALIDATION_ERROR') {
         const ratingMessage = fieldMessage(body.details, 'rating');
         const notesMessage = fieldMessage(body.details, 'notes');
@@ -217,11 +166,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         return;
       }
 
-      // **Not an error state** (FR-4.2, ERR-2). Another tab, or another device,
-      // filed this interviewer's feedback first. The list has already been
-      // invalidated `onSettled`, so `existing` is on its way; the toast is
-      // informational, the form becomes an edit form, and what was typed here
-      // stays.
+      // Feedback already submitted; load existing entry for editing
       if (body?.code === 'FEEDBACK_ALREADY_SUBMITTED') {
         toast.info(
           'You have already submitted feedback for this round. Your existing entry is loaded for editing.',
@@ -229,26 +174,20 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         return;
       }
 
-      // The round was cancelled while this was open. The form is replaced by the
-      // cancellation line — there is nothing left to submit (FR-3.10, EC-08).
+      // Interview round was cancelled
       if (body?.code === 'INTERVIEW_CANCELLED') {
         toast.error('This interview was cancelled. Feedback can no longer be submitted.');
         onCancelled();
         return;
       }
 
-      // The round is gone, or this interviewer is no longer on it. **No copy
-      // here distinguishes the two** — the API answers them identically and
-      // guessing would hand back exactly what it withheld (ERR-4, FR-6.3). The
-      // detail query was invalidated alongside, so the page resolves itself into
-      // its not-found view.
+      // Interview not found or user is not assigned
       if (error instanceof ApiError && error.status === 404) {
         toast.error('This interview is no longer available.');
         return;
       }
 
-      // A 500 and a dropped connection look the same from here. The form keeps
-      // everything typed (ERR-1, EC-15).
+      // Unexpected error
       toast.error(GENERIC_ERROR_MESSAGE);
       setFormError(GENERIC_ERROR_MESSAGE);
     }
@@ -258,14 +197,11 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <FieldGroup>
         <Field data-invalid={!!errors.rating}>
-          {/* A plain element, not a `<label>`: the control below is a
-              `radiogroup` rather than a single labellable input, so it is
-              associated by `aria-labelledby` instead. */}
+          {/* Label for star rating group */}
           <span id="feedback-rating-label" className="text-sm font-semibold">
             Rating
           </span>
-          {/* A `Controller`, because the control is not an input: it emits a
-              number through `onChange` and cannot produce a string (FE-5). */}
+          {/* Form controller for star rating component */}
           <Controller
             control={control}
             name="rating"
@@ -294,8 +230,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             aria-describedby="feedback-notes-counter"
             {...register('notes')}
           />
-          {/* Silent until the limit is in sight, then counts down. A normal note
-              should not be accompanied by a running tally (VAL-5). */}
+          {/* Character counter shown only when nearing the character limit */}
           <p
             id="feedback-notes-counter"
             className="text-right text-xs text-muted-foreground"

@@ -14,20 +14,7 @@ import {
 import { PipelineFilters } from './PipelineFilters';
 import { PipelineBoardSkeleton, PipelineRoleSection } from './PipelineRoleSection';
 
-/**
- * Whether `GET /api/candidates` exists yet (FR-4.2, EC-13).
- *
- * **It does now.** This was `false` while the drill-down waited on the
- * candidate-access feature, and that feature is the one flipping it — along
- * with rendering the list itself, below. Stage cards with a non-zero count are
- * links again; **a zero-count card is still not one** (FR-3.7, AC-F13 in the
- * pipeline spec, which remains true), because offering to show a recruiter an
- * empty list is an invitation to a dead end.
- *
- * The constant stays rather than being deleted: it is what
- * `PipelineStageCard` takes, and one named switch is clearer than four call
- * sites each deciding for themselves.
- */
+/** Whether the candidate drill-down list is available (controls stage card linking). */
 const DRILL_DOWN_AVAILABLE = true;
 
 interface EmptyStateProps {
@@ -49,30 +36,12 @@ const EmptyState: React.FC<EmptyStateProps> = ({ message, hint, children }) => {
   );
 };
 
-/**
- * The `/pipeline` screen: filters, the board, and every state they can be in.
- *
- * **The only component in this feature that reads `useSearchParams()`** (FE-1,
- * AC-F30) — which is why the route above it supplies the Suspense boundary,
- * without which `next build` fails even though `next dev` does not.
- *
- * Only recruiters get here: `(app)/pipeline/layout.tsx` shows everyone else the
- * app's 404 before this mounts. **That guard is not what protects the data** —
- * `GET /api/pipeline` answers a non-recruiter `403` whether or not this
- * component ever runs (AZ-1, SEC-1), which AC-M02 proves from the console.
- *
- * **One request on mount, one per filter change** (PERF-2). There is no call
- * per role, none per stage, and nothing here fetches candidates to compute a
- * count or an age — both come from the aggregate, which is the whole reason the
- * aggregate exists (FR-8.3).
- */
+/** Pipeline board page with role/stage filters and drill-down. */
 export const PipelineView: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Sanitised before anything is requested, so `?stage=BANANA&roleId=-1`
-  // renders the unfiltered board instead of the 400 the API would rightly
-  // answer (VAL-4, EC-10, AC-F17).
+  // Sanitize URL params before making the request.
   const params = parsePipelineSearchParams(searchParams);
 
   const pipelineQuery = usePipelineQuery(params);
@@ -91,9 +60,7 @@ export const PipelineView: React.FC = () => {
         </p>
       </header>
 
-      {/* Always rendered, in every state below — including the error ones. A
-          recruiter whose request failed should not also lose the filter they
-          set (ERR-1), and the bar stays usable while the first board loads. */}
+      {/* Filters are always visible, even during loading/error states. */}
       <PipelineFilters params={params} roles={roles} />
 
       {pipelineQuery.isPending ? (
@@ -110,9 +77,7 @@ export const PipelineView: React.FC = () => {
           </Button>
         </EmptyState>
       ) : roles.length === 0 ? (
-        // Two empty states, and they are not interchangeable. Telling a
-        // recruiter "no candidates match these filters" when they have set none
-        // is how an empty board becomes indistinguishable from a broken one.
+        // Different empty states for "no filter matches" vs "no roles exist".
         filtered ? (
           <EmptyState message="No candidates match these filters.">
             <Button variant="outline" size="sm" onClick={clearFilters}>
@@ -131,9 +96,7 @@ export const PipelineView: React.FC = () => {
         )
       ) : (
         <div
-          // Dims while a filter change is in flight rather than flashing a
-          // skeleton back, because `placeholderData` keeps the previous board
-          // on screen (PERF-7, AC-F18).
+          // Dims during filter transitions instead of showing a skeleton.
           className={
             pipelineQuery.isFetching ? 'flex flex-col gap-8 opacity-60' : 'flex flex-col gap-8'
           }
@@ -149,14 +112,7 @@ export const PipelineView: React.FC = () => {
         </div>
       )}
 
-      {/* The drill-down. With both filters set a recruiter has asked "who is in
-          this cell?", and `GET /api/candidates` now answers (candidate-access
-          FR-10.1, and the Revision at the head of its spec, which replaces the
-          "Candidate detail is not available yet." placeholder that stood here).
-
-          **One request when a cell is opened, and none while no cell is open**
-          (candidate-access PERF-6, AC-F30): with either filter unset this
-          renders nothing, so there is no query to disable. */}
+      {/* Drill-down list — only rendered when both role and stage filters are set. */}
       {params.roleId !== undefined && params.stage !== undefined && (
         <PipelineDrillDown roleId={params.roleId} stage={params.stage} />
       )}

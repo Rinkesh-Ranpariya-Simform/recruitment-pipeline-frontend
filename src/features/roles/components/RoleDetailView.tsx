@@ -41,22 +41,12 @@ interface RoleDetailViewProps {
   roleId: string;
 }
 
-/**
- * The role detail page and every state it can be in.
- *
- * A client component because the route above it has to `await params` — in
- * Next 16 `params` is a Promise, so the page can't also run the query.
- *
- * Shows title, status, description and both timestamps, which is every field
- * the API returns. Only recruiters get here — `(app)/roles/layout.tsx` shows an
- * interviewer the 404, which is a rendering decision, not a server refusal.
- */
+/** Role detail page showing title, status, description and timestamps. */
 export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
   const { user } = useAuth();
   const router = useRouter();
 
-  // `/roles/abc` never reaches the network — the id is visibly wrong, so the
-  // not-found state renders straight away.
+  // Validate the ID format before making a request.
   const parsedId = parseRoleId(roleId);
   const roleQuery = useRoleQuery(parsedId);
 
@@ -71,7 +61,7 @@ export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
   }
 
   if (roleQuery.isError) {
-    // A 404 means the role is gone; any other error means we couldn't ask.
+    // 404 = role doesn't exist; other errors = request failed.
     if (roleQuery.error instanceof ApiError && roleQuery.error.status === 404) {
       return <RoleNotFound />;
     }
@@ -94,11 +84,7 @@ export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
   const { role } = roleQuery.data;
   const notFoundAfterWrite = () => void roleQuery.refetch();
 
-  /**
-   * After a delete, go back to the list with `replace` rather than `push`: the
-   * role is gone, so leaving this URL in the history would make Back land on a
-   * not-found page.
-   */
+  /** Navigate to list after deletion (replace to avoid dead-end in history). */
   const goToListAfterDelete = () => router.replace('/roles');
 
   return (
@@ -114,15 +100,12 @@ export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            {/* Wraps in full here, unlike the truncated table cell. */}
+  
             <h1 className="text-2xl font-semibold tracking-tight break-words">{role.title}</h1>
             <RoleStatusBadge status={role.status} />
           </div>
 
-          {/*
-            Edit · Close/Reopen · Delete, ordered by how consequential they are.
-            `RoleDeleteAction` renders nothing while the role is open.
-          */}
+          {/* Role management actions: Edit, Close/Reopen, Delete. */}
           {canManage && (
             <div className="flex flex-wrap items-center gap-2">
               <RoleFormDialog mode="edit" role={role} onNotFound={notFoundAfterWrite} />
@@ -139,30 +122,11 @@ export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
 
       <section className="space-y-2">
         <h2 className="text-sm font-medium text-muted-foreground">Description</h2>
-        {/*
-          `whitespace-pre-wrap` handles line breaks. The description is
-          user-supplied content shown to other users, so it stays plain text
-          that React escapes — no markdown renderer, no `dangerouslySetInnerHTML`.
-        */}
+        {/* Plain text with preserved line breaks (no HTML rendering). */}
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{role.description}</p>
       </section>
 
-      {/*
-        The walkthrough's job → applicants step (candidate-access FR-9). It owns
-        its own request, its own `applicantsPage` parameter and its own error
-        state, so a failure here leaves the role above it rendered — a recruiter
-        came to this page for the requisition too (candidate-access ERR-3).
-
-        It renders for recruiters only and asks that question itself rather than
-        inheriting this route's guard, because the API's roles reads are open to
-        any authenticated user (candidate-access FR-9.6, AZ-5).
-
-        Wrapped in `<Suspense>` because it reads `useSearchParams()` for its own
-        page parameter — **without a boundary `next build` fails**, though
-        `next dev` does not (candidate-access FE-1). The fallback is `null`
-        rather than a skeleton: the section renders its own skeleton once it
-        mounts, and a second one underneath would flash.
-      */}
+      {/* Applicants section — wrapped in Suspense for useSearchParams. */}
       <Suspense fallback={null}>
         <RoleApplicants roleId={role.id} />
       </Suspense>
@@ -170,8 +134,7 @@ export const RoleDetailView: React.FC<RoleDetailViewProps> = ({ roleId }) => {
       <dl className="grid gap-4 border-t pt-6 text-sm sm:grid-cols-2">
         <div className="space-y-1">
           <dt className="text-muted-foreground">Created</dt>
-          {/* Absolute date with the relative form alongside — how long a
-              requisition has been open is the thing people scan for. */}
+          {/* Show both absolute and relative timestamps. */}
           <dd>
             {formatAbsolute(role.createdAt)}{' '}
             <span className="text-muted-foreground">({formatRelative(role.createdAt)})</span>

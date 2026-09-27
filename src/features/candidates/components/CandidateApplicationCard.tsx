@@ -23,21 +23,7 @@ interface CandidateRoundBlockProps {
 }
 
 /**
- * One round: its type, stage, date and status, its panel, and its feedback
- * (FR-6.1, FR-6.2, FR-6.3).
- *
- * **`<FeedbackList>` is given `entries`, so it issues no request** (D-7, FE-7,
- * XBE-6). That is the whole reason the feedback feature's list takes an
- * optional `entries` prop: a candidate with five rounds costs **zero** extra
- * calls here rather than five (PERF-2, EC-15, AC-F28).
- *
- * `editable={false}`, because a recruiter did not conduct the interview and may
- * not write or edit an assessment. That is an affordance; the API's `403` on
- * `POST` and `PATCH` is the control.
- *
- * The round links to `/interviews/:applicationId/:interviewId` rather than
- * FR-6.4's `/interviews/{id}`: the recruiter's round route is nested under its
- * application, which is a routing fact this page has in hand.
+ * Renders an individual interview round block with type, status, panel, and feedback.
  */
 const CandidateRoundBlock: React.FC<CandidateRoundBlockProps> = ({ round, applicationId }) => {
   return (
@@ -84,23 +70,7 @@ interface CandidateApplicationCardProps {
 }
 
 /**
- * One application, with everything that happened to it (FR-4.3).
- *
- * The role title, the current stage, the status and the time at that stage;
- * then the **stage timeline** (FR-5), then the application's **rounds** with
- * their panels and their feedback (FR-6).
- *
- * **The Move menu, the override dialog and the schedule dialog are imported
- * from the pipeline and interviews features** (FR-4.4, FE-6). This feature
- * declares no second copy of any of them — a second copy would be a second
- * place for their validation and their error handling to drift, and this page
- * is the schedule dialog's second call site, which the interviews feature
- * already anticipated.
- *
- * **Both write controls are hidden on a terminal application** (FR-6.5, EC-16,
- * AC-F21). That is UX: the API answers a move on a `HIRED` or `REJECTED`
- * application with `409 APPLICATION_NOT_ACTIVE` whether or not the button is on
- * screen, and that `409` is the control (AZ-6).
+ * Application card rendering role, current stage, status, stage history timeline, and interview rounds.
  */
 export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> = ({
   application,
@@ -136,15 +106,7 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
               currentStage={application.currentStage}
               triggerLabel="Schedule interview"
             />
-            {/*
-              `stageOrder` is the four stages in board order. The pipeline
-              feature normally passes the API's own densified array, which this
-              page has no equivalent of — and `PIPELINE_STAGES` is exactly what
-              that array contains, documented there as **display order, not a
-              transition graph**. The menu still asserts no legality: a refused
-              move comes back `409` with `details.allowed`, and the menu
-              rebuilds from that (FE-6, pipeline FE-8).
-            */}
+            {/* Stage move dropdown menu */}
             <StageMoveMenu application={application} stageOrder={PIPELINE_STAGES} />
           </div>
         )}
@@ -154,8 +116,6 @@ export const CandidateApplicationCard: React.FC<CandidateApplicationCardProps> =
 
       <section className="space-y-3">
         <h3 className="text-sm font-medium text-muted-foreground">Stage history</h3>
-        {/* Rendered in the API's order, oldest first, and never re-sorted here
-            (FR-5.1, XBE-5). */}
         <StageTimeline entries={application.stageHistory} />
       </section>
 

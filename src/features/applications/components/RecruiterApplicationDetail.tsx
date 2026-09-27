@@ -16,35 +16,10 @@ import { InterviewRoundCard } from './InterviewRoundCard';
 import { StageTimeline } from './StageTimeline';
 
 /**
- * `/interviews/:applicationId` — **the page a candidate's interview process is
- * run from** (applications FR-4).
- *
- * It sits under `/interviews` rather than `/applications` because that is what
- * it is: the middle of three levels, between the list of candidates in process
- * and one round of one process. `/applications` is the inbox that feeds it, and
- * an application that has not been called yet has nothing on this page to show.
- *
- * Its layout is the answer to "where does this person stand, and what do I do
- * next", top to bottom:
- *
- * 1. **Who, for what, and where** — name, role, stage, status.
- * 2. **Schedule interview**, the one action that belongs to the application
- *    rather than to a round.
- * 3. **The stage transition timeline** — `Applied → Screened (phone screen) →
- *    Interview (technical) → …` — the same nodes a candidate sees on their own
- *    page, built by the same server-side function.
- * 4. **The rounds**, newest last, as cards. Each one opens
- *    `/interviews/:applicationId/:interviewId`, which is where the panel, the
- *    feedback and the Select / Reject pair are.
- *
- * **There is no Select or Reject button on this page, deliberately.** A verdict
- * belongs to a round — it is recorded against the round that produced it — and
- * offering it here would mean asking a recruiter to advance somebody without
- * naming what they passed. The timeline updates from here because the decision
- * made on a round's page moves the application, not the other way round.
+ * Recruiter detail page for an application, showing timeline, rounds, and scheduling actions.
  */
 
-/** The loading state, shaped like the detail layout rather than a spinner. */
+/** Skeleton placeholder for application detail loading state. */
 const DetailSkeleton: React.FC = () => {
   return (
     <div className="flex flex-col gap-8">
