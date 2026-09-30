@@ -481,7 +481,7 @@ Every backend error arrives as an `ApiError` with `status`, `message` and `body:
 - **SEC-4 — Client guards are never the control.** `<RequireAuth>` is UX. The UI must behave correctly when the backend returns `403`, even though the client gates nothing by role itself (AZ-1, FE-7.4). With the routing gate dropped (FE-6), **every** guard in this app is client-side — which changes nothing, because none of them was ever the control.
 - **SEC-4.1 — No account creation in the browser.** The client cannot create a user of any role, because it ships no caller for a creation endpoint and no schema carrying a `role` (FR-6, VAL-2). Privilege escalation through this client is structurally impossible rather than validated against. **The corresponding risk moved to the backend** — `POST /api/auth/signup` is anonymous and role-accepting, and is now the only provisioning path (backend SEC-11.1). Removing the UI did not remove that exposure; it relocated who can reach it.
 - **SEC-5 — No token introspection.** The client never decodes the JWT to read a role or an expiry. Identity comes only from `GET /api/auth/me`.
-- **SEC-6 — No secrets in client config.** Only `NEXT_PUBLIC_API_URL` is exposed. No signing key, no shared secret, no seed password is ever referenced in frontend code.
+- **SEC-6 — No secrets in client config.** Only `API_URL` is exposed. No signing key, no shared secret, no seed password is ever referenced in frontend code.
 - **SEC-7 — No credential in logs or telemetry.** Tokens, passwords and cookie values are never passed to `console.*`, an error boundary's rendered output, or any reporting call.
 - **SEC-8 — Password fields** use `type="password"` with correct `autoComplete` values, and are never echoed into the DOM, a URL, or a query key.
 - **SEC-9 — Flag, don't hide.** If a response carries a field this client should not have received, it is reported as a backend bug rather than filtered in the UI ([../../../CLAUDE.md](../../../CLAUDE.md)).
@@ -623,7 +623,7 @@ It must also be **seeded**, since there is no longer any way to create an accoun
 
 ### Environment variables
 
-`NEXT_PUBLIC_API_URL` already exists (`.env.example` → `http://localhost:3000`) and is unchanged. **No new frontend environment variable is introduced, and no secret is ever placed in one.**
+`API_URL` already exists (`.env.example` → `http://localhost:3000`) and is unchanged. **No new frontend environment variable is introduced, and no secret is ever placed in one.**
 
 ### Modified existing files
 

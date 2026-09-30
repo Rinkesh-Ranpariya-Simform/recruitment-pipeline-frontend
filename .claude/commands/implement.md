@@ -80,7 +80,7 @@ npm run build           # production build (next build)
 npm run dev             # port 3001, for the manual pass
 ```
 
-State what must be running first — the backend on port 3000 (`NEXT_PUBLIC_API_URL`) and a seeded database for any `AC-M*` row.
+State what must be running first — the backend on port 3000 (`API_URL`) and a seeded database for any `AC-M*` row.
 
 Then work the **manual verification table** row by row in the browser with DevTools open. Cover, explicitly:
 

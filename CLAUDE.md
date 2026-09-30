@@ -96,7 +96,7 @@ conditionally renders contact fields based on a client-side role check.
   (see `auth.ts` for the pattern) — validate on the client, but never treat client
   validation as a substitute for the backend's authorization/validation
 - Toasts: `sonner`
-- `npm run dev` runs on port 3001; backend is expected at `NEXT_PUBLIC_API_URL`
+- `npm run dev` runs on port 3001; backend is expected at `API_URL`
   (`.env.example` → `http://localhost:3000`)
 - `npm run lint` / `lint:fix`, `npm run format` / `format:check`
 

@@ -635,7 +635,7 @@ so this route existing first makes those links land somewhere.
 `Skeleton` are already vendored in [`src/components/ui/`](../../../src/components/ui/), and relative
 time uses `Intl.RelativeTimeFormat` (FE-8).
 
-**Environment variables:** none. `NEXT_PUBLIC_API_URL` already exists.
+**Environment variables:** none. `API_URL` already exists.
 
 **Modified existing files**
 

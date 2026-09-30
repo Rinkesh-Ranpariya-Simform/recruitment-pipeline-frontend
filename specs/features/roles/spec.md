@@ -996,7 +996,7 @@ is a local component file, not a dependency.
 
 ### Environment variables
 
-`NEXT_PUBLIC_API_URL` already exists and is unchanged. **No new environment variable, and no secret in one.**
+`API_URL` already exists and is unchanged. **No new environment variable, and no secret in one.**
 
 ### Modified existing files
 

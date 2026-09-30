@@ -1,7 +1,7 @@
 import { clearAccessToken, getAccessToken, setAccessToken } from '@/features/auth/access-token';
 import type { RefreshResponse } from '@/features/auth/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.API_URL
 
 export class ApiError extends Error {
   status: number;
