@@ -1,7 +1,6 @@
 import { clearAccessToken, getAccessToken, setAccessToken } from '@/features/auth/access-token';
 import type { RefreshResponse } from '@/features/auth/types';
 
-const API_URL = process.env.API_URL
 
 export class ApiError extends Error {
   status: number;
@@ -104,7 +103,8 @@ export const apiFetch = async <T>(
   const serializedBody = body !== undefined ? JSON.stringify(body) : undefined;
 
   const attempt = () =>
-    fetch(`${API_URL}${path}`, {
+    // Same-origin: next.config.ts proxies /api/* to the backend.
+    fetch(path, {
       ...init,
       credentials: 'include',
       headers: buildHeaders(headers),

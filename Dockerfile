@@ -15,9 +15,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# The API URL is baked into the client bundle at build time.
-# Override this via --build-arg or in docker-compose.yml.
-ARG API_URL=http://localhost:3000
+# Backend the Next server proxies /api/* to (next.config.ts), baked in at build
+# time. Override this via --build-arg or in docker-compose.yml.
+ARG API_URL=http://backend:3000
 ENV API_URL=$API_URL
 
 RUN npm run build
